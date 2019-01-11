@@ -1,0 +1,36 @@
+{
+  "betterScripts": {
+    "build:dev": {
+      "command": "webpack --config ./build/webpack.config.js"
+    },
+    "build:minified": {
+      "command": "webpack --config ./build/webpack.config.js",
+      "env": {
+        "NODE_ENV": "minified"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=8"
+  },
+  "name": "sequencer",
+  "version": "4.0.2",
+  "scripts": {
+    "build": "better-npm-run build:dev",
+    "build:minified": "better-npm-run build:minified",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "jet",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "better-npm-run": "^0.1.1",
+    "js-synthesizer": "^1.4.1",
+    "ts-project-loader": "^0.1.2",
+    "tslint": "^5.12.0",
+    "typescript": "3.2.1",
+    "typescript-tslint-plugin": "^0.2.1",
+    "webpack": "4.26.1",
+    "webpack-cli": "3.1.2"
+  },
+  "dependencies": {}
+}

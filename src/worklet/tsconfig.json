@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "baseUrl": "..",
+    "charset": "utf-8",
+    "declaration": true,
+    "downlevelIteration": true,
+    "lib": ["es2017"],
+    "newLine": "LF",
+    "module": "es6",
+    "moduleResolution": "node",
+    "paths": {
+      "*": [
+        "./worklet/*",
+        "./common/*",
+        "../reference/*",
+        "../node_modules/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "typescript-tslint-plugin",
+        "alwaysShowRuleFailuresAsWarnings": false,
+        "ignoreDefinitionFiles": true
+      }
+    ],
+    "removeComments": false,
+    "rootDir": "..",
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "stripInternal": true,
+    "target": "es2017",
+    "typeRoots": [
+      "../../typings"
+    ]
+  },
+  "include": [
+    "./**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
