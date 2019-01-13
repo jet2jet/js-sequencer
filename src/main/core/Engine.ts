@@ -583,17 +583,51 @@ function loadFromSMFTrack(
 				}
 				off += smsglen;
 			} else if (msg === 0xF0) {
-				// SysEx
-				// read to 0xF7
-				const startOffset = off - 1;
-				while (b !== 0xF7) {
+				// SysEx (F0 <len> [... F7] (<len> === length of [... F7]))
+				// the first data is length of body
+				let sysExMsgLen = 0;
+				while (b >= 0x80) { // variable-length quantity
 					if (off >= len) {
-						throw new Error(`Not enough data: status = 0x${msg.toString(16)} (offset = ${off.toString()})`);
+						throw new Error(`Not enough data for variable length in SysEx (offset = ${off.toString()})`);
 					}
+					sysExMsgLen += b & 0x7F;
+					sysExMsgLen <<= 7;
 					b = dv.getUint8(off++);
 				}
+				sysExMsgLen += b;
+				if (off > len - sysExMsgLen) {
+					throw new Error(`Not enough data: status = 0x${msg.toString(16)}, len = ${sysExMsgLen} (offset = ${off.toString()})`);
+				}
+				// read the last byte
+				b = dv.getUint8(off + sysExMsgLen - 1);
+				if (b === 0xF7) {
+					// re-generate data with 'F0 <data-with-sysExMsgLen (including F7)>'
+					const sysExData = new Uint8Array(sysExMsgLen + 1);
+					sysExData[0] = 0xF0;
+					sysExData.set(new Uint8Array(trackBuffer, offset + off, sysExMsgLen), 1);
+					addToControlArray(retMControls,
+						new SysExControl(p.numerator, p.denominator, sysExData)
+					);
+				}
+				off += sysExMsgLen;
+			} else if (msg === 0xF7) {
+				// SysEx (F7 <len> ...)
+				// the first data is length of body
+				let sysExMsgLen = 0;
+				while (b >= 0x80) { // variable-length quantity
+					if (off >= len) {
+						throw new Error(`Not enough data for variable length in SysEx (offset = ${off.toString()})`);
+					}
+					sysExMsgLen += b & 0x7F;
+					sysExMsgLen <<= 7;
+					b = dv.getUint8(off++);
+				}
+				sysExMsgLen += b;
+				if (off > len - sysExMsgLen) {
+					throw new Error(`Not enough data: status = 0x${msg.toString(16)}, len = ${sysExMsgLen} (offset = ${off.toString()})`);
+				}
 				addToControlArray(retMControls,
-					new SysExControl(p.numerator, p.denominator, trackBuffer, offset + startOffset, off - startOffset - 1)
+					new SysExControl(p.numerator, p.denominator, trackBuffer, offset + off, sysExMsgLen)
 				);
 			} else {
 				throw new Error(`Unsupported or invalid MIDI message: 0x${msg.toString(16)}`);
@@ -836,8 +870,17 @@ function calcTrackLength(notesAndControls: ISequencerObject[], division: number)
 				len += 5;
 			else if (o instanceof SysMsgControl)
 				len += 3 + o.rawData.byteLength;
-			else if (o instanceof SysExControl)
-				len += 2 + o.rawData.byteLength; // 2: 0xF0 .. 0xF7
+			else if (o instanceof SysExControl) {
+				const rawData = o.rawData;
+				let mlen = rawData.byteLength;
+				// variable-length quantity
+				++len;
+				// tslint:disable-next-line:no-conditional-assignment
+				while (mlen >>= 7) {
+					++len;
+				}
+				len += rawData.byteLength;
+			}
 		}
 		ret += len;
 		before = bf;
@@ -874,15 +917,18 @@ function outputTrackToDataView(
 			// (add 0x80 to the all value but the first value)
 			let dp = 0;
 			while (true) {
-				if (tmpBuf.length === dp)
+				if (tmpBuf.length === dp) {
 					++tmpBuf.length;
+				}
 				tmpBuf[dp] = dt & 0x7F;
-				if (dp > 0)
+				if (dp > 0) {
 					tmpBuf[dp] |= 0x80;
+				}
 				++dp;
 				dt >>= 7;
-				if (!dt)
+				if (!dt) {
 					break;
+				}
 			}
 			for (--dp; dp >= 0; --dp) {
 				dv.setUint8(offset++, tmpBuf[dp]);
@@ -945,9 +991,36 @@ function outputTrackToDataView(
 		} else {
 			bf = null;
 			if (o instanceof SysExControl) {
-				dv.setUint8(offset++, 0xF0);
-				offset = copyUint8ArrayToDataView(dv, offset, o.rawData);
-				dv.setUint8(offset++, 0xF7);
+				let rawOffset = 0;
+				if (o.rawData.length > 0 && o.rawData[0] === 0xF0) {
+					++rawOffset;
+					dv.setUint8(offset++, 0xF0);
+				}
+				// variable-length quantity
+				let rawDataLen = o.rawData.length;
+				{
+					// push the 7-lowest bits of rawDataLen to the array, and output in reverse order
+					// (add 0x80 to the all value but the first value)
+					let dp = 0;
+					while (true) {
+						if (tmpBuf.length === dp) {
+							++tmpBuf.length;
+						}
+						tmpBuf[dp] = rawDataLen & 0x7F;
+						if (dp > 0) {
+							tmpBuf[dp] |= 0x80;
+						}
+						++dp;
+						rawDataLen >>= 7;
+						if (!rawDataLen) {
+							break;
+						}
+					}
+					for (--dp; dp >= 0; --dp) {
+						dv.setUint8(offset++, tmpBuf[dp]);
+					}
+				}
+				offset = copyUint8ArrayToDataView(dv, offset, o.rawData.subarray(rawOffset));
 			} else {
 				dv.setUint8(offset++, 0xFF);
 				if (o instanceof TempoControl) {
