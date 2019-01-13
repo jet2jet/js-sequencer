@@ -99,10 +99,13 @@ export default class PlayerImpl {
 	private queuedFrames: number = 0;
 	private queuedTime: number = 0;
 
-	private sysMsgMap: {
-		[id: number]: Uint8Array
+	private userMsgMap: {
+		[id: number]: {
+			sysEx?: Uint8Array;
+			userEvent?: string;
+		};
 	} = {};
-	private sysMsgMapId: number = 0;
+	private userMsgMapId: number = 0;
 
 	private onRenderMessageBind: PlayerImpl['onRenderMessage'];
 
@@ -246,10 +249,17 @@ export default class PlayerImpl {
 				this.synth.midiAllSoundsOff();
 				this.finishTimer = setTimeout(this.onStopForFinish.bind(this), 2000);
 			} else {
-				const data = this.sysMsgMap[id];
+				const data = this.userMsgMap[id];
 				if (data) {
-					delete this.sysMsgMap[id];
-					this.synth.midiSysEx(data);
+					delete this.userMsgMap[id];
+					if (data.sysEx) {
+						this.synth.midiSysEx(data.sysEx);
+					} else if ('userEvent' in data) {
+						this.postMessage({
+							type: 'user-event',
+							data: data.userEvent!
+						});
+					}
 				}
 			}
 		}
@@ -317,6 +327,9 @@ export default class PlayerImpl {
 				break;
 			case 'sysex':
 				this.onSysEx(data);
+				break;
+			case 'user-event':
+				this.onUserEvent(data);
 				break;
 			case 'finish':
 				this.onFinishMarker(data);
@@ -386,6 +399,8 @@ export default class PlayerImpl {
 		this.eventQueue = [];
 		this.queuedFrames = 0;
 		this.queuedTime = 0;
+		this.userMsgMap = {};
+		this.userMsgMapId = 0;
 		this.startTime = tick;
 		if (data.renderPort) {
 			this.renderPort = data.renderPort;
@@ -475,8 +490,33 @@ export default class PlayerImpl {
 			return;
 		}
 		const bin = new Uint8Array(data.data);
-		const id = this.sysMsgMapId++;
-		this.sysMsgMap[id] = bin;
+		const id = this.userMsgMapId++;
+		this.userMsgMap[id] = { sysEx: bin };
+
+		if (data.time === null) {
+			this.sequencer.sendEventToClientAt(this.myClient, {
+				type: SequencerEventTypes.Timer,
+				data: id
+			}, 0, false);
+		} else {
+			const tick = this.startTime + data.time;
+			this.eventQueue.push({
+				client: this.myClient,
+				data: {
+					type: SequencerEventTypes.Timer,
+					data: id
+				},
+				tick: tick
+			});
+		}
+	}
+
+	private onUserEvent(data: Message.UserEvent) {
+		if (!this.sequencer) {
+			return;
+		}
+		const id = this.userMsgMapId++;
+		this.userMsgMap[id] = { userEvent: data.data };
 
 		if (data.time === null) {
 			this.sequencer.sendEventToClientAt(this.myClient, {

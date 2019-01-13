@@ -55,6 +55,7 @@ export default class PlayerProxy {
 	public onStatus: null | ((status: RenderMessage.StatusData) => void);
 	public onStop: null | (() => void);
 	public onReset: null | (() => void);
+	public onUserData: null | ((data: any) => void);
 
 	private stopPromise: Promise<void>;
 	private stopResolver: null | (() => void);
@@ -65,6 +66,10 @@ export default class PlayerProxy {
 		type: Response.AllTypes['type'];
 		resolve: (data?: any) => void;
 	}>;
+	private userEventData: {
+		[key: string]: { data: any; };
+	} = {};
+	private userEventId: number = 0;
 
 	private constructor(
 		private port: MessagePort,
@@ -79,6 +84,7 @@ export default class PlayerProxy {
 		this.onStatus = null;
 		this.onStop = null;
 		this.onReset = null;
+		this.onUserData = null;
 		port.addEventListener('message', this.onMessage.bind(this));
 		port.start();
 	}
@@ -253,6 +259,18 @@ export default class PlayerProxy {
 		this.port.postMessage(data, [data.data]);
 	}
 
+	public sendUserData(userData: any, time: number) {
+		const id = this.userEventId++;
+		const text = `ud-${id}`;
+		this.userEventData[text] = { data: userData };
+		const data: Message.UserEvent = {
+			type: 'user-event',
+			time: time,
+			data: text
+		};
+		this.port.postMessage(data);
+	}
+
 	public sendFinishMarker(time: number) {
 		const data: Message.FinishMarker = {
 			type: 'finish',
@@ -306,6 +324,9 @@ export default class PlayerProxy {
 					this.onReset();
 				}
 				break;
+			case 'user-event':
+				this.handleUserEvent(data.data);
+				break;
 			default:
 				if (typeof data.id === 'number') {
 					for (let i = 0, len = this.defers.length; i < len; ++i) {
@@ -322,12 +343,25 @@ export default class PlayerProxy {
 	}
 
 	private doStop() {
+		this.userEventData = {};
+		this.userEventId = 0;
 		if (this.stopResolver) {
 			this.stopResolver();
 			this.stopResolver = null;
 		}
 		if (this.onStop) {
 			this.onStop();
+		}
+	}
+
+	private handleUserEvent(data: string) {
+		const d = this.userEventData[data];
+		if (!d) {
+			return;
+		}
+		delete this.userEventData[data];
+		if (this.onUserData) {
+			this.onUserData(d.data);
 		}
 	}
 }

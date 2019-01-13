@@ -1,7 +1,7 @@
 
 import * as JSSynth from 'js-synthesizer';
 
-import { TimeValue } from 'types';
+import { LoopData, TimeValue } from 'types';
 
 import BackgroundChord from 'objects/BackgroundChord';
 import IPositionObject from 'objects/IPositionObject';
@@ -36,6 +36,17 @@ import Options from 'core/playing/Options';
 import PlayerProxy from 'core/playing/PlayerProxy';
 
 import { StatusData } from 'types/RenderMessageData';
+
+interface LoopStatus {
+	start: IPositionObject;
+	end?: IPositionObject | null | undefined;
+	loopCount: number | null;
+	loopIndex: number;
+}
+
+interface UserEventData {
+	type: 'enable-loop';
+}
 
 const enum Constants {
 	PlayVolume = 0.5,
@@ -177,6 +188,8 @@ export default class Player {
 	private queuedNotesTime: number = 0;
 	private queuedNotesBasePos: IPositionObject | null = null;
 	private queuedNotesBaseTime: number = 0;
+	/** True if 'enable loop' event has been occurred */
+	private loopEnabled: boolean = false;
 	private renderedTime: number = 0;
 	private renderedFrames: number = 0;
 	private playedTime: number = 0;
@@ -237,6 +250,7 @@ export default class Player {
 			p.onStatus = player.onStatusPlayer.bind(player);
 			p.onStop = player.onStopPlayer.bind(player);
 			p.onReset = player.onResetPlayer.bind(player);
+			p.onUserData = player.onUserDataPlayer.bind(player);
 			return player;
 		});
 	}
@@ -504,6 +518,17 @@ export default class Player {
 		this.raiseEventReset();
 	}
 
+	private onUserDataPlayer(data: any) {
+		const e: UserEventData = data;
+		if (!e) {
+			return;
+		}
+		if (e.type === 'enable-loop') {
+			// console.log('[Player] loop enabled');
+			this.loopEnabled = true;
+		}
+	}
+
 	private raiseEventPlayQueue(current: number, total: number, playing: number, played: number) {
 		const e = new PlayQueueEventObject(this, current, total, playing, played);
 		for (const fn of this._evtPlayQueue) {
@@ -702,6 +727,7 @@ export default class Player {
 			});
 		}
 
+		this.loopEnabled = false;
 		this.renderedFrames = 0;
 		this.renderedTime = 0;
 		this.playedFrames = 0;
@@ -836,10 +862,16 @@ export default class Player {
 			return 0;
 		}
 
-		const curPos: IPositionObject = { numerator: 0, denominator: 1 };
+		if (!this.queuedNotesBasePos) {
+			this.queuedNotesBasePos = { numerator: 0, denominator: 1 };
+		}
+		if (!this.queuedNotesPos) {
+			this.queuedNotesPos = { numerator: 0, denominator: 1 };
+		}
+		this.queuedNotesTime = 0;
+		this.queuedNotesBaseTime = 0;
+		const curPos = this.queuedNotesPos;
 		let index = 0;
-		const basePos: IPositionObject = { numerator: 0, denominator: 1 };
-		let btime = 0;
 		while (index < notesAndControls.length) {
 			const o = notesAndControls[index];
 			if (o.notePosNumerator * from.denominator >= from.numerator * o.notePosDenominator) {
@@ -849,41 +881,21 @@ export default class Player {
 
 			curPos.numerator = o.notePosNumerator;
 			curPos.denominator = o.notePosDenominator;
-			const curTime = btime + calcTimeExFromSMFTempo(
-				this.tempo, basePos.numerator, basePos.denominator, curPos.numerator, curPos.denominator
-			);
 
-			if (o instanceof TempoControl) {
-				btime = curTime;
-				this.queuedNotesBasePos = { numerator: curPos.numerator, denominator: curPos.denominator };
-				this.tempo = o.value;
-			} else if (o instanceof NoteObject) {
-				++this._allPlayedNoteCount;
-			} else if (o instanceof ControllerControl) {
-				if (o.value1 === 0) { // Bank select MSB
-					const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
-					const val = o.value2 * 0x80;
-					if (typeof ch.bank === 'number') {
-						ch.bank = (ch.bank & 0x7F) + val;
-					} else {
-						ch.bank = val;
-					}
-				} else if (o.value1 === 32) { // Bank select LSB
-					const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
-					const val = o.value2;
-					if (typeof ch.bank === 'number') {
-						ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
-					} else {
-						ch.bank = val;
-					}
-				}
-			} else if (o instanceof ProgramChangeControl) {
-				const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
-				ch.preset = o.value;
-			}
+			this.processObject(o, index, notesAndControls.length, curPos, 0, null, true);
 		}
+		// reset these because the values may be changed in processObject
+		this.queuedNotesTime = 0;
+		this.queuedNotesBaseTime = 0;
+
+		this.queuedNotesPos = { numerator: from.numerator, denominator: from.denominator };
 		this.queuedNotesBasePos = { numerator: from.numerator, denominator: from.denominator };
 		return index;
+	}
+
+	private prepareLoop(_notesAndControls: ISequencerObject[], _loopStatus: LoopStatus) {
+		// enabled at first; disabled on loop
+		this.loopEnabled = true;
 	}
 
 	private doChangeProgram(channel: number, preset: number, timeMilliseconds: number | null, bank?: number) {
@@ -926,29 +938,103 @@ export default class Player {
 	private doRenderNotes(
 		notesAndControls: ISequencerObject[],
 		currentIndex: number,
-		endTime: IPositionObject | null | undefined
+		endTime: IPositionObject | null | undefined,
+		loopStatus?: LoopStatus
 	) {
-		let index = currentIndex;
-		let basePos: IPositionObject = this.queuedNotesBasePos ||
-			(this.queuedNotesBasePos = { numerator: 0, denominator: 1 });
-		const curPos: IPositionObject = this.queuedNotesPos || (this.queuedNotesPos = { numerator: 0, denominator: 1 });
+		if (!this.queuedNotesBasePos) {
+			this.queuedNotesBasePos = { numerator: 0, denominator: 1 };
+		}
+		if (!this.queuedNotesPos) {
+			this.queuedNotesPos = { numerator: 0, denominator: 1 };
+		}
+		const curPos = this.queuedNotesPos;
 
 		this._nextPlayTimerId = null;
 
-		let timeChanged = false;
+		const maxCount = notesAndControls.length;
 		let renderedCount = 0;
+		const oldTime = this.queuedNotesTime;
 
 		while (true) {
 			if (
 				renderedCount >= Constants.MaxEventCountPerRender &&
-				timeChanged
+				this.queuedNotesTime !== oldTime
 			) {
 				break;
 			}
-			if (index >= notesAndControls.length) {
+			if (loopStatus) {
+				let nextPos: IPositionObject | undefined;
+				if (currentIndex < maxCount) {
+					const nextObject = notesAndControls[currentIndex];
+					nextPos = {
+						numerator: nextObject.notePosNumerator,
+						denominator: nextObject.notePosDenominator
+					};
+				}
+				if (loopStatus.loopCount === null || loopStatus.loopIndex < loopStatus.loopCount) {
+					if (
+						(loopStatus.end && nextPos && nextPos.numerator * loopStatus.end.denominator >= loopStatus.end.numerator * nextPos.denominator) ||
+						(currentIndex >= maxCount)
+					) {
+						// if loop-point reached but not enabled, wait for enabling
+						if (!this.loopEnabled) {
+							break;
+						}
+						// --- do loop ---
+						const basePos2: IPositionObject = this.queuedNotesBasePos!;
+						let timeCurrent: number;
+						if (nextPos) {
+							// (in this case loopStatus.end is not null)
+							timeCurrent = this.queuedNotesBaseTime + calcTimeExFromSMFTempo(
+								this.tempo, basePos2.numerator, basePos2.denominator,
+								loopStatus.end!.numerator, loopStatus.end!.denominator
+							);
+							// send stop events for all playing notes
+							while (this.processPlayingNotes());
+							// console.log(`[Player] do loop: next = { ${nextPos.numerator} / ${nextPos.denominator} }, time = ${timeCurrent}`);
+						} else {
+							// send stop events for all playing notes.
+							// In this case the current time must be the all-notes-stopped time
+							while (this.processPlayingNotes());
+							timeCurrent = this.queuedNotesTime;
+							// console.log(`[Player] do loop: next = (last), time = ${timeCurrent}`);
+						}
+						// re-send events before loop-start position
+						currentIndex = this.doLoadAllObjects(notesAndControls, loopStatus.start, timeCurrent);
+						// set current position to loop-start position
+						// (Note: curPos === this.queuedNotesPos)
+						curPos.numerator = loopStatus.start.numerator;
+						curPos.denominator = loopStatus.start.denominator;
+						this.queuedNotesTime = timeCurrent;  // processPlayingNotes may update queuedNotesTime
+						this.queuedNotesBaseTime = timeCurrent;
+						this.queuedNotesBasePos = {
+							numerator: curPos.numerator,
+							denominator: curPos.denominator
+						};
+						this.loopEnabled = false;
+						// increment loop index
+						let doSendNextEnableLoop = false;
+						if (loopStatus.loopCount !== null) {
+							const x = ++loopStatus.loopIndex;
+							if (x < loopStatus.loopCount) {
+								doSendNextEnableLoop = true;
+							}
+						} else {
+							doSendNextEnableLoop = true;
+						}
+						if (doSendNextEnableLoop) {
+							// console.log('[Player] send enable-loop event');
+							this.proxy.sendUserData({
+								type: 'enable-loop'
+							} as UserEventData, this.queuedNotesTime * 1000);
+						}
+					}
+				}
+			}
+			if (currentIndex >= maxCount) {
 				if (this._availablePlayNote) {
 					this._availablePlayNote = false;
-					this.raiseEventPlayAllQueued(notesAndControls.length, this._playingNotes.length, this._allPlayedNoteCount);
+					this.raiseEventPlayAllQueued(maxCount, this._playingNotes.length, this._allPlayedNoteCount);
 				}
 				if (this.processPlayingNotes()) {
 					continue;
@@ -965,62 +1051,117 @@ export default class Player {
 					break;
 				}
 			}
-			const o = notesAndControls[index];
+			const o = notesAndControls[currentIndex];
 
 			if (this.processPlayingNotes(o)) {
 				continue;
 			}
 
-			++index;
+			++currentIndex;
 
 			curPos.numerator = o.notePosNumerator;
 			curPos.denominator = o.notePosDenominator;
-			const oldTime = this.queuedNotesTime;
+			const basePos: IPositionObject = this.queuedNotesBasePos!;
 			const time = this.queuedNotesTime = this.queuedNotesBaseTime + calcTimeExFromSMFTempo(
 				this.tempo, basePos.numerator, basePos.denominator, curPos.numerator, curPos.denominator
 			);
-			timeChanged = time !== oldTime;
+			this.processObject(o, currentIndex, maxCount, curPos, time, endTime);
 
-			if (o instanceof SysExControl) {
-				this.proxy.sendSysEx(o.rawData, time);
-			} else if (o instanceof TempoControl) {
-				// process tempo
-				this.queuedNotesBaseTime = this.queuedNotesTime;
-				this.queuedNotesBasePos = basePos = { numerator: curPos.numerator, denominator: curPos.denominator };
-				this.tempo = o.value;
-			} else if (
-				o instanceof KeySignatureControl ||
-				o instanceof SysMsgControl ||
-				o instanceof TimeSignatureControl
-			) {
-				// do nothing
-			} else if (o instanceof ControllerControl) {
-				if (o.value1 === 0) { // Bank select MSB
-					const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
-					const val = o.value2 * 0x80;
-					if (typeof ch.bank === 'number') {
-						ch.bank = (ch.bank & 0x7F) + val;
-					} else {
-						ch.bank = val;
-					}
-				} else if (o.value1 === 32) { // Bank select LSB
-					const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
-					const val = o.value2;
-					if (typeof ch.bank === 'number') {
-						ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
-					} else {
-						ch.bank = val;
-					}
+			++renderedCount;
+		}
+
+		// if (renderedCount >= Constants.MaxEventCountPerRender) {
+		// 	console.log(`[doRenderNotes] renderedCount is reached to max (${renderedCount})`);
+		// }
+
+		// console.log('doRenderNotes: next index =', index,
+		// 	', queuedNotesTime =', this.queuedNotesTime,
+		// 	', toTime =', toTime);
+		this._nextPlayTimerId = setTimeout(
+			this.doRenderNotes.bind(this, notesAndControls, currentIndex, endTime, loopStatus),
+			5
+		);
+	}
+
+	/** Load all objects and send appropriate MIDI events except for note-on. */
+	private doLoadAllObjects(
+		notesAndControls: ISequencerObject[],
+		stopPosition: IPositionObject,
+		currentTime: number
+	) {
+		if (!this.queuedNotesBasePos) {
+			this.queuedNotesBasePos = { numerator: 0, denominator: 1 };
+		}
+		if (!this.queuedNotesPos) {
+			this.queuedNotesPos = { numerator: 0, denominator: 1 };
+		}
+		const curPos = this.queuedNotesPos;
+		this.queuedNotesTime = currentTime;
+
+		let index = 0;
+		const len = notesAndControls.length;
+		for (; index < len; ++index) {
+			const o = notesAndControls[index];
+			if (stopPosition.numerator * o.notePosDenominator <= stopPosition.denominator * o.notePosNumerator) {
+				break;
+			}
+			curPos.numerator = o.notePosNumerator;
+			curPos.denominator = o.notePosDenominator;
+			this.processObject(o, index + 1, notesAndControls.length, curPos, currentTime, null, true);
+		}
+		return index;
+	}
+
+	private processObject(
+		o: ISequencerObject,
+		index: number,
+		totalObjects: number,
+		curPos: IPositionObject,
+		time: number,
+		endTimePos: IPositionObject | null | undefined,
+		noSound?: boolean
+	) {
+		if (o instanceof SysExControl) {
+			this.proxy.sendSysEx(o.rawData, time);
+		} else if (o instanceof TempoControl) {
+			// process tempo
+			this.queuedNotesBaseTime = this.queuedNotesTime;
+			this.queuedNotesBasePos = { numerator: curPos.numerator, denominator: curPos.denominator };
+			this.tempo = o.value;
+		} else if (
+			o instanceof KeySignatureControl ||
+			o instanceof SysMsgControl ||
+			o instanceof TimeSignatureControl
+		) {
+			// do nothing
+		} else if (o instanceof ControllerControl) {
+			if (o.value1 === 0) { // Bank select MSB
+				const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
+				const val = o.value2 * 0x80;
+				if (typeof ch.bank === 'number') {
+					ch.bank = (ch.bank & 0x7F) + val;
+				} else {
+					ch.bank = val;
 				}
-				this.proxy.sendEvent({
-					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: o.channel,
-					control: o.value1,
-					value: o.value2
-				}, time * 1000);
-			} else if (o instanceof ProgramChangeControl) {
-				this.doChangeProgram(o.channel, o.value, time * 1000);
-			} else if (o instanceof NoteObject) {
+			} else if (o.value1 === 32) { // Bank select LSB
+				const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
+				const val = o.value2;
+				if (typeof ch.bank === 'number') {
+					ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
+				} else {
+					ch.bank = val;
+				}
+			}
+			this.proxy.sendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: o.channel,
+				control: o.value1,
+				value: o.value2
+			}, time * 1000);
+		} else if (o instanceof ProgramChangeControl) {
+			this.doChangeProgram(o.channel, o.value, time * 1000);
+		} else if (o instanceof NoteObject) {
+			if (!noSound) {
 				this.proxy.sendEvent({
 					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
 					channel: o.channel,
@@ -1029,14 +1170,14 @@ export default class Player {
 				}, time * 1000);
 
 				++this._allPlayedNoteCount;
-				this.raiseEventPlayQueue(index, notesAndControls.length, this._playingNotes.length, this._allPlayedNoteCount);
+				this.raiseEventPlayQueue(index, totalObjects, this._playingNotes.length, this._allPlayedNoteCount);
 
 				const stopPos = new PositionObject(o.noteLengthNumerator, o.noteLengthDenominator);
 				stopPos.addPositionMe(curPos);
-				if (endTime) {
-					if (stopPos.numerator * endTime.denominator > endTime.numerator * stopPos.denominator) {
-						stopPos.numerator = endTime.numerator;
-						stopPos.denominator = endTime.denominator;
+				if (endTimePos) {
+					if (stopPos.numerator * endTimePos.denominator > endTimePos.numerator * stopPos.denominator) {
+						stopPos.numerator = endTimePos.numerator;
+						stopPos.denominator = endTimePos.denominator;
 					}
 				}
 				o.playEndPosNum = stopPos.numerator;
@@ -1055,29 +1196,15 @@ export default class Player {
 						}
 					}
 				}
-			} else {
-				try {
-					const ev = makeEventData(o);
-					this.proxy.sendEvent(ev, time * 1000);
-				} catch (_ex) {
-					// do nothing for exception
-				}
 			}
-
-			++renderedCount;
+		} else {
+			try {
+				const ev = makeEventData(o);
+				this.proxy.sendEvent(ev, time * 1000);
+			} catch (_ex) {
+				// do nothing for exception
+			}
 		}
-
-		// if (renderedCount >= Constants.MaxEventCountPerRender) {
-		// 	console.log(`[doRenderNotes] renderedCount is reached to max (${renderedCount})`);
-		// }
-
-		// console.log('doRenderNotes: next index =', index,
-		// 	', queuedNotesTime =', this.queuedNotesTime,
-		// 	', toTime =', toTime);
-		this._nextPlayTimerId = setTimeout(
-			this.doRenderNotes.bind(this, notesAndControls, index, endTime),
-			5
-		);
 	}
 
 	private processPlayingNotes(nextObject?: ISequencerObject) {
@@ -1113,7 +1240,8 @@ export default class Player {
 		from?: IPositionObject | null,
 		to?: IPositionObject | null,
 		timeStartOffset?: TimeValue | null,
-		actx?: BaseAudioContext | null
+		actx?: BaseAudioContext | null,
+		loopData?: LoopData
 	) {
 		this.resetChannel();
 
@@ -1155,7 +1283,19 @@ export default class Player {
 				}
 			});
 
-			this.doRenderNotes(notesAndControls, startIndex, to);
+			const loopCount = loopData && loopData.loopCount;
+			const loopStatus: LoopStatus | undefined = loopData && {
+				start: loopData.start || { numerator: 0, denominator: 1 },
+				end: loopData.end,
+				loopCount: typeof loopCount === 'number' ? loopCount : null,
+				loopIndex: 0
+			};
+
+			if (loopStatus) {
+				this.prepareLoop(notesAndControls, loopStatus);
+			}
+
+			this.doRenderNotes(notesAndControls, startIndex, to, loopStatus);
 		});
 	}
 
@@ -1173,7 +1313,7 @@ export default class Player {
 		if (this._isPlayingSequence) {
 			this.stopSequence();
 		} else {
-			let arr = (part.notes as ISequencerObject[]).concat(part.controls);
+			let arr = (part.notes as ReadonlyArray<ISequencerObject>).concat(part.controls);
 			arr = arr.concat(this.engine.masterControls);
 			if (backgroundChords && backgroundEndPos) {
 				arr = arr.concat(convertBkChordsToNotes(backgroundChords, backgroundEndPos));
@@ -1192,13 +1332,15 @@ export default class Player {
 		this.playPartRange(part, null, null, backgroundChords, backgroundEndPos, actx);
 	}
 
+	/** Play sequence data from engine instance, with start position and end position, etc. */
 	public playSequenceRange(
 		from?: IPositionObject | null,
 		to?: IPositionObject | null,
 		timeStartOffset?: TimeValue | null,
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
-		actx?: BaseAudioContext | null
+		actx?: BaseAudioContext | null,
+		loopData?: LoopData
 	) {
 		if (!isAudioAvailable()) {
 			return;
@@ -1217,12 +1359,13 @@ export default class Player {
 			}
 			sortNotesAndControls(arr);
 
-			this.startPlayData(arr, from, to, timeStartOffset, actx);
+			this.startPlayData(arr, from, to, timeStartOffset, actx, loopData);
 		}
 	}
 
-	public playSequence(actx?: BaseAudioContext | null) {
-		this.playSequenceRange(null, null, void 0, void 0, void 0, actx);
+	/** Play sequence data from engine instance. */
+	public playSequence(actx?: BaseAudioContext | null, loopData?: LoopData) {
+		this.playSequenceRange(null, null, null, null, null, actx, loopData);
 	}
 
 	public playSequenceTimeRange(
@@ -1230,7 +1373,8 @@ export default class Player {
 		timeTo: TimeValue,
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
-		actx?: BaseAudioContext | null
+		actx?: BaseAudioContext | null,
+		loopData?: LoopData
 	) {
 		if (!isAudioAvailable()) {
 			return;
@@ -1257,7 +1401,14 @@ export default class Player {
 			// 	console.log("  Duration: " + r.duration);
 			// }
 
-			this.startPlayData(arr, r && r.from, r && r.to, (r && r.timeStartOffset) || 0, actx);
+			this.startPlayData(
+				arr,
+				r && r.from,
+				r && r.to,
+				(r && r.timeStartOffset) || 0,
+				actx,
+				loopData
+			);
 		}
 	}
 

@@ -48,8 +48,15 @@ export interface Reset extends Base {
 }
 
 /** @internal */
+export interface UserEvent extends Base {
+	id?: never;
+	type: 'user-event';
+	data: string;
+}
+
+/** @internal */
 export type AllTypes = NoResponseMessage | AsyncMessage | LoadSoundfont |
-	Render | RenderedResponse | Status | Reset;
+	Render | RenderedResponse | Status | Reset | UserEvent;
 
 /** @internal */
 export default AllTypes;

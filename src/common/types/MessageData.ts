@@ -99,6 +99,15 @@ export interface SysEx extends Base {
 }
 
 /** @internal */
+export interface UserEvent extends Base {
+	id?: never;
+	type: 'user-event';
+	data: string;
+	/** in milliseconds, or null for send immediately */
+	time: number | null;
+}
+
+/** @internal */
 export interface FinishMarker extends Base {
 	id?: never;
 	type: 'finish';
@@ -108,6 +117,6 @@ export interface FinishMarker extends Base {
 
 /** @internal */
 export type AllTypes = Initialize | Close | Configure | LoadSoundfont | UnloadSoundfont |
-	Start | Stop | Release | Event | SysEx | FinishMarker;
+	Start | Stop | Release | Event | SysEx | UserEvent | FinishMarker;
 /** @internal */
 export default AllTypes;
