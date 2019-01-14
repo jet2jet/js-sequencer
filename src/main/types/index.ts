@@ -13,3 +13,14 @@ export interface LoopData {
 	/** Loop end position (null or undefined or unspecified for end of sequence) */
 	end?: IPositionObject | null | undefined;
 }
+
+export interface FadeoutData {
+	/** Whether fadeout feature is enabled */
+	enabled: boolean;
+	/** Fadeout step; division count for decreasement (default: 10) */
+	step?: number;
+	/** Fadeout start time from last loop (default: 0.0) */
+	startTimeFromLoop?: TimeValue;
+	/** Time (in seconds) for fadeout process (default: 4.0) */
+	fadeoutTime?: TimeValue;
+}

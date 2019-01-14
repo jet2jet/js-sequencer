@@ -78,7 +78,7 @@ export function sortNotesAndControls(arr: ISequencerObject[]) {
 }
 
 /** Returns the time seconds from position 'valFromNum/valFromDen' to 'valToNum/valToDen' */
-export function calcTimeExFromSMFTempo(smfTempo: number, valFromNum: number, valFromDen: number, valToNum: number, valToDen: number): number {
+export function calcTimeExFromSMFTempo(smfTempo: number, valFromNum: number, valFromDen: number, valToNum: number, valToDen: number): TimeValue {
 	// return (240 / (60000000 / smfTempo)) * (valToNum / valToDen - valFromNum / valFromDen);
 	// return (smfTempo) * ((valToNum * valFracFrom - valFromNum * valToDen) / (250000 * valToDen * valFromDen));
 	return ((valToNum * valFromDen - valFromNum * valToDen) * smfTempo) / (250000 * valToDen * valFromDen);
@@ -93,7 +93,7 @@ export function calcHoldTime(
 	fromIndex: number,
 	disableHold: boolean | undefined
 ) {
-	let tm = 0;
+	let tm: TimeValue = 0;
 	const pos = new PositionObject(note.notePosNumerator, note.notePosDenominator);
 	const posTo = pos.addPositionDirect(note.noteLengthNumerator, note.noteLengthDenominator);
 	if (!disableHold) {

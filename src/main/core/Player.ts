@@ -1,7 +1,7 @@
 
 import * as JSSynth from 'js-synthesizer';
 
-import { LoopData, TimeValue } from 'types';
+import { FadeoutData, LoopData, TimeValue } from 'types';
 
 import BackgroundChord from 'objects/BackgroundChord';
 import IPositionObject from 'objects/IPositionObject';
@@ -44,9 +44,37 @@ interface LoopStatus {
 	loopIndex: number;
 }
 
+interface FadeoutStatus {
+	progress: boolean;
+	/** Fadeout step; division count for decreasement */
+	step: number;
+	startTimeFromLoop: TimeValue;
+	fadeoutTime: TimeValue;
+	curStep: number;
+	startTime: TimeValue;
+	nextTime: TimeValue;
+}
+
 interface UserEventData {
 	type: 'enable-loop';
 }
+
+export interface SFontMap {
+	targetBank: number;
+	targetPreset: number;
+	/** soundfont identifier or -1 for default soundfont */
+	sfontId: number;
+	bank: number;
+	preset: number;
+}
+
+interface ChannelStatus {
+	bank?: number;
+	preset?: number;
+	volume: number;
+}
+
+declare var WebAssembly: any;
 
 const enum Constants {
 	PlayVolume = 0.5,
@@ -56,6 +84,11 @@ const enum Constants {
 	SampleRate = 48000,
 	FramesCount = 8192,
 	MaxEventCountPerRender = 50,
+	DefaultFadeoutStep = 10,
+	DefaultFadeoutTime = 4,
+	DefaultFadeoutStartTime = 0,
+
+	InitialVolume = 12800,  // 100 * 0x80
 
 	ChannelCount = 32,
 
@@ -126,21 +159,11 @@ function makeEventData(object: ISequencerObject): JSSynth.SequencerEvent {
 	}
 }
 
-export interface SFontMap {
-	targetBank: number;
-	targetPreset: number;
-	/** soundfont identifier or -1 for default soundfont */
-	sfontId: number;
-	bank: number;
-	preset: number;
+function makeDefaultChannelStatus(): ChannelStatus {
+	return {
+		volume: Constants.InitialVolume
+	};
 }
-
-interface ChannelStatus {
-	bank?: number;
-	preset?: number;
-}
-
-declare var WebAssembly: any;
 
 /**
  * Process and render the sequencer objects.
@@ -185,14 +208,15 @@ export default class Player {
 	private isWorkletLoaded = false;
 
 	private queuedNotesPos: IPositionObject | null = null;
-	private queuedNotesTime: number = 0;
+	private queuedNotesTime: TimeValue = 0;
 	private queuedNotesBasePos: IPositionObject | null = null;
-	private queuedNotesBaseTime: number = 0;
+	private queuedNotesBaseTime: TimeValue = 0;
 	/** True if 'enable loop' event has been occurred */
 	private loopEnabled: boolean = false;
-	private renderedTime: number = 0;
+	private fadeout: FadeoutStatus | null = null;
+	private renderedTime: TimeValue = 0;
 	private renderedFrames: number = 0;
-	private playedTime: number = 0;
+	private playedTime: TimeValue = 0;
 	private playedFrames: number = 0;
 	private tempo: number = 500000; // 60000000 / 120
 	private isAllNotesPlayed: boolean = false;
@@ -898,8 +922,39 @@ export default class Player {
 		this.loopEnabled = true;
 	}
 
-	private doChangeProgram(channel: number, preset: number, timeMilliseconds: number | null, bank?: number) {
-		const ch = this.channels[channel] || (this.channels[channel] = {});
+	private doSetupFadeout(fadeout: FadeoutStatus) {
+		if (fadeout.progress) {
+			return;
+		}
+		fadeout.progress = true;
+		fadeout.startTime = this.queuedNotesTime + fadeout.startTimeFromLoop;
+		fadeout.curStep = 0;
+		fadeout.nextTime = fadeout.startTime + fadeout.fadeoutTime / fadeout.step;
+	}
+
+	private doProcessFadeout(time: TimeValue) {
+		const fadeout = this.fadeout;
+		if (fadeout && fadeout.progress) {
+			while (fadeout.nextTime <= time) {
+				if (!this.doSendFadeoutVolume(fadeout)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private doSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+		if (!this.doProcessFadeout(time)) {
+			return false;
+		}
+
+		this.proxy.sendEvent(ev, time * 1000);
+		return true;
+	}
+
+	private doChangeProgram(channel: number, preset: number, time: TimeValue | null, bank?: number) {
+		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
 		ch.preset = preset;
 		if (typeof bank !== 'undefined') {
 			ch.bank = bank;
@@ -928,11 +983,92 @@ export default class Player {
 				preset: preset
 			};
 		}
-		if (timeMilliseconds === null) {
+		if (time === null) {
 			this.proxy.sendEventNow(ev);
+			return true;
 		} else {
-			this.proxy.sendEvent(ev, timeMilliseconds);
+			return this.doSendEvent(ev, time);
 		}
+	}
+
+	private doProcessVolume(channel: number, isMSB: boolean, value: number, time: number) {
+		if (!this.doProcessFadeout(time)) {
+			return false;
+		}
+
+		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+		let actualValue: number;
+		if (isMSB) {
+			actualValue = (ch.volume & 0x7F) + (value * 0x80);
+		} else {
+			actualValue = Math.floor(ch.volume / 0x80) * 0x80 + value;
+		}
+
+		const fadeout = this.fadeout;
+		if (fadeout && fadeout.progress) {
+			const newValue = Math.floor(actualValue * (fadeout.step - fadeout.curStep) / fadeout.step);
+			// console.log(`[Player] inject volume for fadeout (actual = ${actualValue}, new = ${newValue})`);
+			if (!this.doSendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: 0x07,
+				value: Math.floor(newValue / 0x80)
+			}, time)) {
+				return false;
+			}
+			if (!this.doSendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: 0x27,
+				value: (newValue & 0x7F)
+			}, time)) {
+				return false;
+			}
+		} else {
+			if (!this.doSendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: isMSB ? 0x07 : 0x27,
+				value: value
+			}, time)) {
+				return false;
+			}
+		}
+
+		ch.volume = actualValue;
+
+		return true;
+	}
+
+	private doSendFadeoutVolume(fadeout: FadeoutStatus) {
+		if (fadeout.curStep >= fadeout.step) {
+			return false;
+		}
+		++fadeout.curStep;
+		const time = fadeout.nextTime;
+		const r = (fadeout.step - fadeout.curStep) / fadeout.step;
+
+		fadeout.nextTime = fadeout.startTime + fadeout.fadeoutTime * (fadeout.curStep + 1) / fadeout.step;
+		// console.log(`[Player] fadeout: time = ${time}, next = ${fadeout.nextTime}, rate = ${r}`);
+
+		// (including background-chord channel)
+		for (let channel = 0; channel < Constants.ChannelChordNote; ++channel) {
+			const ch = this.channels[channel];
+			const vol = Math.floor((ch ? ch.volume : Constants.InitialVolume) * r);
+			this.proxy.sendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: 0x07,
+				value: Math.floor(vol / 0x80)
+			}, time * 1000);
+			this.proxy.sendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: 0x27,
+				value: (vol & 0x7F)
+			}, time * 1000);
+		}
+		return true;
 	}
 
 	private doRenderNotes(
@@ -971,7 +1107,7 @@ export default class Player {
 						denominator: nextObject.notePosDenominator
 					};
 				}
-				if (loopStatus.loopCount === null || loopStatus.loopIndex < loopStatus.loopCount) {
+				if (loopStatus.loopCount === null || this.fadeout || loopStatus.loopIndex < loopStatus.loopCount) {
 					if (
 						(loopStatus.end && nextPos && nextPos.numerator * loopStatus.end.denominator >= loopStatus.end.numerator * nextPos.denominator) ||
 						(currentIndex >= maxCount)
@@ -989,16 +1125,13 @@ export default class Player {
 								this.tempo, basePos2.numerator, basePos2.denominator,
 								loopStatus.end!.numerator, loopStatus.end!.denominator
 							);
-							// send stop events for all playing notes
-							while (this.processPlayingNotes());
 							// console.log(`[Player] do loop: next = { ${nextPos.numerator} / ${nextPos.denominator} }, time = ${timeCurrent}`);
 						} else {
-							// send stop events for all playing notes.
-							// In this case the current time must be the all-notes-stopped time
-							while (this.processPlayingNotes());
 							timeCurrent = this.queuedNotesTime;
 							// console.log(`[Player] do loop: next = (last), time = ${timeCurrent}`);
 						}
+						// send stop events for all playing notes
+						this.noteOffAllPlayingNotes(timeCurrent);
 						// re-send events before loop-start position
 						currentIndex = this.doLoadAllObjects(notesAndControls, loopStatus.start, timeCurrent);
 						// set current position to loop-start position
@@ -1017,6 +1150,12 @@ export default class Player {
 						if (loopStatus.loopCount !== null) {
 							const x = ++loopStatus.loopIndex;
 							if (x < loopStatus.loopCount) {
+								doSendNextEnableLoop = true;
+							} else if (this.fadeout && x > loopStatus.loopCount) {
+								// start fadeout (do nothing if already in progress)
+								this.doSetupFadeout(this.fadeout);
+								// act as infinite loop
+								loopStatus.loopCount = null;
 								doSendNextEnableLoop = true;
 							}
 						} else {
@@ -1065,7 +1204,17 @@ export default class Player {
 			const time = this.queuedNotesTime = this.queuedNotesBaseTime + calcTimeExFromSMFTempo(
 				this.tempo, basePos.numerator, basePos.denominator, curPos.numerator, curPos.denominator
 			);
-			this.processObject(o, currentIndex, maxCount, curPos, time, endTime);
+
+			if (!this.processObject(o, currentIndex, maxCount, curPos, time, endTime)) {
+				// force finish playing
+				this.noteOffAllPlayingNotes(this.queuedNotesTime);
+				// disable loop
+				loopStatus = void 0;
+				// mark position to last
+				currentIndex = notesAndControls.length;
+				// continue to check finish
+				continue;
+			}
 
 			++renderedCount;
 		}
@@ -1120,23 +1269,26 @@ export default class Player {
 		time: number,
 		endTimePos: IPositionObject | null | undefined,
 		noSound?: boolean
-	) {
+	): boolean {
 		if (o instanceof SysExControl) {
 			this.proxy.sendSysEx(o.rawData, time);
+			return true;
 		} else if (o instanceof TempoControl) {
 			// process tempo
 			this.queuedNotesBaseTime = this.queuedNotesTime;
 			this.queuedNotesBasePos = { numerator: curPos.numerator, denominator: curPos.denominator };
 			this.tempo = o.value;
+			return true;
 		} else if (
 			o instanceof KeySignatureControl ||
 			o instanceof SysMsgControl ||
 			o instanceof TimeSignatureControl
 		) {
 			// do nothing
+			return true;
 		} else if (o instanceof ControllerControl) {
+			const ch = this.channels[o.channel] || (this.channels[o.channel] = makeDefaultChannelStatus());
 			if (o.value1 === 0) { // Bank select MSB
-				const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
 				const val = o.value2 * 0x80;
 				if (typeof ch.bank === 'number') {
 					ch.bank = (ch.bank & 0x7F) + val;
@@ -1144,65 +1296,71 @@ export default class Player {
 					ch.bank = val;
 				}
 			} else if (o.value1 === 32) { // Bank select LSB
-				const ch = this.channels[o.channel] || (this.channels[o.channel] = {});
 				const val = o.value2;
 				if (typeof ch.bank === 'number') {
 					ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
 				} else {
 					ch.bank = val;
 				}
+			} else if (o.value1 === 7) { // Volume MSB
+				return this.doProcessVolume(o.channel, true, o.value2, time);
+			} else if (o.value1 === 39) { // Volume LSB
+				return this.doProcessVolume(o.channel, false, o.value2, time);
 			}
-			this.proxy.sendEvent({
+			return this.doSendEvent({
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: o.channel,
 				control: o.value1,
 				value: o.value2
-			}, time * 1000);
+			}, time);
 		} else if (o instanceof ProgramChangeControl) {
-			this.doChangeProgram(o.channel, o.value, time * 1000);
+			return this.doChangeProgram(o.channel, o.value, time);
 		} else if (o instanceof NoteObject) {
-			if (!noSound) {
-				this.proxy.sendEvent({
-					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
-					channel: o.channel,
-					key: o.noteValue,
-					vel: o.velocity
-				}, time * 1000);
+			if (noSound) {
+				return true;
+			}
+			const cont = this.doSendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+				channel: o.channel,
+				key: o.noteValue,
+				vel: o.velocity
+			}, time);
 
-				++this._allPlayedNoteCount;
-				this.raiseEventPlayQueue(index, totalObjects, this._playingNotes.length, this._allPlayedNoteCount);
+			++this._allPlayedNoteCount;
+			this.raiseEventPlayQueue(index, totalObjects, this._playingNotes.length, this._allPlayedNoteCount);
 
-				const stopPos = new PositionObject(o.noteLengthNumerator, o.noteLengthDenominator);
-				stopPos.addPositionMe(curPos);
-				if (endTimePos) {
-					if (stopPos.numerator * endTimePos.denominator > endTimePos.numerator * stopPos.denominator) {
-						stopPos.numerator = endTimePos.numerator;
-						stopPos.denominator = endTimePos.denominator;
-					}
+			const stopPos = new PositionObject(o.noteLengthNumerator, o.noteLengthDenominator);
+			stopPos.addPositionMe(curPos);
+			if (endTimePos) {
+				if (stopPos.numerator * endTimePos.denominator > endTimePos.numerator * stopPos.denominator) {
+					stopPos.numerator = endTimePos.numerator;
+					stopPos.denominator = endTimePos.denominator;
 				}
-				o.playEndPosNum = stopPos.numerator;
-				o.playEndPosDen = stopPos.denominator;
+			}
+			o.playEndPosNum = stopPos.numerator;
+			o.playEndPosDen = stopPos.denominator;
 
-				// add note to playing list (sorted with 'playEndPosNum / playEndPosDen')
-				const len = this._playingNotes.length;
-				for (let j = 0; j <= len; ++j) {
-					if (j === len) {
-						this._playingNotes.push(o);
-					} else {
-						const n = this._playingNotes[j];
-						if (o.playEndPosNum * n.playEndPosDen! < n.playEndPosNum! * o.playEndPosDen) {
-							this._playingNotes.splice(j, 0, o);
-							break;
-						}
+			// add note to playing list (sorted with 'playEndPosNum / playEndPosDen')
+			const len = this._playingNotes.length;
+			for (let j = 0; j <= len; ++j) {
+				if (j === len) {
+					this._playingNotes.push(o);
+				} else {
+					const n = this._playingNotes[j];
+					if (o.playEndPosNum * n.playEndPosDen! < n.playEndPosNum! * o.playEndPosDen) {
+						this._playingNotes.splice(j, 0, o);
+						break;
 					}
 				}
 			}
+			return cont;
 		} else {
 			try {
 				const ev = makeEventData(o);
-				this.proxy.sendEvent(ev, time * 1000);
+				return this.doSendEvent(ev, time);
 			} catch (_ex) {
 				// do nothing for exception
+				return true;
 			}
 		}
 	}
@@ -1235,13 +1393,27 @@ export default class Player {
 		return false;
 	}
 
+	private noteOffAllPlayingNotes(timeToOff: TimeValue) {
+		let len = this._playingNotes.length;
+		this._playingNotes.splice(0).forEach((n) => {
+			this.proxy.sendEvent({
+				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+				channel: n.channel,
+				key: n.noteValue,
+				vel: 0
+			}, timeToOff * 1000);
+			this.raiseEventPlayEndNote(--len, this._allPlayedNoteCount);
+		});
+	}
+
 	private startPlayData(
 		notesAndControls: ISequencerObject[],
 		from?: IPositionObject | null,
 		to?: IPositionObject | null,
 		timeStartOffset?: TimeValue | null,
 		actx?: BaseAudioContext | null,
-		loopData?: LoopData
+		loopData?: LoopData,
+		fadeout?: FadeoutData | boolean
 	) {
 		this.resetChannel();
 
@@ -1284,12 +1456,37 @@ export default class Player {
 			});
 
 			const loopCount = loopData && loopData.loopCount;
-			const loopStatus: LoopStatus | undefined = loopData && {
+			let loopStatus: LoopStatus | undefined = loopData && {
 				start: loopData.start || { numerator: 0, denominator: 1 },
 				end: loopData.end,
 				loopCount: typeof loopCount === 'number' ? loopCount : null,
 				loopIndex: 0
 			};
+			const fadeoutData = (typeof fadeout === 'boolean') ?
+				(fadeout ? { enabled: true } : void 0) :
+				fadeout;
+			if (fadeoutData && fadeoutData.enabled) {
+				this.fadeout = {
+					progress: false,
+					step: fadeoutData.step || Constants.DefaultFadeoutStep,
+					startTimeFromLoop: typeof fadeoutData.startTimeFromLoop === 'number' ?
+						fadeoutData.startTimeFromLoop : Constants.DefaultFadeoutStartTime,
+					fadeoutTime: typeof fadeoutData.fadeoutTime === 'number' ?
+						fadeoutData.fadeoutTime : Constants.DefaultFadeoutTime,
+					curStep: 0,
+					startTime: 0,
+					nextTime: 0
+				};
+				if (!loopStatus && fadeoutData) {
+					loopStatus = {
+						start: { numerator: 0, denominator: 1 },
+						loopCount: 0,
+						loopIndex: 0
+					};
+				}
+			} else {
+				this.fadeout = null;
+			}
 
 			if (loopStatus) {
 				this.prepareLoop(notesAndControls, loopStatus);
@@ -1340,7 +1537,8 @@ export default class Player {
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null,
-		loopData?: LoopData
+		loopData?: LoopData,
+		fadeout?: FadeoutData | boolean
 	) {
 		if (!isAudioAvailable()) {
 			return;
@@ -1359,13 +1557,13 @@ export default class Player {
 			}
 			sortNotesAndControls(arr);
 
-			this.startPlayData(arr, from, to, timeStartOffset, actx, loopData);
+			this.startPlayData(arr, from, to, timeStartOffset, actx, loopData, fadeout);
 		}
 	}
 
 	/** Play sequence data from engine instance. */
-	public playSequence(actx?: BaseAudioContext | null, loopData?: LoopData) {
-		this.playSequenceRange(null, null, null, null, null, actx, loopData);
+	public playSequence(actx?: BaseAudioContext | null, loopData?: LoopData, fadeout?: FadeoutData | boolean) {
+		this.playSequenceRange(null, null, null, null, null, actx, loopData, fadeout);
 	}
 
 	public playSequenceTimeRange(
@@ -1374,7 +1572,8 @@ export default class Player {
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null,
-		loopData?: LoopData
+		loopData?: LoopData,
+		fadeout?: FadeoutData | boolean
 	) {
 		if (!isAudioAvailable()) {
 			return;
@@ -1407,7 +1606,8 @@ export default class Player {
 				r && r.to,
 				(r && r.timeStartOffset) || 0,
 				actx,
-				loopData
+				loopData,
+				fadeout
 			);
 		}
 	}
