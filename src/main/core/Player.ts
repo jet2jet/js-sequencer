@@ -202,6 +202,7 @@ export default class Player {
 	private playingNote: NoteObject | null = null;
 	private playingStream: IPlayStream | null = null;
 	private audio: BaseAudioContext | null = null;
+	private audioDest: AudioNode | null = null;
 	private playingNode: AudioNode | null = null;
 	private playingGain: GainNode | null = null;
 	private isNodeConnected = false;
@@ -696,7 +697,7 @@ export default class Player {
 		return Promise.resolve(actx);
 	}
 
-	private prepareForPlay(actx: BaseAudioContext) {
+	private prepareForPlay(actx: BaseAudioContext, dest: AudioNode) {
 		if (this.releasePlayerTimer !== null) {
 			clearTimeout(this.releasePlayerTimer);
 			this.releasePlayerTimer = null;
@@ -716,8 +717,12 @@ export default class Player {
 			let gain = this.playingGain;
 			if (!gain) {
 				gain = this.playingGain = actx.createGain();
-				gain.connect(actx.destination);
 				gain.gain.value = this.masterVolume;
+				this.audioDest = null;
+			}
+			if (this.audioDest !== dest) {
+				gain.connect(dest);
+				this.audioDest = dest;
 				doConnect = true;
 			}
 			let node = this.playingNode;
@@ -760,15 +765,19 @@ export default class Player {
 		this.isAllNotesPlayed = false;
 	}
 
-	public playNote(n: NoteObject, actx?: BaseAudioContext) {
+	public playNote(n: NoteObject, actx?: BaseAudioContext | null, dest?: AudioNode | null) {
 		if (!isAudioAvailable()) {
 			return;
 		}
 		this.stopPlayingNote();
 
+		if (dest) {
+			actx = dest.context;
+		}
+
 		// this.stopPlayer();
 		this.prepareAudioContext(actx).then((a) => {
-			this.prepareForPlay(a);
+			this.prepareForPlay(a, dest || a.destination);
 
 			this.proxy.sendEventNow({
 				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
@@ -800,17 +809,25 @@ export default class Player {
 		}
 	}
 
-	public playNoteMultiple(notes: NoteObject | NoteObject[], actx?: BaseAudioContext) {
+	public playNoteMultiple(
+		notes: NoteObject | NoteObject[],
+		actx?: BaseAudioContext | null,
+		dest?: AudioNode | null
+	) {
 		if (!isAudioAvailable()) {
 			return;
 		}
 
 		const arr = notes instanceof Array ? notes : [notes];
 
+		if (dest) {
+			actx = dest.context;
+		}
+
 		// this.stopPlayer();
 		this.prepareAudioContext(actx).then((a) => {
 			if (!this.isNodeConnected) {
-				this.prepareForPlay(a);
+				this.prepareForPlay(a, dest || a.destination);
 			}
 
 			arr.forEach((n) => {
@@ -1412,6 +1429,7 @@ export default class Player {
 		to?: IPositionObject | null,
 		timeStartOffset?: TimeValue | null,
 		actx?: BaseAudioContext | null,
+		dest?: AudioNode | null,
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
 	) {
@@ -1421,8 +1439,12 @@ export default class Player {
 			throw new Error('Unexpected');
 		}
 
+		if (dest) {
+			actx = dest.context;
+		}
+
 		this.prepareAudioContext(actx).then((a) => {
-			this.prepareForPlay(a);
+			this.prepareForPlay(a, dest || a.destination);
 
 			this._allPlayedNoteCount = 0;
 			this._availablePlayNote = true;
@@ -1537,6 +1559,7 @@ export default class Player {
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null,
+		dest?: AudioNode | null,
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
 	) {
@@ -1557,13 +1580,18 @@ export default class Player {
 			}
 			sortNotesAndControls(arr);
 
-			this.startPlayData(arr, from, to, timeStartOffset, actx, loopData, fadeout);
+			this.startPlayData(arr, from, to, timeStartOffset, actx, dest, loopData, fadeout);
 		}
 	}
 
 	/** Play sequence data from engine instance. */
-	public playSequence(actx?: BaseAudioContext | null, loopData?: LoopData, fadeout?: FadeoutData | boolean) {
-		this.playSequenceRange(null, null, null, null, null, actx, loopData, fadeout);
+	public playSequence(
+		actx?: BaseAudioContext | null,
+		dest?: AudioNode | null,
+		loopData?: LoopData,
+		fadeout?: FadeoutData | boolean
+	) {
+		this.playSequenceRange(null, null, null, null, null, actx, dest, loopData, fadeout);
 	}
 
 	public playSequenceTimeRange(
@@ -1572,6 +1600,7 @@ export default class Player {
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null,
+		dest?: AudioNode | null,
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
 	) {
@@ -1606,6 +1635,7 @@ export default class Player {
 				r && r.to,
 				(r && r.timeStartOffset) || 0,
 				actx,
+				dest,
 				loopData,
 				fadeout
 			);
@@ -1617,14 +1647,17 @@ export default class Player {
 		return this._isPlayingSequence || this.isWaitingForStop;
 	}
 
-	public startPlayer(actx?: BaseAudioContext | null) {
+	public startPlayer(actx?: BaseAudioContext | null, dest?: AudioNode | null) {
 		if (!isAudioAvailable()) {
 			return Promise.reject(new Error('Not supported'));
 		}
 		this.stopPlayingNote();
 
 		this.stopPlayer();
-		return this.prepareAudioContext(actx).then((a) => this.prepareForPlay(a));
+		if (dest) {
+			actx = dest.context;
+		}
+		return this.prepareAudioContext(actx).then((a) => this.prepareForPlay(a, dest || a.destination));
 	}
 
 	private stopPlayer() {
@@ -1667,6 +1700,9 @@ export default class Player {
 		if (this.playingGain) {
 			this.playingGain.disconnect();
 			this.playingGain = null;
+		}
+		if (this.audioDest) {
+			this.audioDest = null;
 		}
 		if (this.audio) {
 			this.audio = null;
