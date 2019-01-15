@@ -1593,10 +1593,10 @@ export default class Engine {
 	public loadFromJSON(text: string): boolean {
 		const obj = _fromJSON(text);
 		if (!obj ||
-			!(typeof (obj.parts) === typeof ([])) ||
-			!(typeof (obj.masterControls) === typeof ([])) ||
-			!(typeof (obj.backgroundChords) === typeof ([])) ||
-			!(typeof (obj.backgroundEndPos) === typeof ([]))) {
+			!(obj.parts instanceof Array) ||
+			!(obj.masterControls instanceof Array) ||
+			!(!obj.backgroundChords || obj.backgroundChords instanceof Array) ||
+			!(!obj.backgroundEndPos || obj.backgroundEndPos instanceof Array)) {
 			return false;
 		}
 

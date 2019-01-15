@@ -3,8 +3,6 @@ import ISequencerObject from 'objects/ISequencerObject';
 
 import Engine from 'core/Engine';
 
-import { isUndefined } from 'functions';
-
 /** @internal */
 export const _objCtors: { [key: string]: typeof ControlObject } = {};
 
@@ -31,21 +29,35 @@ export default class ControlObject implements ISequencerObject {
 	}
 
 	public fromJSONObject(obj: any) {
-		if (!isUndefined(obj.notePosNumerator))
+		this.engine = null;
+		this.parentArray = null;
+		this.idData = 0;
+
+		if (typeof obj.notePosNumerator === 'number') {
 			this.notePosNumerator = obj.notePosNumerator;
-		else
+		} else if (typeof obj.notePos === 'number') {
 			this.notePosNumerator = obj.notePos;
-		if (!isUndefined(obj.notePosDenominator))
+		} else {
+			this.notePosNumerator = 0;
+		}
+		if (typeof obj.notePosDenominator === 'number') {
 			this.notePosDenominator = obj.notePosDenominator;
-		else
+		} else if (typeof obj.notePosFraction === 'number') {
 			this.notePosDenominator = obj.notePosFraction;
+		} else {
+			this.notePosDenominator = 1;
+		}
+		if (!this.notePosDenominator) {
+			this.notePosDenominator = 1;
+		}
 	}
 
 	public attachEngine(engine: Engine) {
 		this.detachEngine();
 		this.engine = engine;
-		if (engine)
+		if (engine) {
 			engine._afterAttachEngine(this);
+		}
 	}
 
 	public detachEngine() {
@@ -67,8 +79,9 @@ export default class ControlObject implements ISequencerObject {
 		return obj instanceof ControlObject;
 	}
 	public isEqualPosition(obj: any) {
-		if (!obj || !(obj instanceof ControlObject))
+		if (!obj || !(obj instanceof ControlObject)) {
 			return false;
+		}
 		return this.notePosNumerator * obj.notePosDenominator ===
 			this.notePosDenominator * obj.notePosNumerator;
 	}
@@ -82,11 +95,16 @@ export default class ControlObject implements ISequencerObject {
 _objCtors.ControlObject = ControlObject;
 
 export function getControlFromJSONObject(obj: any): ControlObject {
-	const ctor = _objCtors[obj.objType] || ControlObject;
+	let t: string = obj.objType || 'ControlObject';
+	// for compatibility
+	if (t === 'EOFObject') {
+		t = 'EOTObject';
+	}
+	const ctor = _objCtors[t] || ControlObject;
 	let ret: ControlObject;
-	if (Object.create)
+	if (Object.create) {
 		ret = Object.create(ctor.prototype) as ControlObject;
-	else {
+	} else {
 		// tslint:disable-next-line:only-arrow-functions no-empty
 		const fn: { prototype: any; new(): any; } = function() { } as typeof Object;
 		fn.prototype = ctor.prototype;

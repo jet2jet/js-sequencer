@@ -17,7 +17,7 @@ export default class EOTObject extends ControlObject {
 
 	public toJSON(): any {
 		return {
-			objType: 'EOFObject',
+			objType: 'EOTObject',
 			notePosNumerator: this.notePosNumerator,
 			notePosDenominator: this.notePosDenominator
 		};
@@ -38,6 +38,6 @@ export default class EOTObject extends ControlObject {
 		return this.equals(obj);
 	}
 	public getText() {
-		return 'EOF';
+		return 'EOT';
 	}
 }
