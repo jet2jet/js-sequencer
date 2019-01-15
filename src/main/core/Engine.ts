@@ -583,7 +583,7 @@ function loadFromSMFTrack(
 				}
 				off += smsglen;
 			} else if (msg === 0xF0) {
-				// SysEx (F0 <len> [... F7] (<len> === length of [... F7]))
+				// SysEx (F0 <len> [...] (<len> === length of [...]))
 				// the first data is length of body
 				let sysExMsgLen = 0;
 				while (b >= 0x80) { // variable-length quantity
@@ -598,17 +598,13 @@ function loadFromSMFTrack(
 				if (off > len - sysExMsgLen) {
 					throw new Error(`Not enough data: status = 0x${msg.toString(16)}, len = ${sysExMsgLen} (offset = ${off.toString()})`);
 				}
-				// read the last byte
-				b = dv.getUint8(off + sysExMsgLen - 1);
-				if (b === 0xF7) {
-					// re-generate data with 'F0 <data-with-sysExMsgLen (including F7)>'
-					const sysExData = new Uint8Array(sysExMsgLen + 1);
-					sysExData[0] = 0xF0;
-					sysExData.set(new Uint8Array(trackBuffer, offset + off, sysExMsgLen), 1);
-					addToControlArray(retMControls,
-						new SysExControl(p.numerator, p.denominator, sysExData)
-					);
-				}
+				// re-generate data with 'F0 <data-with-sysExMsgLen>'
+				const sysExData = new Uint8Array(sysExMsgLen + 1);
+				sysExData[0] = 0xF0;
+				sysExData.set(new Uint8Array(trackBuffer, offset + off, sysExMsgLen), 1);
+				addToControlArray(retMControls,
+					new SysExControl(p.numerator, p.denominator, sysExData)
+				);
 				off += sysExMsgLen;
 			} else if (msg === 0xF7) {
 				// SysEx (F7 <len> ...)
@@ -1333,6 +1329,33 @@ export default class Engine {
 	public getAllNoteValues() {
 		const a = this.getAllNotes();
 		return a.map((note) => note.noteValue);
+	}
+
+	public getSequenceTitleData() {
+		return this.getSequenceTrackName(0);
+	}
+
+	public getSequenceCopyrightData() {
+		return this.getFirstMsgData(0, 2);
+	}
+
+	public getSequenceTrackName(partIndex: number) {
+		return this.getFirstMsgData(partIndex, 3);
+	}
+
+	private getFirstMsgData(partIndex: number, msgType: number) {
+		const part = this.parts[partIndex];
+		if (!part) {
+			return null;
+		}
+		for (const c of part.controls) {
+			if (c instanceof SysMsgControl) {
+				if (c.msgType === msgType) {
+					return c.rawData;
+				}
+			}
+		}
+		return null;
 	}
 
 	public calculatePosition(timeFrom: TimeValue, timeTo: TimeValue, disableHold?: boolean): {
