@@ -68,6 +68,13 @@ export interface Start extends Base {
 }
 
 /** @internal */
+export interface Pause extends Base {
+	id: number;
+	type: 'pause';
+	paused: boolean;
+}
+
+/** @internal */
 export interface Stop extends Base {
 	id?: never;
 	type: 'stop';
@@ -117,6 +124,6 @@ export interface FinishMarker extends Base {
 
 /** @internal */
 export type AllTypes = Initialize | Close | Configure | LoadSoundfont | UnloadSoundfont |
-	Start | Stop | Release | Event | SysEx | UserEvent | FinishMarker;
+	Start | Pause | Stop | Release | Event | SysEx | UserEvent | FinishMarker;
 /** @internal */
 export default AllTypes;

@@ -35,6 +35,14 @@ export interface LoadSoundfont extends Base {
 }
 
 /** @internal */
+export interface Pause extends Base {
+	id: number;
+	type: 'pause';
+	/** paused value */
+	data: boolean;
+}
+
+/** @internal */
 export interface Render extends Base {
 	id?: never;
 	type: 'render';
@@ -56,7 +64,7 @@ export interface UserEvent extends Base {
 
 /** @internal */
 export type AllTypes = NoResponseMessage | AsyncMessage | LoadSoundfont |
-	Render | RenderedResponse | Status | Reset | UserEvent;
+	Pause | Render | RenderedResponse | Status | Reset | UserEvent;
 
 /** @internal */
 export default AllTypes;

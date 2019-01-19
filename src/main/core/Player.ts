@@ -1647,6 +1647,15 @@ export default class Player {
 		return this._isPlayingSequence || this.isWaitingForStop;
 	}
 
+	/**
+	 * Pause or resume rendering frames.
+	 * @param paused true for pause, false for resume
+	 * @return resolved with 'isPaused' value (same value with 'paused' parameter for almost all case)
+	 */
+	public pausePlaying(paused: boolean): Promise<boolean> {
+		return this.proxy.pause(paused);
+	}
+
 	public startPlayer(actx?: BaseAudioContext | null, dest?: AudioNode | null) {
 		if (!isAudioAvailable()) {
 			return Promise.reject(new Error('Not supported'));

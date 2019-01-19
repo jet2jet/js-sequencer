@@ -40,45 +40,63 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 
 	let isPrerendering = true;
 	let isRendering = true;
+	let isPaused = false;
 
 	const listener = (e: MessageEvent) => {
 		const data: RenderMessage.AllTypes = e.data;
 		if (!data) {
 			return;
 		}
-		if (data.type === 'render') {
-			queue.pushFrames(data.data);
-			if (isPrerendering) {
-				if (queue.getFrameCountInQueue() >= prerenderFrames) {
-					// console.log('Prerender finished', queue.getFrameCountInQueue());
-					isPrerendering = false;
-				}
-			}
+		switch (data.type) {
+			case 'render':
+				{
+					queue.pushFrames(data.data);
+					if (isPrerendering) {
+						if (queue.getFrameCountInQueue() >= prerenderFrames) {
+							// console.log('Prerender finished', queue.getFrameCountInQueue());
+							isPrerendering = false;
+						}
+					}
 
-			const s: RenderMessage.RenderedResponse = {
-				type: 'rendered',
-				data: {
-					outFrames: data.data[0].byteLength / 4,
-					sampleRate: rate,
-					isQueueEmpty: false
-				}
-			};
-			port1.postMessage(s);
+					const s: RenderMessage.RenderedResponse = {
+						type: 'rendered',
+						data: {
+							outFrames: data.data[0].byteLength / 4,
+							sampleRate: rate,
+							isQueueEmpty: false
+						}
+					};
+					port1.postMessage(s);
 
-			if (queue.getFrameCountInQueue() >= maxQueueFrames) {
-				isRendering = false;
+					if (queue.getFrameCountInQueue() >= maxQueueFrames) {
+						isRendering = false;
+						port1.postMessage({
+							type: 'queue',
+							data: { pause: true }
+						} as RenderMessage.QueueControl);
+					}
+				}
+				break;
+			case 'pause':
+				isPaused = !!data.data.paused;
 				port1.postMessage({
-					type: 'queue',
-					data: { pause: true }
-				} as RenderMessage.QueueControl);
-			}
-		} else if (data.type === 'stop') {
-			queue.clear();
-			frameBuffers[0].fill(0);
-			frameBuffers[1].fill(0);
-		} else if (data.type === 'release') {
-			port1.removeEventListener('message', listener);
-			port1.close();
+					type: 'pause',
+					data: {
+						id: data.data.id,
+						paused: isPaused
+					}
+				} as RenderMessage.Pause);
+				break;
+			case 'stop':
+				queue.clear();
+				frameBuffers[0].fill(0);
+				frameBuffers[1].fill(0);
+				isPaused = false;
+				break;
+			case 'release':
+				port1.removeEventListener('message', listener);
+				port1.close();
+				break;
 		}
 	};
 
@@ -86,7 +104,7 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 	port1.start();
 
 	node.onaudioprocess = (e) => {
-		if (isPrerendering) {
+		if (isPrerendering || isPaused) {
 			frameBuffers[0].fill(0);
 			frameBuffers[1].fill(0);
 			e.outputBuffer.copyToChannel(frameBuffers[0], 0);

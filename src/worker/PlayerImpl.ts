@@ -316,6 +316,9 @@ export default class PlayerImpl {
 			case 'start':
 				this.onStart(data);
 				break;
+			case 'pause':
+				this.onPause(data);
+				break;
 			case 'stop':
 				this.onStop();
 				break;
@@ -412,6 +415,25 @@ export default class PlayerImpl {
 		this.synth.setChannelType(15, this.channel16IsDrums);
 
 		this.doStartTimer();
+	}
+
+	private onPause(data: Message.Pause) {
+		if (!this.renderPort) {
+			this.postMessage({
+				type: data.type,
+				id: data.id,
+				data: false
+			});
+			return;
+		} else {
+			this.renderPort.postMessage({
+				type: 'pause',
+				data: {
+					id: data.id,
+					paused: data.paused
+				}
+			} as RenderMessage.Pause);
+		}
 	}
 
 	private async onStop() {
@@ -579,6 +601,13 @@ export default class PlayerImpl {
 				break;
 			case 'queue':
 				this.pauseRender = data.data.pause;
+				break;
+			case 'pause':
+				this.postMessage({
+					type: 'pause',
+					id: data.data.id,
+					data: data.data.paused
+				});
 				break;
 		}
 	}

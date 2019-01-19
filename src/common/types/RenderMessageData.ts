@@ -20,14 +20,12 @@ export interface Render extends Base {
 
 /** @internal */
 export interface RenderedResponse extends Base {
-	id?: never;
 	type: 'rendered';
 	data: StatusData;
 }
 
 /** @internal */
 export interface Status extends Base {
-	id?: never;
 	type: 'status';
 	data: StatusData;
 }
@@ -37,6 +35,15 @@ export interface QueueControl extends Base {
 	type: 'queue';
 	data: {
 		pause: boolean;
+	};
+}
+
+/** @internal */
+export interface Pause extends Base {
+	type: 'pause';
+	data: {
+		id: number;
+		paused: boolean;
 	};
 }
 
@@ -53,7 +60,8 @@ export interface Release extends Base {
 }
 
 /** @internal */
-export type AllTypes = Render | RenderedResponse | Status | QueueControl | Stop | Release;
+export type AllTypes = Render | RenderedResponse | Status | QueueControl |
+	Pause | Stop | Release;
 
 /** @internal */
 export default AllTypes;

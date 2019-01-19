@@ -9,6 +9,7 @@ class Processor extends AudioWorkletProcessor {
 	private queue = new FrameQueue();
 
 	private isPrerendering = true;
+	private isPaused = false;
 	private isRendering = true;
 	private prerenderFrames: number;
 	private maxQueueFrames: number;
@@ -26,7 +27,7 @@ class Processor extends AudioWorkletProcessor {
 	}
 
 	public process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
-		if (this.isPrerendering) {
+		if (this.isPrerendering || this.isPaused) {
 			return true;
 		}
 
@@ -62,36 +63,53 @@ class Processor extends AudioWorkletProcessor {
 		if (!data) {
 			return;
 		}
-		if (data.type === 'render') {
-			const queue = this.queue;
-			queue.pushFrames(data.data);
-			if (this.isPrerendering) {
-				if (queue.getFrameCountInQueue() >= this.prerenderFrames) {
-					this.isPrerendering = false;
-				}
-			}
+		switch (data.type) {
+			case 'render':
+				{
+					const queue = this.queue;
+					queue.pushFrames(data.data);
+					if (this.isPrerendering) {
+						if (queue.getFrameCountInQueue() >= this.prerenderFrames) {
+							this.isPrerendering = false;
+						}
+					}
 
-			const s: RenderMessage.RenderedResponse = {
-				type: 'rendered',
-				data: {
-					outFrames: data.data[0].byteLength / 4,
-					sampleRate: sampleRate,
-					isQueueEmpty: false
-				}
-			};
-			this.port.postMessage(s);
+					const s: RenderMessage.RenderedResponse = {
+						type: 'rendered',
+						data: {
+							outFrames: data.data[0].byteLength / 4,
+							sampleRate: sampleRate,
+							isQueueEmpty: false
+						}
+					};
+					this.port.postMessage(s);
 
-			if (queue.getFrameCountInQueue() >= this.maxQueueFrames) {
-				this.isRendering = false;
+					if (queue.getFrameCountInQueue() >= this.maxQueueFrames) {
+						this.isRendering = false;
+						this.port.postMessage({
+							type: 'queue',
+							data: { pause: true }
+						} as RenderMessage.QueueControl);
+					}
+				}
+				break;
+			case 'pause':
+				this.isPaused = !!data.data.paused;
 				this.port.postMessage({
-					type: 'queue',
-					data: { pause: true }
-				} as RenderMessage.QueueControl);
-			}
-		} else if (data.type === 'stop') {
-			this.queue.clear();
-		} else if (data.type === 'release') {
-			this.port.close();
+					type: 'pause',
+					data: {
+						id: data.data.id,
+						paused: this.isPaused
+					}
+				} as RenderMessage.Pause);
+				break;
+			case 'stop':
+				this.queue.clear();
+				this.isPaused = false;
+				break;
+			case 'release':
+				this.port.close();
+				break;
 		}
 	}
 }

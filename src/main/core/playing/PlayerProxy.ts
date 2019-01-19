@@ -204,6 +204,17 @@ export default class PlayerProxy {
 		});
 	}
 
+	public pause(isPaused: boolean) {
+		const data: Message.Pause = {
+			id: this.msgId++,
+			type: 'pause',
+			paused: isPaused
+		};
+		const ret = this.addDefer(data.id, 'pause');
+		this.port.postMessage(data);
+		return ret;
+	}
+
 	public stop() {
 		this.port.postMessage({ type: 'stop' } as Message.Stop);
 	}
