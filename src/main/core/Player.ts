@@ -23,6 +23,7 @@ import PlayEndNoteEventObject from 'events/PlayEndNoteEventObject';
 import PlayerEventObjectMap from 'events/PlayerEventObjectMap';
 import PlayQueueEventObject from 'events/PlayQueueEventObject';
 import PlayStatusEventObject from 'events/PlayStatusEventObject';
+import PlayUserEventObject from 'events/PlayUserEventObject';
 import SimpleEventObject from 'events/SimpleEventObject';
 
 import { isAudioAvailable, loadBinaryFromFile } from 'functions';
@@ -56,7 +57,8 @@ interface FadeoutStatus {
 }
 
 interface UserEventData {
-	type: 'enable-loop';
+	type: string;
+	data: any;
 }
 
 export interface SFontMap {
@@ -197,6 +199,7 @@ export default class Player {
 	private _evtPlayAllQueued: Array<(e: PlayQueueEventObject) => void> = [];
 	private _evtStopped: Array<(e: SimpleEventObject<Player>) => void> = [];
 	private _evtReset: Array<(e: SimpleEventObject<Player>) => void> = [];
+	private _evtPlayUserEvent: Array<(e: PlayUserEventObject) => void> = [];
 
 	private playOptions: Options = {};
 	private playingNote: NoteObject | null = null;
@@ -205,6 +208,7 @@ export default class Player {
 	private audioDest: AudioNode | null = null;
 	private playingNode: AudioNode | null = null;
 	private playingGain: GainNode | null = null;
+	private _isPlayerRunning: boolean = false;
 	private isNodeConnected = false;
 	private isWorkletLoaded = false;
 
@@ -226,6 +230,14 @@ export default class Player {
 	private constructor(engine: Engine, proxy: PlayerProxy) {
 		this.engine = engine;
 		this.proxy = proxy;
+		proxy.onQueued = this.onQueuedPlayer.bind(this);
+		proxy.onStatus = this.onStatusPlayer.bind(this);
+		proxy.onStop = this.onStopPlayer.bind(this);
+		proxy.onReset = this.onResetPlayer.bind(this);
+		proxy.onUserData = this.onUserDataPlayer.bind(this);
+
+		// for sequencer
+		this.addEventHandler('playuserevent', (e) => this.onPlayUserEvent(e));
 	}
 
 	public static isSupported() {
@@ -269,17 +281,13 @@ export default class Player {
 		}
 		return PlayerProxy.instantiate(
 			shareWorker, workerJs, depsJs, interval, framesCount, sampleRate, Constants.ChannelChordNote
-		).then((p) => {
-			const player = new Player(engine, p);
-			p.onQueued = player.onQueuedPlayer.bind(player);
-			p.onStatus = player.onStatusPlayer.bind(player);
-			p.onStop = player.onStopPlayer.bind(player);
-			p.onReset = player.onResetPlayer.bind(player);
-			p.onUserData = player.onUserDataPlayer.bind(player);
-			return player;
-		});
+		).then((p) => new Player(engine, p));
 	}
 
+	/**
+	 * Close and release the player.
+	 * After called, all methods will not be usable and those behavior will be undefined.
+	 */
 	public close() {
 		this.proxy.close();
 	}
@@ -548,10 +556,7 @@ export default class Player {
 		if (!e) {
 			return;
 		}
-		if (e.type === 'enable-loop') {
-			// console.log('[Player] loop enabled');
-			this.loopEnabled = true;
-		}
+		this.raiseEventPlayUserEvent(e.type, e.data);
 	}
 
 	private raiseEventPlayStatus(current: number, sampleRate: number) {
@@ -560,6 +565,16 @@ export default class Player {
 			fn(e);
 			if (e.isPropagationStopped())
 				break;
+		}
+		return !e.isDefaultPrevented();
+	}
+	private raiseEventPlayUserEvent(type: string, data: any) {
+		const e = new PlayUserEventObject(this, type, data);
+		for (const fn of this._evtPlayUserEvent) {
+			fn(e);
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -590,16 +605,19 @@ export default class Player {
 	public addEventHandler<T extends keyof PlayerEventObjectMap>(
 		name: T, fn: (e: PlayerEventObjectMap[T]) => void
 	): void {
-		let arr: any[] | null = null;
+		let arr: any[] | undefined;
 		switch (name.toLowerCase()) {
 			case 'reset': arr = this._evtReset; break;
 			case 'stopped': arr = this._evtStopped; break;
 			case 'playqueue': arr = this._evtPlayQueue; break;
 			case 'playstatus': arr = this._evtPlayStatus; break;
+			case 'playuserevent': arr = this._evtPlayUserEvent; break;
 			case 'playendnote': arr = this._evtPlayEndNote; break;
 			case 'playallqueued': arr = this._evtPlayAllQueued; break;
 		}
-		if (!arr) return;
+		if (!arr) {
+			return;
+		}
 		arr.push(fn);
 	}
 	/**
@@ -616,6 +634,7 @@ export default class Player {
 			case 'stopped': arr = this._evtStopped; break;
 			case 'playqueue': arr = this._evtPlayQueue; break;
 			case 'playstatus': arr = this._evtPlayStatus; break;
+			case 'playuserevent': arr = this._evtPlayUserEvent; break;
 			case 'playendnote': arr = this._evtPlayEndNote; break;
 			case 'playallqueued': arr = this._evtPlayAllQueued; break;
 		}
@@ -729,6 +748,8 @@ export default class Player {
 			});
 		}
 
+		this._isPlayerRunning = true;
+
 		this.loopEnabled = false;
 		this.renderedFrames = 0;
 		this.renderedTime = 0;
@@ -738,7 +759,14 @@ export default class Player {
 		this.isAllNotesPlayed = false;
 	}
 
-	public sendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+	/**
+	 * Send a sequencer event, especially MIDI-based event.
+	 * @param ev an event data
+	 * @param time time to render the event or null to send immediately
+	 * @return true if the event is sent, or false if not
+	 *     (indicating render process has been stopped)
+	 */
+	public sendEvent(ev: JSSynth.SequencerEvent, time?: TimeValue | null | undefined) {
 		switch (ev.type) {
 			case JSSynth.EventType.ProgramChange:
 				return this.doChangeProgram(ev.channel, ev.preset, time);
@@ -753,14 +781,68 @@ export default class Player {
 		return this.doSendEvent({ ...ev }, time);
 	}
 
+	/**
+	 * Send a user-defined event to sequencer.
+	 * 'playuserevent' event will be raised when the user-defined event is
+	 * to be rendered.
+	 * @param type user-defined event type
+	 * @param time time to render the event (null/undefined is not allowed)
+	 * @param data any data for the event
+	 */
+	public sendUserEvent(type: string, time: TimeValue, data?: any) {
+		this.proxy.sendUserData({
+			type: type,
+			data: data
+		} as UserEventData, time * 1000);
+	}
+
+	/**
+	 * Send a 'finish' event to tell that render process has finished.
+	 * After this, 'stopped' event will be raised.
+	 */
+	public sendFinish(time: TimeValue) {
+		this.proxy.sendFinishMarker(time * 1000);
+	}
+
+	/**
+	 * Send 'change program' event to the sequencer.
+	 * @param channel MIDI channel number
+	 * @param preset program/preset number
+	 * @param bank bank number (null or undefined to use the current bank number)
+	 * @param time time to render the event or null to send immediately
+	 * @return true if the event is sent, or false if not
+	 *     (indicating render process has been stopped)
+	 */
 	public changeProgram(channel: number, preset: number, bank?: number | null, time?: TimeValue | null) {
 		return this.doChangeProgram(channel, preset, time, bank);
 	}
 
-	public changeVolume(channel: number, isMSB: boolean, value: number, time: TimeValue): boolean;
-	public changeVolume(channel: number, value: number, time: TimeValue): boolean;
+	/**
+	 * Send 'change volume' event to the sequencer.
+	 * @param channel MIDI channel number
+	 * @param isMSB true if the value is for MSB, or false if for LSB
+	 * @param value the volume value (0-127)
+	 * @param time time time to render the event or null to send immediately
+	 * @return true if the event is sent, or false if not
+	 *     (indicating render process has been stopped)
+	 */
+	public changeVolume(channel: number, isMSB: boolean, value: number, time?: TimeValue | null | undefined): boolean;
+	/**
+	 * Send 'change volume' event to the sequencer.
+	 * @param channel MIDI channel number
+	 * @param value the volume value (0-16383)
+	 * @param time time time to render the event or null to send immediately
+	 * @return true if the event is sent, or false if not
+	 *     (indicating render process has been stopped)
+	 */
+	public changeVolume(channel: number, value: number, time?: TimeValue | null | undefined): boolean;
 
-	public changeVolume(channel: number, arg2: boolean | number, arg3: number | TimeValue, arg4?: TimeValue): boolean {
+	public changeVolume(
+		channel: number,
+		arg2: boolean | number,
+		arg3?: number | TimeValue | null | undefined,
+		arg4?: TimeValue | null | undefined
+	): boolean {
 		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
 		let actualValue: number;
 		if (typeof arg2 === 'number') {
@@ -773,7 +855,7 @@ export default class Player {
 				control: 0x07,
 				value: Math.floor(arg2 / 0x80)
 			};
-			if (!this.doSendEvent(ev, arg3)) {
+			if (!this.doSendEvent(ev, arg3 as (TimeValue | null | undefined))) {
 				return false;
 			}
 			ev = {
@@ -782,26 +864,27 @@ export default class Player {
 				control: 0x27,
 				value: (arg2 & 0x7F)
 			};
-			if (!this.doSendEvent(ev, arg3)) {
+			if (!this.doSendEvent(ev, arg3 as (TimeValue | null | undefined))) {
 				return false;
 			}
 		} else {
 			// arg2: isMSB (boolean)
 			// arg3: value (number)
 			// arg4: time (TimeValue)
+			const value = arg3 as number;
 			if (arg2) {
-				actualValue = (ch.volume & 0x7F) + (arg3 * 0x80);
+				actualValue = (ch.volume & 0x7F) + (value * 0x80);
 			} else {
-				actualValue = Math.floor(ch.volume / 0x80) * 0x80 + arg3;
+				actualValue = Math.floor(ch.volume / 0x80) * 0x80 + value;
 			}
 
 			const ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: channel,
 				control: arg2 ? 0x07 : 0x27,
-				value: arg3
+				value: value
 			};
-			if (!this.doSendEvent(ev, arg4!)) {
+			if (!this.doSendEvent(ev, arg4)) {
 				return false;
 			}
 		}
@@ -811,12 +894,16 @@ export default class Player {
 		return true;
 	}
 
-	private doSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+	private doSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue | null | undefined) {
 		if (!this.preSendEvent(ev, time)) {
 			return false;
 		}
 
-		this.proxy.sendEvent(ev, time * 1000);
+		if (typeof time === 'undefined' || time === null) {
+			this.proxy.sendEventNow(ev);
+		} else {
+			this.proxy.sendEvent(ev, time * 1000);
+		}
 		return true;
 	}
 
@@ -856,12 +943,7 @@ export default class Player {
 				preset: preset
 			};
 		}
-		if (typeof time !== 'number') {
-			this.proxy.sendEventNow(ev);
-			return true;
-		} else {
-			return this.doSendEvent(ev, time);
-		}
+		return this.doSendEvent(ev, time);
 	}
 
 	/**
@@ -883,7 +965,6 @@ export default class Player {
 		if (!isAudioAvailable()) {
 			return Promise.reject(new Error('Not supported'));
 		}
-		this.stopPlayingNote();
 
 		this.stopPlayer();
 		if (dest) {
@@ -892,10 +973,14 @@ export default class Player {
 		return this.prepareAudioContext(actx).then((a) => this.prepareForPlay(a, dest || a.destination));
 	}
 
-	private stopPlayer() {
-		if (this.releasePlayerTimer) {
+	/**
+	 * Stop rendering MIDI events for player engine.
+	 */
+	public stopPlayer() {
+		if (!this._isPlayerRunning) {
 			return;
 		}
+		this._isPlayerRunning = false;
 		this.proxy.stop();
 		if (this.playingNode) {
 			this.playingNode.disconnect();
@@ -908,13 +993,25 @@ export default class Player {
 		}
 	}
 
+	/**
+	 * Return whether the player is running (rendering).
+	 */
+	public isPlayerRunning() {
+		return this._isPlayerRunning;
+	}
+
 	private setReleaseTimer() {
 		this.releasePlayerTimer = setTimeout(
-			this.releasePlayerCallback.bind(this),
+			this._releasePlayerCallback.bind(this),
 			Constants.StopWaitTime * 1000
 		);
 	}
 
+	/**
+	 * Release render-related objects explicitly.
+	 * Note that the release process will be done automatically 5 seconds after when stopped.
+	 * @param resetSynth true to release internal synthesizer instance
+	 */
 	public releasePlayer(resetSynth?: boolean) {
 		this.preReleasePlayer();
 		if (this.releasePlayerTimer !== null) {
@@ -946,15 +1043,24 @@ export default class Player {
 		}
 	}
 
-	private releasePlayerCallback() {
+	private _releasePlayerCallback() {
 		this.releasePlayerTimer = null;
 		this.releasePlayer();
 	}
 
+	/**
+	 * Return the current master volume for output with Web Audio.
+	 */
 	public getMasterVolume() {
 		return this.masterVolume;
 	}
 
+	/**
+	 * Set the master volume for output with Web Audio.
+	 * This value does not affect to the render process with IPlayStream.
+	 * When the render process is running, the volume value is updated immediately.
+	 * @param value the volume/gain value (usually from 0.0 to 1.0, initial value is 0.5)
+	 */
 	public setMasterVolume(value: number) {
 		this.masterVolume = value;
 		if (this.playingGain) {
@@ -962,12 +1068,21 @@ export default class Player {
 		}
 	}
 
+	/**
+	 * Return whether the MIDI channel 16 (15 for zero-based index) is the drums part.
+	 */
 	public isChannel16IsDrums() {
 		return this.channel16IsDrums;
 	}
 
+	/**
+	 * Set whether the MIDI channel 16 (15 for zero-based index) is the drums part.
+	 * This method does not update the configuration if the render process is running.
+	 * @param value true if the MIDI channel 16 is the drums part
+	 * @return a Promise object that resolves when the configuration has done
+	 */
 	public setChannel16IsDrums(value: boolean) {
-		if (this._isPlayingSequence) {
+		if (this._isPlayerRunning) {
 			return Promise.resolve();
 		}
 		return this.proxy.configure({
@@ -990,18 +1105,36 @@ export default class Player {
 		this.isWorkletLoaded = false;
 	}
 
+	/**
+	 * Set the audio frame count for render process.
+	 */
 	public setRenderFrameCount(count: number) {
 		return this.proxy.configure({
 			framesCount: count
 		});
 	}
 
+	/**
+	 * Set the gain value of the internal synthesizer.
+	 * Unlike setMasterVolume, this value affects to the render process with IPlayStream.
+	 * When the render process is running, the update process of
+	 * the volume value is delayed and does not reflect to already rendered frames.
+	 * @param value the gain value (usually from 0.0 to 1.0)
+	 * @return a Promise object that resolves when the configuration has done
+	 */
 	public setSynthGain(value: number) {
 		return this.proxy.configure({
 			gain: value
 		});
 	}
 
+	/**
+	 * Set the user-defined output stream.
+	 * If the stream is set, the render process will use it instead of Web Audio.
+	 * When the render process is running, the stream will not be used until
+	 * the playing is stopped.
+	 * @param stream the output stream or null to reset
+	 */
 	public setOutputStream(stream: IPlayStream | null) {
 		this.outputStream = stream;
 	}
@@ -1228,7 +1361,10 @@ export default class Player {
 		return true;
 	}
 
-	protected preSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+	protected preSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue | null | undefined) {
+		if (typeof time === 'undefined' || time === null) {
+			return true;
+		}
 		if (!this.doProcessFadeout(time)) {
 			return false;
 		}
@@ -1384,9 +1520,7 @@ export default class Player {
 						}
 						if (doSendNextEnableLoop) {
 							// console.log('[Player] send enable-loop event');
-							this.proxy.sendUserData({
-								type: 'enable-loop'
-							} as UserEventData, this.queuedNotesTime * 1000);
+							this.sendUserEvent('enable-loop', this.queuedNotesTime);
 						}
 					}
 				}
@@ -1401,7 +1535,7 @@ export default class Player {
 				}
 				if (!this.isAllNotesPlayed) {
 					this.isAllNotesPlayed = true;
-					this.proxy.sendFinishMarker(this.queuedNotesTime * 1000);
+					this.sendFinish(this.queuedNotesTime);
 				}
 				// do finish
 				this._checkStopped();
@@ -1451,6 +1585,12 @@ export default class Player {
 			this.doRenderNotes.bind(this, notesAndControls, currentIndex, endTime, loopStatus),
 			5
 		);
+	}
+
+	private onPlayUserEvent(e: PlayUserEventObject) {
+		if (e.type === 'enable-loop') {
+			this.loopEnabled = true;
+		}
 	}
 
 	/** Load all objects and send appropriate MIDI events except for note-on. */
