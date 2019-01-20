@@ -554,36 +554,9 @@ export default class Player {
 		}
 	}
 
-	private raiseEventPlayQueue(current: number, total: number, playing: number, played: number) {
-		const e = new PlayQueueEventObject(this, current, total, playing, played);
-		for (const fn of this._evtPlayQueue) {
-			fn(e);
-			if (e.isPropagationStopped())
-				break;
-		}
-		return !e.isDefaultPrevented();
-	}
 	private raiseEventPlayStatus(current: number, sampleRate: number) {
 		const e = new PlayStatusEventObject(this, current, sampleRate);
 		for (const fn of this._evtPlayStatus) {
-			fn(e);
-			if (e.isPropagationStopped())
-				break;
-		}
-		return !e.isDefaultPrevented();
-	}
-	private raiseEventPlayEndNote(playing: number, played: number) {
-		const e = new PlayEndNoteEventObject(this, playing, played);
-		for (const fn of this._evtPlayEndNote) {
-			fn(e);
-			if (e.isPropagationStopped())
-				break;
-		}
-		return !e.isDefaultPrevented();
-	}
-	private raiseEventPlayAllQueued(total: number, playing: number, played: number) {
-		const e = new PlayQueueEventObject(this, total, total, playing, played);
-		for (const fn of this._evtPlayAllQueued) {
 			fn(e);
 			if (e.isPropagationStopped())
 				break;
@@ -765,6 +738,304 @@ export default class Player {
 		this.isAllNotesPlayed = false;
 	}
 
+	public sendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+		switch (ev.type) {
+			case JSSynth.EventType.ProgramChange:
+				return this.doChangeProgram(ev.channel, ev.preset, time);
+			case JSSynth.EventType.ProgramSelect:
+				return this.doChangeProgram(ev.channel, ev.preset, time, ev.bank, ev.sfontId);
+			case JSSynth.EventType.ControlChange:
+				if (ev.control === 0x07 || ev.control === 0x27) {
+					return this.changeVolume(ev.channel, ev.control === 0x07, ev.value, time);
+				}
+				break; // use default processing
+		}
+		return this.doSendEvent({ ...ev }, time);
+	}
+
+	public changeProgram(channel: number, preset: number, bank?: number | null, time?: TimeValue | null) {
+		return this.doChangeProgram(channel, preset, time, bank);
+	}
+
+	public changeVolume(channel: number, isMSB: boolean, value: number, time: TimeValue): boolean;
+	public changeVolume(channel: number, value: number, time: TimeValue): boolean;
+
+	public changeVolume(channel: number, arg2: boolean | number, arg3: number | TimeValue, arg4?: TimeValue): boolean {
+		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+		let actualValue: number;
+		if (typeof arg2 === 'number') {
+			// arg2: actualValue (number)
+			// arg3: time (TimeValue)
+			actualValue = arg2;
+			let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: 0x07,
+				value: Math.floor(arg2 / 0x80)
+			};
+			if (!this.doSendEvent(ev, arg3)) {
+				return false;
+			}
+			ev = {
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: 0x27,
+				value: (arg2 & 0x7F)
+			};
+			if (!this.doSendEvent(ev, arg3)) {
+				return false;
+			}
+		} else {
+			// arg2: isMSB (boolean)
+			// arg3: value (number)
+			// arg4: time (TimeValue)
+			if (arg2) {
+				actualValue = (ch.volume & 0x7F) + (arg3 * 0x80);
+			} else {
+				actualValue = Math.floor(ch.volume / 0x80) * 0x80 + arg3;
+			}
+
+			const ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel: channel,
+				control: arg2 ? 0x07 : 0x27,
+				value: arg3
+			};
+			if (!this.doSendEvent(ev, arg4!)) {
+				return false;
+			}
+		}
+
+		ch.volume = actualValue;
+
+		return true;
+	}
+
+	private doSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+		if (!this.preSendEvent(ev, time)) {
+			return false;
+		}
+
+		this.proxy.sendEvent(ev, time * 1000);
+		return true;
+	}
+
+	private doChangeProgram(
+		channel: number,
+		preset: number,
+		time: TimeValue | null | undefined,
+		bank?: number | null,
+		sfontId?: number | null
+	) {
+		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+		ch.preset = preset;
+		if (typeof bank === 'number') {
+			ch.bank = bank;
+		}
+		const isDrum = (channel === 9 || (this.channel16IsDrums && channel === 15));
+		const bankCurrent = (typeof ch.bank === 'number' ? ch.bank : isDrum ? 128 : 0);
+		let ev: JSSynth.SequencerEventTypes.ProgramSelectEvent | undefined;
+		for (const m of this.sfontMap) {
+			if (m.targetBank === bankCurrent && m.targetPreset === preset) {
+				ev = {
+					type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
+					channel: channel,
+					sfontId: m.sfontId < 0 ? this.sfontDefault! : m.sfontId,
+					bank: m.bank,
+					preset: m.preset
+				};
+				break;
+			}
+		}
+		if (!ev) {
+			ev = {
+				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
+				channel: channel,
+				sfontId: (typeof sfontId === 'number' ? sfontId : this.sfontDefault!),
+				bank: bankCurrent,
+				preset: preset
+			};
+		}
+		if (typeof time !== 'number') {
+			this.proxy.sendEventNow(ev);
+			return true;
+		} else {
+			return this.doSendEvent(ev, time);
+		}
+	}
+
+	/**
+	 * Pause or resume rendering frames.
+	 * @param paused true for pause, false for resume
+	 * @return resolved with 'isPaused' value (same value with 'paused' parameter for almost all case)
+	 */
+	public pausePlaying(paused: boolean): Promise<boolean> {
+		return this.proxy.pause(paused);
+	}
+
+	/**
+	 * Start player engine to render MIDI events.
+	 * @param actx AudioContext or OfflineAudioContext instance, or null to use default AudioContext instance
+	 * @param dest destination AudioNode (null to use actx.destination).
+	 *     Note that 'actx' parameter is ignored if dest is specified
+	 */
+	public startPlayer(actx?: BaseAudioContext | null, dest?: AudioNode | null) {
+		if (!isAudioAvailable()) {
+			return Promise.reject(new Error('Not supported'));
+		}
+		this.stopPlayingNote();
+
+		this.stopPlayer();
+		if (dest) {
+			actx = dest.context;
+		}
+		return this.prepareAudioContext(actx).then((a) => this.prepareForPlay(a, dest || a.destination));
+	}
+
+	private stopPlayer() {
+		if (this.releasePlayerTimer) {
+			return;
+		}
+		this.proxy.stop();
+		if (this.playingNode) {
+			this.playingNode.disconnect();
+			this.isNodeConnected = false;
+		}
+		this.setReleaseTimer();
+		if (this.isWaitingForStop) {
+			this.isWaitingForStop = false;
+			this.raiseEventStopped();
+		}
+	}
+
+	private setReleaseTimer() {
+		this.releasePlayerTimer = setTimeout(
+			this.releasePlayerCallback.bind(this),
+			Constants.StopWaitTime * 1000
+		);
+	}
+
+	public releasePlayer(resetSynth?: boolean) {
+		this.preReleasePlayer();
+		if (this.releasePlayerTimer !== null) {
+			clearTimeout(this.releasePlayerTimer);
+			this.releasePlayerTimer = null;
+		}
+		this.proxy.releasePlayer(resetSynth);
+		if (this.playingStream) {
+			this.playingStream = null;
+		}
+		if (this.playingNode) {
+			this.playingNode.disconnect();
+			this.playingNode = null;
+		}
+		if (this.playingGain) {
+			this.playingGain.disconnect();
+			this.playingGain = null;
+		}
+		if (this.audioDest) {
+			this.audioDest = null;
+		}
+		if (this.audio) {
+			this.audio = null;
+			this.isWorkletLoaded = false;
+		}
+		if (this.isWaitingForStop) {
+			this.isWaitingForStop = false;
+			this.raiseEventStopped();
+		}
+	}
+
+	private releasePlayerCallback() {
+		this.releasePlayerTimer = null;
+		this.releasePlayer();
+	}
+
+	public getMasterVolume() {
+		return this.masterVolume;
+	}
+
+	public setMasterVolume(value: number) {
+		this.masterVolume = value;
+		if (this.playingGain) {
+			this.playingGain.gain.value = value;
+		}
+	}
+
+	public isChannel16IsDrums() {
+		return this.channel16IsDrums;
+	}
+
+	public setChannel16IsDrums(value: boolean) {
+		if (this._isPlayingSequence) {
+			return Promise.resolve();
+		}
+		return this.proxy.configure({
+			channel16IsDrums: value
+		}).then(() => {
+			this.channel16IsDrums = value;
+		});
+	}
+
+	/**
+	 * Set the script URLs for audio worklet processings.
+	 * If nothing is set, the audio worklet is not used.
+	 */
+	public setAudioWorkletScripts(audioWorkletScripts: ReadonlyArray<string> | null | undefined) {
+		if (typeof AudioWorkletNode === 'undefined') {
+			return;
+		}
+
+		this.audioWorkletScripts = audioWorkletScripts ? audioWorkletScripts.slice(0) : [];
+		this.isWorkletLoaded = false;
+	}
+
+	public setRenderFrameCount(count: number) {
+		return this.proxy.configure({
+			framesCount: count
+		});
+	}
+
+	public setSynthGain(value: number) {
+		return this.proxy.configure({
+			gain: value
+		});
+	}
+
+	public setOutputStream(stream: IPlayStream | null) {
+		this.outputStream = stream;
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+
+	private raiseEventPlayQueue(current: number, total: number, playing: number, played: number) {
+		const e = new PlayQueueEventObject(this, current, total, playing, played);
+		for (const fn of this._evtPlayQueue) {
+			fn(e);
+			if (e.isPropagationStopped())
+				break;
+		}
+		return !e.isDefaultPrevented();
+	}
+	private raiseEventPlayEndNote(playing: number, played: number) {
+		const e = new PlayEndNoteEventObject(this, playing, played);
+		for (const fn of this._evtPlayEndNote) {
+			fn(e);
+			if (e.isPropagationStopped())
+				break;
+		}
+		return !e.isDefaultPrevented();
+	}
+	private raiseEventPlayAllQueued(total: number, playing: number, played: number) {
+		const e = new PlayQueueEventObject(this, total, total, playing, played);
+		for (const fn of this._evtPlayAllQueued) {
+			fn(e);
+			if (e.isPropagationStopped())
+				break;
+		}
+		return !e.isDefaultPrevented();
+	}
+
 	public playNote(n: NoteObject, actx?: BaseAudioContext | null, dest?: AudioNode | null) {
 		if (!isAudioAvailable()) {
 			return;
@@ -858,10 +1129,6 @@ export default class Player {
 		if (doReleasePlayer) {
 			this.setReleaseTimer();
 		}
-	}
-
-	public changeProgram(channel: number, preset: number, bank?: number) {
-		this.doChangeProgram(channel, preset, null, bank);
 	}
 
 	private _checkStopped() {
@@ -961,99 +1228,36 @@ export default class Player {
 		return true;
 	}
 
-	private doSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
+	protected preSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue) {
 		if (!this.doProcessFadeout(time)) {
 			return false;
 		}
-
-		this.proxy.sendEvent(ev, time * 1000);
-		return true;
-	}
-
-	private doChangeProgram(channel: number, preset: number, time: TimeValue | null, bank?: number) {
-		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
-		ch.preset = preset;
-		if (typeof bank !== 'undefined') {
-			ch.bank = bank;
-		}
-		const isDrum = (channel === 9 || (this.channel16IsDrums && channel === 15));
-		const bankCurrent = (typeof ch.bank === 'number' ? ch.bank : isDrum ? 128 : 0);
-		let ev: JSSynth.SequencerEventTypes.ProgramSelectEvent | undefined;
-		for (const m of this.sfontMap) {
-			if (m.targetBank === bankCurrent && m.targetPreset === preset) {
-				ev = {
-					type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
+		if (
+			ev.type === JSSynth.SequencerEventTypes.EventType.ControlChange &&
+			(ev.control === 0x07 || ev.control === 0x27)
+		) {
+			const fadeout = this.fadeout;
+			if (fadeout && fadeout.progress) {
+				const channel = ev.channel;
+				const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+				let actualValue: number;
+				if (ev.control === 0x07) {
+					actualValue = (ch.volume & 0x7F) + (ev.value * 0x80);
+				} else {
+					actualValue = Math.floor(ch.volume / 0x80) * 0x80 + ev.value;
+				}
+				const newValue = Math.floor(actualValue * (fadeout.step - fadeout.curStep) / fadeout.step);
+				// console.log(`[Player] inject volume for fadeout (actual = ${actualValue}, new = ${newValue})`);
+				this.proxy.sendEvent({
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
-					sfontId: m.sfontId < 0 ? this.sfontDefault! : m.sfontId,
-					bank: m.bank,
-					preset: m.preset
-				};
-				break;
+					control: 0x07,
+					value: Math.floor(newValue / 0x80)
+				}, time * 1000);
+				ev.control = 0x27;
+				ev.value = newValue & 0x7F;
 			}
 		}
-		if (!ev) {
-			ev = {
-				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
-				channel: channel,
-				sfontId: this.sfontDefault!,
-				bank: bankCurrent,
-				preset: preset
-			};
-		}
-		if (time === null) {
-			this.proxy.sendEventNow(ev);
-			return true;
-		} else {
-			return this.doSendEvent(ev, time);
-		}
-	}
-
-	private doProcessVolume(channel: number, isMSB: boolean, value: number, time: number) {
-		if (!this.doProcessFadeout(time)) {
-			return false;
-		}
-
-		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
-		let actualValue: number;
-		if (isMSB) {
-			actualValue = (ch.volume & 0x7F) + (value * 0x80);
-		} else {
-			actualValue = Math.floor(ch.volume / 0x80) * 0x80 + value;
-		}
-
-		const fadeout = this.fadeout;
-		if (fadeout && fadeout.progress) {
-			const newValue = Math.floor(actualValue * (fadeout.step - fadeout.curStep) / fadeout.step);
-			// console.log(`[Player] inject volume for fadeout (actual = ${actualValue}, new = ${newValue})`);
-			if (!this.doSendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
-				control: 0x07,
-				value: Math.floor(newValue / 0x80)
-			}, time)) {
-				return false;
-			}
-			if (!this.doSendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
-				control: 0x27,
-				value: (newValue & 0x7F)
-			}, time)) {
-				return false;
-			}
-		} else {
-			if (!this.doSendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
-				control: isMSB ? 0x07 : 0x27,
-				value: value
-			}, time)) {
-				return false;
-			}
-		}
-
-		ch.volume = actualValue;
-
 		return true;
 	}
 
@@ -1320,9 +1524,9 @@ export default class Player {
 					ch.bank = val;
 				}
 			} else if (o.value1 === 7) { // Volume MSB
-				return this.doProcessVolume(o.channel, true, o.value2, time);
+				return this.changeVolume(o.channel, true, o.value2, time);
 			} else if (o.value1 === 39) { // Volume LSB
-				return this.doProcessVolume(o.channel, false, o.value2, time);
+				return this.changeVolume(o.channel, false, o.value2, time);
 			}
 			return this.doSendEvent({
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
@@ -1647,85 +1851,8 @@ export default class Player {
 		return this._isPlayingSequence || this.isWaitingForStop;
 	}
 
-	/**
-	 * Pause or resume rendering frames.
-	 * @param paused true for pause, false for resume
-	 * @return resolved with 'isPaused' value (same value with 'paused' parameter for almost all case)
-	 */
-	public pausePlaying(paused: boolean): Promise<boolean> {
-		return this.proxy.pause(paused);
-	}
-
-	public startPlayer(actx?: BaseAudioContext | null, dest?: AudioNode | null) {
-		if (!isAudioAvailable()) {
-			return Promise.reject(new Error('Not supported'));
-		}
-		this.stopPlayingNote();
-
-		this.stopPlayer();
-		if (dest) {
-			actx = dest.context;
-		}
-		return this.prepareAudioContext(actx).then((a) => this.prepareForPlay(a, dest || a.destination));
-	}
-
-	private stopPlayer() {
-		if (this.releasePlayerTimer) {
-			return;
-		}
-		this.proxy.stop();
-		if (this.playingNode) {
-			this.playingNode.disconnect();
-			this.isNodeConnected = false;
-		}
-		this.setReleaseTimer();
-		if (this.isWaitingForStop) {
-			this.isWaitingForStop = false;
-			this.raiseEventStopped();
-		}
-	}
-
-	private setReleaseTimer() {
-		this.releasePlayerTimer = setTimeout(
-			this.releasePlayerCallback.bind(this),
-			Constants.StopWaitTime * 1000
-		);
-	}
-
-	public releasePlayer(resetSynth?: boolean) {
+	private preReleasePlayer() {
 		this._stopSequenceImpl(true);
-		if (this.releasePlayerTimer !== null) {
-			clearTimeout(this.releasePlayerTimer);
-			this.releasePlayerTimer = null;
-		}
-		this.proxy.releasePlayer(resetSynth);
-		if (this.playingStream) {
-			this.playingStream = null;
-		}
-		if (this.playingNode) {
-			this.playingNode.disconnect();
-			this.playingNode = null;
-		}
-		if (this.playingGain) {
-			this.playingGain.disconnect();
-			this.playingGain = null;
-		}
-		if (this.audioDest) {
-			this.audioDest = null;
-		}
-		if (this.audio) {
-			this.audio = null;
-			this.isWorkletLoaded = false;
-		}
-		if (this.isWaitingForStop) {
-			this.isWaitingForStop = false;
-			this.raiseEventStopped();
-		}
-	}
-
-	private releasePlayerCallback() {
-		this.releasePlayerTimer = null;
-		this.releasePlayer();
 	}
 
 	private _stopSequenceImpl(noWait?: boolean) {
@@ -1765,60 +1892,5 @@ export default class Player {
 		this.engine.reset();
 		this.engine.updateMasterControls();
 		this.engine.raiseEventFileLoaded();
-	}
-
-	public getMasterVolume() {
-		return this.masterVolume;
-	}
-
-	public setMasterVolume(value: number) {
-		this.masterVolume = value;
-		if (this.playingGain) {
-			this.playingGain.gain.value = value;
-		}
-	}
-
-	public isChannel16IsDrums() {
-		return this.channel16IsDrums;
-	}
-
-	public setChannel16IsDrums(value: boolean) {
-		if (this._isPlayingSequence) {
-			return Promise.resolve();
-		}
-		return this.proxy.configure({
-			channel16IsDrums: value
-		}).then(() => {
-			this.channel16IsDrums = value;
-		});
-	}
-
-	/**
-	 * Set the script URLs for audio worklet processings.
-	 * If nothing is set, the audio worklet is not used.
-	 */
-	public setAudioWorkletScripts(audioWorkletScripts: ReadonlyArray<string> | null | undefined) {
-		if (typeof AudioWorkletNode === 'undefined') {
-			return;
-		}
-
-		this.audioWorkletScripts = audioWorkletScripts ? audioWorkletScripts.slice(0) : [];
-		this.isWorkletLoaded = false;
-	}
-
-	public setRenderFrameCount(count: number) {
-		return this.proxy.configure({
-			framesCount: count
-		});
-	}
-
-	public setSynthGain(value: number) {
-		return this.proxy.configure({
-			gain: value
-		});
-	}
-
-	public setOutputStream(stream: IPlayStream | null) {
-		this.outputStream = stream;
 	}
 }
