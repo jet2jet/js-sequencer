@@ -232,7 +232,7 @@ export default class Player {
 		this.proxy = proxy;
 		proxy.onQueued = this.onQueuedPlayer.bind(this);
 		proxy.onStatus = this.onStatusPlayer.bind(this);
-		proxy.onStop = this.onStopPlayer.bind(this);
+		proxy.onStop = this.onFinishPlayer.bind(this);
 		proxy.onReset = this.onResetPlayer.bind(this);
 		proxy.onUserData = this.onUserDataPlayer.bind(this);
 
@@ -537,10 +537,9 @@ export default class Player {
 		this.raiseEventPlayStatus(this.playedFrames, s.sampleRate);
 	}
 
-	private onStopPlayer() {
-		if (this._isPlayingSequence) {
-			// console.log('onStopPlayer');
-			setTimeout(() => this._stopSequenceImpl(), 0);
+	private onFinishPlayer() {
+		if (!this.isWaitingForStop) {
+			this.stopAndWait();
 		}
 	}
 
@@ -980,8 +979,12 @@ export default class Player {
 		if (!this._isPlayerRunning) {
 			return;
 		}
+		if (!this.isWaitingForStop) {
+			this.stopAndWait();
+			return;
+		}
 		this._isPlayerRunning = false;
-		this.proxy.stop();
+		this.preStopPlayer();
 		if (this.playingNode) {
 			this.playingNode.disconnect();
 			this.isNodeConnected = false;
@@ -991,6 +994,18 @@ export default class Player {
 			this.isWaitingForStop = false;
 			this.raiseEventStopped();
 		}
+	}
+
+	private stopAndWait() {
+		if (this.isWaitingForStop) {
+			return;
+		}
+		this.isWaitingForStop = true;
+		this.proxy.stop();
+		this.proxy.waitForFinish().then(() => {
+			// console.log('All finished');
+			this.stopPlayer();
+		});
 	}
 
 	/**
@@ -1282,12 +1297,7 @@ export default class Player {
 			return;
 		}
 		this._isPlayingSequence = false;
-		this.isWaitingForStop = true;
-		// console.log('Do finish');
-		this.proxy.waitForFinish().then(() => {
-			// console.log('All finished');
-			this.stopPlayer();
-		});
+		this.stopAndWait();
 	}
 
 	private prepareBasePos(
@@ -1991,11 +2001,15 @@ export default class Player {
 		return this._isPlayingSequence || this.isWaitingForStop;
 	}
 
-	private preReleasePlayer() {
-		this._stopSequenceImpl(true);
+	private preStopPlayer() {
+		this._stopSequenceImpl();
 	}
 
-	private _stopSequenceImpl(noWait?: boolean) {
+	private preReleasePlayer() {
+		this._stopSequenceImpl();
+	}
+
+	private _stopSequenceImpl() {
 		if (this._isPlayingSequence) {
 			this._isPlayingSequence = false;
 			this._playingNotes = [];
@@ -2006,14 +2020,6 @@ export default class Player {
 				this._nextPlayTimerId = null;
 			}
 			// console.log('Do finish');
-			this.proxy.stop();
-			if (!noWait) {
-				this.isWaitingForStop = true;
-				this.proxy.waitForFinish().then(() => {
-					// console.log('All finished');
-					this.stopPlayer();
-				});
-			}
 		}
 	}
 
@@ -2023,7 +2029,7 @@ export default class Player {
 	 * it will be reused when playNote/playSequence* methods are called.
 	 */
 	public stopSequence(): void {
-		this._stopSequenceImpl();
+		this.stopPlayer();
 	}
 
 	public resetAll() {
