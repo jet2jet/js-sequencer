@@ -1,11 +1,11 @@
 
 import EventObjectBase from 'events/EventObjectBase';
 
-import Player from 'core/Player';
+import PlayerBase from 'core/PlayerBase';
 
 export default class PlayStatusEventObject extends EventObjectBase {
 	constructor(
-		public readonly player: Player,
+		public readonly player: PlayerBase,
 		public readonly currentFrame: number,
 		public readonly sampleRate: number
 	) {

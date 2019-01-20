@@ -1,18 +1,11 @@
 
 import PlayEndNoteEventObject from 'events/PlayEndNoteEventObject';
 import PlayQueueEventObject from 'events/PlayQueueEventObject';
-import PlayStatusEventObject from 'events/PlayStatusEventObject';
-import PlayUserEventObject from 'events/PlayUserEventObject';
-import SimpleEventObject from 'events/SimpleEventObject';
 
-import Player from 'core/Player';
+import PlayerBaseEventObjectMap from 'events/PlayerBaseEventObjectMap';
 
-export default interface PlayerEventObjectMap {
-	'reset': SimpleEventObject<Player>;
-	'stopped': SimpleEventObject<Player>;
+export default interface PlayerEventObjectMap extends PlayerBaseEventObjectMap {
 	'playqueue': PlayQueueEventObject;
-	'playstatus': PlayStatusEventObject;
-	'playuserevent': PlayUserEventObject;
 	'playendnote': PlayEndNoteEventObject;
 	'playallqueued': PlayQueueEventObject;
 }
