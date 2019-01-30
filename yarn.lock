@@ -1254,10 +1254,10 @@ isobject@^3.0.0, isobject@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/isobject/-/isobject-3.0.1.tgz#4e431e92b11a9731636aa1f9c8d1ccbcfdab78df"
 
-js-synthesizer@^1.4.1:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/js-synthesizer/-/js-synthesizer-1.4.1.tgz#c77ae7cfc7f1c24c94c3817715a57128f0b9f6c6"
-  integrity sha512-AP6nia+FEzo3lKHKV4MQwxbVBBZjtiPQ4VzwMYtizaWUiOiIdAwZMZ2ak/JbSdGjXhgwaSPvkM3ovrk4kOcDaA==
+js-synthesizer@~1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/js-synthesizer/-/js-synthesizer-1.5.0.tgz#76b515d75c1475c030399185e1767cbc0b3dc4d2"
+  integrity sha512-FF9HOPuZYnILFlRVTQmdk6VWXK12sUiz3HfebvFJp5W4UUFcyV8t8Jr0KxRi7aofBf2Tx942OM2DyHzAAyGwoA==
 
 js-tokens@^3.0.2:
   version "3.0.2"
