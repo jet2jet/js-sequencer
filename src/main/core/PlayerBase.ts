@@ -15,11 +15,16 @@ import IPlayStream from 'core/IPlayStream';
 import Options from 'core/playing/Options';
 import PlayerProxy from 'core/playing/PlayerProxy';
 
-import { StatusData } from 'types/RenderMessageData';
-
 interface UserEventData {
 	type: string;
 	data: any;
+}
+
+// same as << import { StatusData } from 'types/RenderMessageData'; >>
+export interface StatusData {
+	outFrames: number;
+	sampleRate: number;
+	isQueueEmpty: boolean;
 }
 
 export interface SFontMap {

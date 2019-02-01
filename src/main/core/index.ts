@@ -8,6 +8,7 @@ import NoteObject, { isNoteObject } from 'core/NoteObject';
 import NoteObjectBase from 'core/NoteObjectBase';
 import Part from 'core/Part';
 import Player from 'core/Player';
+import PlayerBase, { SFontMap, StatusData } from 'core/PlayerBase';
 
 export {
 	Controls,
@@ -18,5 +19,8 @@ export {
 	NoteObject,
 	NoteObjectBase,
 	Part,
-	Player
+	Player,
+	PlayerBase,
+	SFontMap,
+	StatusData
 };
