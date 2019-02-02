@@ -270,6 +270,45 @@ export default class PlayerProxy {
 		this.port.postMessage(data, [data.data]);
 	}
 
+	public sendGeneratorValue(
+		channel: number,
+		type: JSSynth.Constants.GeneratorTypes,
+		value: number | null,
+		keepCurrentVoice: boolean | null | undefined,
+		time: number
+	) {
+		const data: Message.Generator = {
+			type: 'gen',
+			time: time,
+			data: {
+				channel,
+				type,
+				value,
+				keepCurrentVoice
+			}
+		};
+		this.port.postMessage(data);
+	}
+
+	public sendGeneratorValueNow(
+		channel: number,
+		type: JSSynth.Constants.GeneratorTypes,
+		value: number | null,
+		keepCurrentVoice: boolean | null | undefined
+	) {
+		const data: Message.Generator = {
+			type: 'gen',
+			time: null,
+			data: {
+				channel,
+				type,
+				value,
+				keepCurrentVoice
+			}
+		};
+		this.port.postMessage(data);
+	}
+
 	public sendUserData(userData: any, time: number) {
 		const id = this.userEventId++;
 		const text = `ud-${id}`;

@@ -1,4 +1,5 @@
 
+import { GeneratorTypes } from 'js-synthesizer/Constants';
 import ISequencer from 'js-synthesizer/ISequencer';
 import ISequencerEventData from 'js-synthesizer/ISequencerEventData';
 import SequencerEvent, { EventType as SequencerEventTypes } from 'js-synthesizer/SequencerEvent';
@@ -18,18 +19,22 @@ const enum Defaults {
 	Gain = 1
 }
 
+type GenEvent = Message.Generator['data'];
+
 declare var Module: any;
 
 let promiseWasmInitialized: Promise<void>;
+let _module: any;
 
 function waitForWasmInitialized() {
 	if (!promiseWasmInitialized) {
+		_module = Module;
 		promiseWasmInitialized = Promise.resolve().then(() => new Promise<void>((resolve) => {
-			if (Module.calledRun) {
+			if (_module.calledRun) {
 				resolve();
 			} else {
-				const fn = Module.onRuntimeInitialized;
-				Module.onRuntimeInitialized = () => {
+				const fn = _module.onRuntimeInitialized;
+				_module.onRuntimeInitialized = () => {
 					resolve();
 					if (fn) {
 						fn();
@@ -91,6 +96,15 @@ export default class PlayerImpl {
 	private gain: number;
 	private channel16IsDrums: boolean;
 
+	private channelGenData: {
+		[channel: number]: {
+			[type: number]: {
+				init: number;
+				prev: number;
+			};
+		};
+	} = {};
+
 	private eventQueue: Array<{
 		client: number;
 		data: SequencerEvent;
@@ -102,6 +116,7 @@ export default class PlayerImpl {
 	private userMsgMap: {
 		[id: number]: {
 			sysEx?: Uint8Array;
+			genEvent?: GenEvent;
 			userEvent?: string;
 		};
 	} = {};
@@ -254,6 +269,8 @@ export default class PlayerImpl {
 					delete this.userMsgMap[id];
 					if (data.sysEx) {
 						this.synth.midiSysEx(data.sysEx);
+					} else if (data.genEvent) {
+						this.onProcessGenEvent(data.genEvent);
 					} else if ('userEvent' in data) {
 						this.postMessage({
 							type: 'user-event',
@@ -263,6 +280,41 @@ export default class PlayerImpl {
 				}
 			}
 		}
+	}
+
+	private onProcessGenEvent({ channel, type, value, keepCurrentVoice }: GenEvent) {
+		const data = this.channelGenData;
+		const chData = data[channel] || (data[channel] = {});
+		const o = chData[type] || (chData[type] = {
+			init: this.synth.getGenerator(channel, type),
+			prev: 0
+		});
+		const newVal = value === null ? o.init : value;
+
+		// setGenerator affects to the current voices.
+		// To keep generator values for the current voices,
+		// add generator values with 'diff' to each voices before
+		// calling setGenerator.
+		if (keepCurrentVoice) {
+			const diff = newVal - o.prev;
+			const syn = this.synth.getRawSynthesizer();
+			// prot: int fluid_synth_get_active_voice_count(fluid_synth_t*)
+			const voiceCount: number = _module._fluid_synth_get_active_voice_count(syn);
+			// fluid_voice_t* voiceList = malloc(sizeof(fluid_voice_t*) * voiceCount)
+			const voiceList: number = _module._malloc(voiceCount * 4);
+			// prot: void fluid_synth_get_voicelist(fluid_synth_t*, fluid_voice_t*, int, int)
+			_module._fluid_synth_get_voicelist(syn, voiceList, voiceCount, -1);
+			for (let i = 0; i < voiceCount; ++i) {
+				// auto voice = voiceList[i]
+				const voice = Module.HEAPU32[(voiceList >> 2) + i];
+				// prot: int fluid_voice_gen_incr(fluid_voice_t*, int, int)
+				_module._fluid_voice_gen_incr(voice, type, -diff);
+			}
+			_module._free(voiceList);
+		}
+		this.synth.setGenerator(channel, type, newVal);
+
+		o.prev = newVal;
 	}
 
 	private onStopForFinish() {
@@ -330,6 +382,9 @@ export default class PlayerImpl {
 				break;
 			case 'sysex':
 				this.onSysEx(data);
+				break;
+			case 'gen':
+				this.onGen(data);
 				break;
 			case 'user-event':
 				this.onUserEvent(data);
@@ -410,6 +465,7 @@ export default class PlayerImpl {
 			data.renderPort.addEventListener('message', this.onRenderMessageBind);
 			data.renderPort.start();
 		}
+		this.channelGenData = {};
 
 		this.synth.midiSystemReset();
 		this.synth.setChannelType(15, this.channel16IsDrums);
@@ -514,6 +570,33 @@ export default class PlayerImpl {
 		const bin = new Uint8Array(data.data);
 		const id = this.userMsgMapId++;
 		this.userMsgMap[id] = { sysEx: bin };
+
+		if (data.time === null) {
+			this.sequencer.sendEventToClientAt(this.myClient, {
+				type: SequencerEventTypes.Timer,
+				data: id
+			}, 0, false);
+		} else {
+			const tick = this.startTime + data.time;
+			this.eventQueue.push({
+				client: this.myClient,
+				data: {
+					type: SequencerEventTypes.Timer,
+					data: id
+				},
+				tick: tick
+			});
+		}
+	}
+
+	private onGen(data: Message.Generator) {
+		if (!this.sequencer) {
+			return;
+		}
+		const id = this.userMsgMapId++;
+		this.userMsgMap[id] = {
+			genEvent: data.data
+		};
 
 		if (data.time === null) {
 			this.sequencer.sendEventToClientAt(this.myClient, {

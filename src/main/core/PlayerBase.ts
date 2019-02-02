@@ -34,6 +34,11 @@ export interface SFontMap {
 	sfontId: number;
 	bank: number;
 	preset: number;
+	/** amplifier (volume rate) of bank/preset in percent */
+	ampPercent?: number | null | undefined;
+}
+interface SFontMapInternal extends SFontMap {
+	ampValue?: number;
 }
 
 interface ChannelStatus {
@@ -71,6 +76,11 @@ function makeDefaultChannelStatus(): ChannelStatus {
 	};
 }
 
+/** Convert percent-base value to centibel */
+function ampToCentibel(ampPercent: number): number {
+	return Math.floor(-200 * (Math.log10(ampPercent) - 2));
+}
+
 /**
  * Process and render MIDI-related events.
  *
@@ -82,7 +92,7 @@ export default class PlayerBase {
 	private proxy: PlayerProxy;
 	private sfontDefault: number | null = null;
 	private isSfontDefaultExternal: boolean = false;
-	private sfontMap: SFontMap[] = [];
+	private sfontMap: SFontMapInternal[] = [];
 	private masterVolume: number = Constants.PlayVolume;
 	private channel16IsDrums: boolean = false;
 	private releasePlayerTimer: number | null = null;
@@ -281,7 +291,8 @@ export default class PlayerBase {
 		targetBank: number,
 		targetPreset: number,
 		bank: number,
-		preset: number
+		preset: number,
+		ampPercent?: number | null | undefined
 	) {
 		if (targetBank < 0) {
 			throw new Error('Invalid \'targetBank\' value');
@@ -294,19 +305,29 @@ export default class PlayerBase {
 		} else if (!this.sfontMap.filter((m) => m.sfontId === sfont)[0]) {
 			throw new Error('Invalid \'sfont\' value');
 		}
+		let ampValue: number | undefined;
+		if (typeof ampPercent === 'number') {
+			ampValue = ampToCentibel(ampPercent);
+		} else {
+			ampPercent = void 0;
+		}
 		const a = this.sfontMap.filter(
 			(m) => m.sfontId === sfont && m.targetBank === targetBank && m.targetPreset === targetPreset
 		)[0];
 		if (a) {
 			a.bank = bank;
 			a.preset = preset;
+			a.ampPercent = ampPercent;
+			a.ampValue = ampValue;
 		} else {
 			this.sfontMap.push({
 				targetBank: targetBank,
 				targetPreset: targetPreset,
 				sfontId: sfont,
 				bank: bank,
-				preset: preset
+				preset: preset,
+				ampPercent: ampPercent,
+				ampValue: ampValue
 			});
 		}
 	}
@@ -315,7 +336,14 @@ export default class PlayerBase {
 	 * Return all preset mappings.
 	 */
 	public getAllMaps() {
-		return this.sfontMap.slice(0);
+		return this.sfontMap.map((m): SFontMap => ({
+			sfontId: m.sfontId,
+			bank: m.bank,
+			preset: m.preset,
+			targetBank: m.targetBank,
+			targetPreset: m.targetPreset,
+			ampPercent: m.ampPercent
+		}));
 	}
 
 	/**
@@ -333,7 +361,8 @@ export default class PlayerBase {
 				targetBank: m.targetBank,
 				targetPreset: m.targetPreset,
 				bank: m.bank,
-				preset: m.preset
+				preset: m.preset,
+				ampPercent: m.ampPercent
 			})
 		);
 	}
@@ -674,6 +703,22 @@ export default class PlayerBase {
 		return true;
 	}
 
+	// used internally
+	protected sendGeneratorValue(
+		channel: number,
+		type: JSSynth.Constants.GeneratorTypes,
+		value: number | null,
+		keepCurrentVoice?: boolean | null,
+		time?: TimeValue | null | undefined
+	) {
+		if (typeof time === 'undefined' || time === null) {
+			this.proxy.sendGeneratorValueNow(channel, type, value, keepCurrentVoice);
+		} else {
+			this.proxy.sendGeneratorValue(channel, type, value, keepCurrentVoice, time * 1000);
+		}
+		return true;
+	}
+
 	/**
 	 * Send a user-defined event to sequencer.
 	 * 'playuserevent' event will be raised when the user-defined event is
@@ -742,6 +787,7 @@ export default class PlayerBase {
 			// arg2: actualValue (number)
 			// arg3: time (TimeValue)
 			actualValue = arg2;
+			arg2 = this.calculateVolumeForChannel(ch, arg2);
 			let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: channel,
@@ -770,15 +816,36 @@ export default class PlayerBase {
 			} else {
 				actualValue = Math.floor(ch.volume / 0x80) * 0x80 + value;
 			}
-
-			const ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
-				control: arg2 ? 0x07 : 0x27,
-				value: value
-			};
-			if (!this.doSendEvent(ev, arg4)) {
-				return false;
+			const newValue = this.calculateVolumeForChannel(ch, actualValue);
+			if (newValue !== actualValue) {
+				let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					channel: channel,
+					control: 0x07,
+					value: Math.floor(newValue / 0x80)
+				};
+				if (!this.doSendEvent(ev, arg4)) {
+					return false;
+				}
+				ev = {
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					channel: channel,
+					control: 0x27,
+					value: (newValue & 0x7F)
+				};
+				if (!this.doSendEvent(ev, arg4)) {
+					return false;
+				}
+			} else {
+				const ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					channel: channel,
+					control: arg2 ? 0x07 : 0x27,
+					value: value
+				};
+				if (!this.doSendEvent(ev, arg4)) {
+					return false;
+				}
 			}
 		}
 
@@ -815,6 +882,7 @@ export default class PlayerBase {
 		const isDrum = (channel === 9 || (this.channel16IsDrums && channel === 15));
 		const bankCurrent = (typeof ch.bank === 'number' ? ch.bank : isDrum ? 128 : 0);
 		let ev: JSSynth.SequencerEventTypes.ProgramSelectEvent | undefined;
+		let ampValue: number = 0;
 		for (const m of this.sfontMap) {
 			if (m.targetBank === bankCurrent && m.targetPreset === preset) {
 				ev = {
@@ -824,6 +892,9 @@ export default class PlayerBase {
 					bank: m.bank,
 					preset: m.preset
 				};
+				if (typeof m.ampValue !== 'undefined') {
+					ampValue = m.ampValue;
+				}
 				break;
 			}
 		}
@@ -836,6 +907,13 @@ export default class PlayerBase {
 				preset: preset
 			};
 		}
+		this.sendGeneratorValue(
+			channel,
+			JSSynth.Constants.GeneratorTypes.InitialAttenuation,
+			ampValue,
+			true,
+			time
+		);
 		return this.doSendEvent(ev, time);
 	}
 
@@ -1051,6 +1129,17 @@ export default class PlayerBase {
 	 */
 	public setOutputStream(stream: IPlayStream | null) {
 		this.outputStream = stream;
+	}
+
+	private calculateVolumeForChannel(ch: ChannelStatus | undefined, value: number) {
+		const bank = ch && ch.bank || 0;
+		const preset = ch && ch.preset || 0;
+		const f = this.sfontMap.filter((m) => m.targetBank === bank && m.targetPreset === preset)
+			.shift();
+		if (f && typeof f.ampPercent === 'number') {
+			value = value * f.ampPercent / 100;
+		}
+		return value;
 	}
 
 	protected onPlayStart() {

@@ -105,6 +105,21 @@ export interface SysEx extends Base {
 	time: number | null;
 }
 
+export interface Generator extends Base {
+	id?: never;
+	type: 'gen';
+	data: {
+		channel: number;
+		type: JSSynth.Constants.GeneratorTypes;
+		/** null for reset to initial value */
+		value: number | null;
+		/** true for keeping effect value of current playing voices */
+		keepCurrentVoice?: boolean | null;
+	};
+	/** in milliseconds, or null for send immediately */
+	time: number | null;
+}
+
 /** @internal */
 export interface UserEvent extends Base {
 	id?: never;
@@ -124,6 +139,6 @@ export interface FinishMarker extends Base {
 
 /** @internal */
 export type AllTypes = Initialize | Close | Configure | LoadSoundfont | UnloadSoundfont |
-	Start | Pause | Stop | Release | Event | SysEx | UserEvent | FinishMarker;
+	Start | Pause | Stop | Release | Event | SysEx | Generator | UserEvent | FinishMarker;
 /** @internal */
 export default AllTypes;
