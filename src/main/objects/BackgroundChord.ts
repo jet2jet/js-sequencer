@@ -1,5 +1,5 @@
 
-import { isUndefined } from 'functions';
+import { isUndefined } from '../functions';
 
 export default class BackgroundChord {
 	public posNumerator: number;

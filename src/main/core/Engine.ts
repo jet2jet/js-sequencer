@@ -1,35 +1,35 @@
 
-import Channel from 'objects/Channel';
-import IPositionObject from 'objects/IPositionObject';
-import ISequencerObject from 'objects/ISequencerObject';
-import PositionObject from 'objects/PositionObject';
+import Channel from '../objects/Channel';
+import IPositionObject from '../objects/IPositionObject';
+import ISequencerObject from '../objects/ISequencerObject';
+import PositionObject from '../objects/PositionObject';
 
-import { TimeValue } from 'types';
+import { TimeValue } from '../types';
 
-import AftertouchControl from 'core/controls/AftertouchControl';
-import ControllerControl from 'core/controls/ControllerControl';
-import ControlObject, { getControlFromJSONObject } from 'core/controls/ControlObject';
-import EOTObject from 'core/controls/EOTObject';
-import KeySignatureControl from 'core/controls/KeySignatureControl';
-import PitchWheelControl from 'core/controls/PitchWheelControl';
-import PressureControl from 'core/controls/PressureControl';
-import ProgramChangeControl from 'core/controls/ProgramChangeControl';
-import SysExControl from 'core/controls/SysExControl';
-import SysMsgControl from 'core/controls/SysMsgControl';
-import TempoControl from 'core/controls/TempoControl';
-import TimeSignatureControl from 'core/controls/TimeSignatureControl';
+import AftertouchControl from './controls/AftertouchControl';
+import ControllerControl from './controls/ControllerControl';
+import ControlObject, { getControlFromJSONObject } from './controls/ControlObject';
+import EOTObject from './controls/EOTObject';
+import KeySignatureControl from './controls/KeySignatureControl';
+import PitchWheelControl from './controls/PitchWheelControl';
+import PressureControl from './controls/PressureControl';
+import ProgramChangeControl from './controls/ProgramChangeControl';
+import SysExControl from './controls/SysExControl';
+import SysMsgControl from './controls/SysMsgControl';
+import TempoControl from './controls/TempoControl';
+import TimeSignatureControl from './controls/TimeSignatureControl';
 
-import BeatsCalculator from 'core/BeatsCalculator';
-import DummyNoteStopObject from 'core/DummyNoteStopObject';
-import NoteObject from 'core/NoteObject';
-import NoteObjectBase from 'core/NoteObjectBase';
-import Part from 'core/Part';
+import BeatsCalculator from './BeatsCalculator';
+import DummyNoteStopObject from './DummyNoteStopObject';
+import NoteObject from './NoteObject';
+import NoteObjectBase from './NoteObjectBase';
+import Part from './Part';
 
-import EngineEventObjectMap from 'events/EngineEventObjectMap';
-import EventObjectBase from 'events/EventObjectBase';
-import SimpleEventObject from 'events/SimpleEventObject';
+import EngineEventObjectMap from '../events/EngineEventObjectMap';
+import EventObjectBase from '../events/EventObjectBase';
+import SimpleEventObject from '../events/SimpleEventObject';
 
-import { gcd } from 'functions';
+import { gcd } from '../functions';
 
 let _controlDataId = 0;
 

@@ -1,5 +1,5 @@
 
-import Options, { Defaults } from 'core/playing/Options';
+import Options, { Defaults } from './Options';
 
 /** @internal */
 export default function createAudioWorkletNode(ctx: BaseAudioContext, options: Options) {

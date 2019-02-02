@@ -1,7 +1,7 @@
 
-import PlayStatusEventObject from 'events/PlayStatusEventObject';
-import PlayUserEventObject from 'events/PlayUserEventObject';
-import SimpleEventObject from 'events/SimpleEventObject';
+import PlayStatusEventObject from './PlayStatusEventObject';
+import PlayUserEventObject from './PlayUserEventObject';
+import SimpleEventObject from './SimpleEventObject';
 
 import PlayerBase from 'core/PlayerBase';
 

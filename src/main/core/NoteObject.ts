@@ -1,10 +1,10 @@
 
-import { TimeValue } from 'types';
+import { TimeValue } from '../types';
 
-import Engine from 'core/Engine';
-import NoteObjectBase from 'core/NoteObjectBase';
+import Engine from './Engine';
+import NoteObjectBase from './NoteObjectBase';
 
-import { isUndefined } from 'functions';
+import { isUndefined } from '../functions';
 
 export default class NoteObject implements NoteObjectBase {
 	public engine?: Engine | null;

@@ -1,8 +1,8 @@
 
-import * as RenderMessage from 'types/RenderMessageData';
+import * as RenderMessage from '../../types/RenderMessageData';
 
-import FrameQueue from 'core/playing/FrameQueue';
-import Options, { Defaults } from 'core/playing/Options';
+import FrameQueue from './FrameQueue';
+import Options, { Defaults } from './Options';
 
 /** @internal */
 export default function createScriptProcessorNode(ctx: BaseAudioContext, renderFrameCount: number, options: Options) {

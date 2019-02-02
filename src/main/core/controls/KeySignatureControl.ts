@@ -1,7 +1,7 @@
 
-import ControlObject, { _objCtors } from 'core/controls/ControlObject';
+import ControlObject, { _objCtors } from './ControlObject';
 
-import { isUndefined } from 'functions';
+import { isUndefined } from '../../functions';
 
 const KEY_SIGNATURE_NAMES = [
 	'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb',

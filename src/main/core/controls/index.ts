@@ -1,16 +1,16 @@
 
-import AftertouchControl from 'core/controls/AftertouchControl';
-import ControllerControl from 'core/controls/ControllerControl';
-import ControlObject from 'core/controls/ControlObject';
-import EOTObject from 'core/controls/EOTObject';
-import KeySignatureControl from 'core/controls/KeySignatureControl';
-import PitchWheelControl from 'core/controls/PitchWheelControl';
-import PressureControl from 'core/controls/PressureControl';
-import ProgramChangeControl from 'core/controls/ProgramChangeControl';
-import SysExControl from 'core/controls/SysExControl';
-import SysMsgControl from 'core/controls/SysMsgControl';
-import TempoControl from 'core/controls/TempoControl';
-import TimeSignatureControl from 'core/controls/TimeSignatureControl';
+import AftertouchControl from './AftertouchControl';
+import ControllerControl from './ControllerControl';
+import ControlObject from './ControlObject';
+import EOTObject from './EOTObject';
+import KeySignatureControl from './KeySignatureControl';
+import PitchWheelControl from './PitchWheelControl';
+import PressureControl from './PressureControl';
+import ProgramChangeControl from './ProgramChangeControl';
+import SysExControl from './SysExControl';
+import SysMsgControl from './SysMsgControl';
+import TempoControl from './TempoControl';
+import TimeSignatureControl from './TimeSignatureControl';
 
 export {
 	AftertouchControl,

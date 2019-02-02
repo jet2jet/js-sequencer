@@ -1,7 +1,7 @@
 
-import ControlObject from 'core/controls/ControlObject';
+import ControlObject from './ControlObject';
 
-import { isUndefined } from 'functions';
+import { isUndefined } from '../../functions';
 
 export default class EOTObject extends ControlObject {
 	constructor();

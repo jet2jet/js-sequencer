@@ -1,9 +1,9 @@
 
-import BackgroundChord from 'objects/BackgroundChord';
-import Channel from 'objects/Channel';
-import IPositionObject from 'objects/IPositionObject';
-import ISequencerObject from 'objects/ISequencerObject';
-import PositionObject from 'objects/PositionObject';
+import BackgroundChord from './BackgroundChord';
+import Channel from './Channel';
+import IPositionObject from './IPositionObject';
+import ISequencerObject from './ISequencerObject';
+import PositionObject from './PositionObject';
 
 export {
 	BackgroundChord,

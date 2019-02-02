@@ -1,19 +1,19 @@
 
 import * as JSSynth from 'js-synthesizer';
 
-import {  TimeValue } from 'types';
+import { TimeValue } from '../types';
 
-import PlayerBaseEventObjectMap from 'events/PlayerBaseEventObjectMap';
-import PlayStatusEventObject from 'events/PlayStatusEventObject';
-import PlayUserEventObject from 'events/PlayUserEventObject';
-import SimpleEventObject from 'events/SimpleEventObject';
+import PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
+import PlayStatusEventObject from '../events/PlayStatusEventObject';
+import PlayUserEventObject from '../events/PlayUserEventObject';
+import SimpleEventObject from '../events/SimpleEventObject';
 
-import { isAudioAvailable, loadBinaryFromFile } from 'functions';
+import { isAudioAvailable, loadBinaryFromFile } from '../functions';
 
-import IPlayStream from 'core/IPlayStream';
+import IPlayStream from './IPlayStream';
 
-import Options from 'core/playing/Options';
-import PlayerProxy from 'core/playing/PlayerProxy';
+import Options from './playing/Options';
+import PlayerProxy from './playing/PlayerProxy';
 
 interface UserEventData {
 	type: string;

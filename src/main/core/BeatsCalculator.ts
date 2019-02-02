@@ -1,5 +1,5 @@
 
-import { gcd } from 'functions';
+import { gcd } from '../functions';
 
 /** @internal */
 export default class BeatsCalculator {

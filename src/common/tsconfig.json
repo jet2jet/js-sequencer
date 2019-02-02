@@ -10,7 +10,6 @@
     "moduleResolution": "node",
     "paths": {
       "*": [
-        "./common/*",
         "../reference/*",
         "../node_modules/*"
       ]

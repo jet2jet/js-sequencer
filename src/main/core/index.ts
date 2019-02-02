@@ -1,14 +1,14 @@
 
-import * as Controls from 'core/controls';
+import * as Controls from './controls';
 
-import EditorEngine from 'core/EditorEngine';
-import Engine from 'core/Engine';
-import IPlayStream from 'core/IPlayStream';
-import NoteObject, { isNoteObject } from 'core/NoteObject';
-import NoteObjectBase from 'core/NoteObjectBase';
-import Part from 'core/Part';
-import Player from 'core/Player';
-import PlayerBase, { SFontMap, StatusData } from 'core/PlayerBase';
+import EditorEngine from './EditorEngine';
+import Engine from './Engine';
+import IPlayStream from './IPlayStream';
+import NoteObject, { isNoteObject } from './NoteObject';
+import NoteObjectBase from './NoteObjectBase';
+import Part from './Part';
+import Player from './Player';
+import PlayerBase, { SFontMap, StatusData } from './PlayerBase';
 
 export {
 	Controls,

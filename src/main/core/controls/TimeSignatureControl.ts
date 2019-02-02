@@ -1,7 +1,7 @@
 
-import ControlObject, { _objCtors } from 'core/controls/ControlObject';
+import ControlObject, { _objCtors } from './ControlObject';
 
-import { isUndefined } from 'functions';
+import { isUndefined } from '../../functions';
 
 export default class TimeSignatureControl extends ControlObject {
 	public beatsNumerator: number;

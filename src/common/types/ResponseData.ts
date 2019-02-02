@@ -1,5 +1,5 @@
 
-import { RenderedResponse, Status } from 'types/RenderMessageData';
+import { RenderedResponse, Status } from './RenderMessageData';
 
 /** @internal */
 export interface Base {

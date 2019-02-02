@@ -1,15 +1,17 @@
 
-import EditorEventObjectMap from 'events/EditorEventObjectMap';
-import EngineEventObjectMap from 'events/EngineEventObjectMap';
-import EventObjectBase from 'events/EventObjectBase';
-import MaxChangedEventObject from 'events/MaxChangedEventObject';
-import PlayEndNoteEventObject from 'events/PlayEndNoteEventObject';
-import PlayerEventObjectMap from 'events/PlayerEventObjectMap';
-import PlayQueueEventObject from 'events/PlayQueueEventObject';
-import PlayStatusEventObject from 'events/PlayStatusEventObject';
-import ResizeEventObject from 'events/ResizeEventObject';
-import ScrollEventObject from 'events/ScrollEventObject';
-import SimpleEventObject from 'events/SimpleEventObject';
+import EditorEventObjectMap from './EditorEventObjectMap';
+import EngineEventObjectMap from './EngineEventObjectMap';
+import EventObjectBase from './EventObjectBase';
+import MaxChangedEventObject from './MaxChangedEventObject';
+import PlayEndNoteEventObject from './PlayEndNoteEventObject';
+import PlayerBaseEventObjectMap from './PlayerBaseEventObjectMap';
+import PlayerEventObjectMap from './PlayerEventObjectMap';
+import PlayQueueEventObject from './PlayQueueEventObject';
+import PlayStatusEventObject from './PlayStatusEventObject';
+import PlayUserEventObject from './PlayUserEventObject';
+import ResizeEventObject from './ResizeEventObject';
+import ScrollEventObject from './ScrollEventObject';
+import SimpleEventObject from './SimpleEventObject';
 
 export {
 	EditorEventObjectMap,
@@ -19,6 +21,8 @@ export {
 	PlayEndNoteEventObject,
 	PlayQueueEventObject,
 	PlayStatusEventObject,
+	PlayUserEventObject,
+	PlayerBaseEventObjectMap,
 	PlayerEventObjectMap,
 	ResizeEventObject,
 	ScrollEventObject,

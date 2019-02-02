@@ -7,9 +7,9 @@ import SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
 
 declare var JSSynth: typeof import('js-synthesizer');
 
-import * as Message from 'types/MessageData';
-import * as RenderMessage from 'types/RenderMessageData';
-import * as Response from 'types/ResponseData';
+import * as Message from './types/MessageData';
+import * as RenderMessage from './types/RenderMessageData';
+import * as Response from './types/ResponseData';
 
 const enum Defaults {
 	SampleRate = 48000,

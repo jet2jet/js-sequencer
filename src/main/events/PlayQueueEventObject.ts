@@ -1,7 +1,7 @@
 
-import EventObjectBase from 'events/EventObjectBase';
+import EventObjectBase from './EventObjectBase';
 
-import Player from 'core/Player';
+import Player from '../core/Player';
 
 export default class PlayQueueEventObject extends EventObjectBase {
 	constructor(

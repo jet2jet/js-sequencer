@@ -1,5 +1,5 @@
 
-import Engine from 'core/Engine';
+import Engine from '../core/Engine';
 
 /**
  * Abstract sequencer object used by Engine and Player.

@@ -1,5 +1,5 @@
 
-import IPositionObject from 'objects/IPositionObject';
+import IPositionObject from '../objects/IPositionObject';
 
 /** Time value (in seconds) */
 export type TimeValue = number;

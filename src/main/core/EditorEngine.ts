@@ -1,28 +1,28 @@
 
-import BackgroundChord from 'objects/BackgroundChord';
-import IPositionObject from 'objects/IPositionObject';
-import ISequencerObject from 'objects/ISequencerObject';
-import PositionObject from 'objects/PositionObject';
+import BackgroundChord from '../objects/BackgroundChord';
+import IPositionObject from '../objects/IPositionObject';
+import ISequencerObject from '../objects/ISequencerObject';
+import PositionObject from '../objects/PositionObject';
 
-import ControlObject from 'core/controls/ControlObject';
-import TimeSignatureControl from 'core/controls/TimeSignatureControl';
+import ControlObject from './controls/ControlObject';
+import TimeSignatureControl from './controls/TimeSignatureControl';
 
-import { gcd, getItemFromArray, isUndefined, loadBinaryFromFile, removeItemFromArray } from 'functions';
-import MyWeakMap, { createWeakMap, getWeakMap, setWeakMap } from 'functions/MyWeakMap';
+import { gcd, getItemFromArray, isUndefined, loadBinaryFromFile, removeItemFromArray } from '../functions';
+import MyWeakMap, { createWeakMap, getWeakMap, setWeakMap } from '../functions/MyWeakMap';
 
-import EditorEventObjectMap from 'events/EditorEventObjectMap';
-import EngineEventObjectMap from 'events/EngineEventObjectMap';
-import EventObjectBase from 'events/EventObjectBase';
-import MaxChangedEventObject from 'events/MaxChangedEventObject';
-import ResizeEventObject from 'events/ResizeEventObject';
-import ScrollEventObject from 'events/ScrollEventObject';
+import EditorEventObjectMap from '../events/EditorEventObjectMap';
+import EngineEventObjectMap from '../events/EngineEventObjectMap';
+import EventObjectBase from '../events/EventObjectBase';
+import MaxChangedEventObject from '../events/MaxChangedEventObject';
+import ResizeEventObject from '../events/ResizeEventObject';
+import ScrollEventObject from '../events/ScrollEventObject';
 
-import BeatsCalculator from 'core/BeatsCalculator';
-import Engine, { sortNotesAndControls } from 'core/Engine';
-import NoteObject from 'core/NoteObject';
-import Part from 'core/Part';
+import BeatsCalculator from './BeatsCalculator';
+import Engine, { sortNotesAndControls } from './Engine';
+import NoteObject from './NoteObject';
+import Part from './Part';
 
-import Player from 'core/Player';
+import Player from './Player';
 
 declare global {
 	interface HTMLElement {

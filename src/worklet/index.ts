@@ -1,8 +1,8 @@
 /// <reference types='AudioWorklet' />
 
-import * as RenderMessage from 'types/RenderMessageData';
+import * as RenderMessage from './types/RenderMessageData';
 
-import FrameQueue from 'core/playing/FrameQueue';
+import FrameQueue from './core/playing/FrameQueue';
 
 class Processor extends AudioWorkletProcessor {
 

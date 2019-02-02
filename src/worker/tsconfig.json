@@ -13,8 +13,6 @@
         "../node_modules/js-synthesizer/dist/lib/*"
       ],
       "*": [
-        "./worker/*",
-        "./common/*",
         "../reference/*",
         "../node_modules/*"
       ]
@@ -28,6 +26,10 @@
     ],
     "removeComments": false,
     "rootDir": "..",
+    "rootDirs": [
+      ".",
+      "../common"
+    ],
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "sourceMap": true,

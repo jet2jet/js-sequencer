@@ -15,6 +15,12 @@ const AUTHOR = packageJson.author;
 const isMinified = process.env.NODE_ENV === 'minified';
 const suffix = isMinified ? '.min' : '';
 
+const sourceRootDir = path.resolve(__dirname, '../src');
+const mainRootPath = path.resolve(__dirname, '../src/main');
+const commonRootPath = path.resolve(__dirname, '../src/common');
+
+const moduleExtensions = ['.tsx', '.ts', '.js'];
+
 const headerTextTemplate = fs.readFileSync(path.resolve(__dirname, '../src/banner/header.txt'), 'utf8');
 const preparedHeaderText = prependHeaderTextImpl(
 	LIBRARY_NAME, AUTHOR, LIBRARY_VERSION
@@ -49,6 +55,21 @@ const webpackConfBase = {
 		new webpack.BannerPlugin({
 			banner: preparedHeaderText,
 			raw: true
+		}),
+		new webpack.NormalModuleReplacementPlugin(/^\./, (resource) => {
+			// if module is not found in the project directory, search commonRootPath
+			const inputPath = path.resolve(resource.context, resource.request);
+			if (!existsModule(inputPath, moduleExtensions)) {
+				const relPathFromSrc = path.normalize(path.relative(sourceRootDir, inputPath));
+				if (!/^\.\./.test(relPathFromSrc)) {
+					const relPathFromProject = relPathFromSrc.replace(/^.*?[\\\/]/, '');
+					const commonPath = path.resolve(commonRootPath, relPathFromProject);
+					if (existsModule(commonPath, moduleExtensions)) {
+						resource.request = path.relative(resource.context, commonPath);
+					}
+				}
+			}
+			// console.log('[NormalModuleReplacementPlugin]', resource);
 		})
 	]
 };
@@ -56,7 +77,7 @@ const webpackConfBase = {
 module.exports = [
 	Object.assign({
 		entry: {
-			[LIBRARY_FILENAME]: path.resolve(__dirname, '../src/main/index.ts')
+			[LIBRARY_FILENAME]: path.resolve(mainRootPath, 'index.ts')
 		},
 		externals: {
 			'js-synthesizer': {
@@ -78,10 +99,8 @@ module.exports = [
 			globalObject: 'this'
 		},
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js'],
+			extensions: moduleExtensions,
 			modules: [
-				path.resolve(__dirname, '..', 'src', 'main'),
-				path.resolve(__dirname, '..', 'src', 'common'),
 				path.resolve(__dirname, '..', 'reference'),
 				'node_modules'
 			]
@@ -99,10 +118,8 @@ module.exports = [
 			filename: `[name]${suffix}.js`
 		},
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js'],
+			extensions: moduleExtensions,
 			modules: [
-				path.resolve(__dirname, '..', 'src', 'worker'),
-				path.resolve(__dirname, '..', 'src', 'common'),
 				path.resolve(__dirname, '..', 'reference'),
 				'node_modules'
 			]
@@ -120,10 +137,8 @@ module.exports = [
 			filename: `[name]${suffix}.js`
 		},
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js'],
+			extensions: moduleExtensions,
 			modules: [
-				path.resolve(__dirname, '..', 'src', 'worklet'),
-				path.resolve(__dirname, '..', 'src', 'common'),
 				path.resolve(__dirname, '..', 'reference'),
 				'node_modules'
 			]
@@ -157,4 +172,10 @@ function prependHeaderTextImpl(name, author, version) {
 			toNumberStringWithZero(date.getMonth() + 1, 2) + '-' +
 			toNumberStringWithZero(date.getDate(), 2)
 		);
+}
+
+function existsModule(name, extensions) {
+	return fs.existsSync(name) || extensions.some((ext) => {
+		return fs.existsSync(name + ext);
+	});
 }

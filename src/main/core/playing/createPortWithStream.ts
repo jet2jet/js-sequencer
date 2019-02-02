@@ -1,9 +1,9 @@
 
-import * as RenderMessage from 'types/RenderMessageData';
+import * as RenderMessage from '../../types/RenderMessageData';
 
-import IPlayStream from 'core/IPlayStream';
+import IPlayStream from '../IPlayStream';
 
-import Options from 'core/playing/Options';
+import Options from './Options';
 
 /** @internal */
 export default function createPortWithStream(stream: IPlayStream, sampleRate: number, options: Options): MessagePort {

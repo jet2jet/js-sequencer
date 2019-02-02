@@ -1,7 +1,7 @@
 
-import SimpleEventObject from 'events/SimpleEventObject';
+import SimpleEventObject from './SimpleEventObject';
 
-import EditorEngine from 'core/EditorEngine';
+import EditorEngine from '../core/EditorEngine';
 
 export default class ResizeEventObject extends SimpleEventObject<EditorEngine> {
 	public readonly width: number;

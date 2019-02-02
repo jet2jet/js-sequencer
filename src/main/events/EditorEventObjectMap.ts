@@ -1,7 +1,7 @@
 
-import MaxChangedEventObject from 'events/MaxChangedEventObject';
-import ResizeEventObject from 'events/ResizeEventObject';
-import ScrollEventObject from 'events/ScrollEventObject';
+import MaxChangedEventObject from './MaxChangedEventObject';
+import ResizeEventObject from './ResizeEventObject';
+import ScrollEventObject from './ScrollEventObject';
 
 export default interface EditorEventObjectMap {
 	'scrollx': ScrollEventObject;

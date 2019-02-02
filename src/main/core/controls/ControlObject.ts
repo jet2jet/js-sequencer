@@ -1,7 +1,7 @@
 
-import ISequencerObject from 'objects/ISequencerObject';
+import ISequencerObject from '../../objects/ISequencerObject';
 
-import Engine from 'core/Engine';
+import Engine from '../Engine';
 
 /** @internal */
 export const _objCtors: { [key: string]: typeof ControlObject } = {};
