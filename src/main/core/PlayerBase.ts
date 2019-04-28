@@ -121,7 +121,7 @@ export default class PlayerBase {
 		this.proxy = proxy;
 		proxy.onQueued = this.onQueuedPlayer.bind(this);
 		proxy.onStatus = this.onStatusPlayer.bind(this);
-		proxy.onStop = this.onFinishPlayer.bind(this);
+		proxy.onStop = this.onStopPlayer.bind(this);
 		proxy.onReset = this.onResetPlayer.bind(this);
 		proxy.onUserData = this.onUserDataPlayer.bind(this);
 	}
@@ -451,10 +451,10 @@ export default class PlayerBase {
 		this.raiseEventPlayStatus(this.playedFrames, s.sampleRate);
 	}
 
-	private onFinishPlayer() {
+	private onStopPlayer() {
 		// console.log('[PlayerBase] onFinishPlayer', this.isWaitingForStop);
 		if (!this.isWaitingForStop) {
-			this.stopAndWait();
+			this.waitForRelease();
 		}
 	}
 
@@ -972,7 +972,7 @@ export default class PlayerBase {
 		this.raiseEventStopped();
 	}
 
-	private stopAndWait() {
+	private waitForRelease() {
 		if (!this._isPlayerRunning || this.isWaitingForStop) {
 			return;
 		}
