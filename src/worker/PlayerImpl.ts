@@ -81,6 +81,7 @@ export default class PlayerImpl {
 	private synth!: Synthesizer;
 	private sequencer: ISequencer | undefined;
 	private myClient!: number;
+	/** timer id for onRender method; also used for check 'playing' (non-null indicates 'playing') */
 	private timerId: ReturnType<typeof setTimeout> | null = null;
 	private pauseRender: boolean;
 	private startTime: number;
@@ -678,8 +679,9 @@ export default class PlayerImpl {
 			case 'status':
 				this.port.postMessage(data);
 				if (data.data.isQueueEmpty && this.allRendered) {
-					this.onStop();
-					this.postDefaultAsync('stop');
+					if (this.timerId !== null) {
+						this.onStop();
+					}
 				}
 				break;
 			case 'queue':
