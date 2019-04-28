@@ -84,6 +84,7 @@ export default class PlayerImpl {
 	/** timer id for onRender method; also used for check 'playing' (non-null indicates 'playing') */
 	private timerId: ReturnType<typeof setTimeout> | null = null;
 	private playingId: number | undefined;
+	private starting: boolean;
 	private pauseRender: boolean;
 	private startTime: number;
 	private hasFinished: boolean;
@@ -128,6 +129,7 @@ export default class PlayerImpl {
 
 	constructor(data: Message.Initialize) {
 		this.port = data.port;
+		this.starting = false;
 		this.pauseRender = false;
 		this.startTime = 0;
 		this.hasFinished = false;
@@ -461,7 +463,17 @@ export default class PlayerImpl {
 			this.postStop();
 			return;
 		}
+		if (this.starting) {
+			// console.log('onStart ignored because already waiting.');
+			return;
+		}
+		this.starting = true;
 		await this.waitForVoicesStopped();
+		if (!this.starting) {
+			// console.log('Start canceled.');
+			return;
+		}
+		this.starting = false;
 
 		if (!this.sequencer) {
 			// console.log('Wait for create sequencer...');
@@ -527,6 +539,7 @@ export default class PlayerImpl {
 			clearTimeout(this.finishTimer);
 			this.finishTimer = null;
 		}
+		this.starting = false;
 		if (this.sequencer && this.timerId !== null) {
 			this.doStopTimer();
 			this.renderPort!.postMessage({ type: 'stop' } as RenderMessage.Stop);
@@ -535,7 +548,7 @@ export default class PlayerImpl {
 				this.sequencer.sendEventAt({
 					type: 'system-reset'
 				}, 0, false);
-				this.waitForVoicesStopped();
+				await this.waitForVoicesStopped();
 				// console.log('Sending \'stop\'');
 				this.postStop();
 			} else if (isWaitingFinish) {
@@ -549,6 +562,7 @@ export default class PlayerImpl {
 
 	private async onRelease(data: Message.Release) {
 		// console.log('[PlayerImpl] onRelease()');
+		this.starting = false;
 		if (this.sequencer) {
 			if (this.timerId !== null) {
 				await this.onStop();

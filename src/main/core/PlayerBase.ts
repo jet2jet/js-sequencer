@@ -15,6 +15,16 @@ import IPlayStream from './IPlayStream';
 import Options from './playing/Options';
 import PlayerProxy from './playing/PlayerProxy';
 
+type IsAlmostSameType<T1, T2, TTrue, TFalse> = T1 extends T2 ? (T2 extends T1 ? TTrue : TFalse) : TFalse;
+type PickKeysForType<T, TType> = ({
+	[P in keyof T]: IsAlmostSameType<T[P], TType, P, never>;
+})[keyof T] extends (infer U) ?
+	(U extends never ? never : U) : never;
+
+type PlayerBaseSimpleEventObjectMap = {
+	[P in PickKeysForType<PlayerBaseEventObjectMap, SimpleEventObject<PlayerBase>>]: PlayerBaseEventObjectMap[P];
+};
+
 interface UserEventData {
 	type: string;
 	data: any;
@@ -70,6 +80,18 @@ const enum Constants {
 	ChannelChordNote = 18
 }
 
+function normalizeMapName<T extends keyof PlayerBaseEventObjectMap>(name: string): T | undefined {
+	switch (name.toLowerCase()) {
+		case 'prepare': return 'prepare' as T;
+		case 'start': return 'start' as T;
+		case 'reset': return 'reset' as T;
+		case 'stopped': return 'stopped' as T;
+		case 'playstatus': return 'playstatus' as T;
+		case 'playuserevent': return 'playuserevent' as T;
+		default: return void 0;
+	}
+}
+
 function makeDefaultChannelStatus(): ChannelStatus {
 	return {
 		volume: Constants.InitialVolume
@@ -99,10 +121,9 @@ export default class PlayerBase {
 	private outputStream: IPlayStream | null = null;
 	private audioWorkletScripts: string[] = [];
 
-	private _evtPlayStatus: Array<(e: PlayStatusEventObject) => void> = [];
-	private _evtStopped: Array<(e: SimpleEventObject<PlayerBase>) => void> = [];
-	private _evtReset: Array<(e: SimpleEventObject<PlayerBase>) => void> = [];
-	private _evtPlayUserEvent: Array<(e: PlayUserEventObject) => void> = [];
+	private _evtMap: {
+		[P in keyof PlayerBaseEventObjectMap]?: Array<(e: PlayerBaseEventObjectMap[P]) => void>;
+	} = {};
 
 	private playOptions: Options = {};
 	private playingStream: IPlayStream | null = null;
@@ -110,6 +131,7 @@ export default class PlayerBase {
 	private audioDest: AudioNode | null = null;
 	private playingNode: AudioNode | null = null;
 	private playingGain: GainNode | null = null;
+	private isPlayerPreparing = false;
 	private _isPlayerRunning: boolean = false;
 	private isNodeConnected = false;
 	private isWorkletLoaded = false;
@@ -452,11 +474,11 @@ export default class PlayerBase {
 	}
 
 	private onStopPlayer() {
-		// console.log('[PlayerBase] onStopPlayer', this.isWaitingForStop);
+		// console.log('[PlayerBase] onStopPlayer', this.isWaitingForStop, this._isPlayerRunning);
 		if (!this.isWaitingForStop && this._isPlayerRunning) {
 			this.isWaitingForStop = true;
 			this.proxy.waitForFinish().then(() => {
-				// console.log('All finished', this._isPlayerRunning);
+				// console.log('[PlayerBase] All finished', this._isPlayerRunning);
 				this.stopPlayer();
 			});
 		}
@@ -466,7 +488,7 @@ export default class PlayerBase {
 		this.sfontDefault = null;
 		this.isSfontDefaultExternal = false;
 		this.sfontMap = [];
-		this.raiseEventReset();
+		this.raiseEventSimple('reset');
 	}
 
 	private onUserDataPlayer(data: any) {
@@ -478,8 +500,12 @@ export default class PlayerBase {
 	}
 
 	private raiseEventPlayStatus(current: number, sampleRate: number) {
+		const m = this._evtMap.playstatus;
+		if (!m) {
+			return false;
+		}
 		const e = new PlayStatusEventObject(this, current, sampleRate);
-		for (const fn of this._evtPlayStatus) {
+		for (const fn of m) {
 			fn(e);
 			if (e.isPropagationStopped())
 				break;
@@ -487,8 +513,12 @@ export default class PlayerBase {
 		return !e.isDefaultPrevented();
 	}
 	private raiseEventPlayUserEvent(type: string, data: any) {
+		const m = this._evtMap.playuserevent;
+		if (!m) {
+			return false;
+		}
 		const e = new PlayUserEventObject(this, type, data);
-		for (const fn of this._evtPlayUserEvent) {
+		for (const fn of m) {
 			fn(e);
 			if (e.isPropagationStopped()) {
 				break;
@@ -496,21 +526,20 @@ export default class PlayerBase {
 		}
 		return !e.isDefaultPrevented();
 	}
-	private raiseEventStopped() {
-		const e = new SimpleEventObject(this);
-		for (const fn of this._evtStopped) {
-			fn(e);
-			if (e.isPropagationStopped())
-				break;
+	private raiseEventSimple(eventName: keyof PlayerBaseSimpleEventObjectMap) {
+		const m = this._evtMap[eventName];
+		if (!m) {
+			return false;
 		}
-		return !e.isDefaultPrevented();
-	}
-	private raiseEventReset() {
+		// if (eventName === 'stopped') {
+		// 	console.log('[PlayerBase] raiseEventStopped');
+		// }
 		const e = new SimpleEventObject(this);
-		for (const fn of this._evtReset) {
+		for (const fn of m) {
 			fn(e);
-			if (e.isPropagationStopped())
+			if (e.isPropagationStopped()) {
 				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -523,16 +552,13 @@ export default class PlayerBase {
 	public addEventHandler<T extends keyof PlayerBaseEventObjectMap>(
 		name: T, fn: (e: PlayerBaseEventObjectMap[T]) => void
 	): void {
-		let arr: any[] | undefined;
-		switch (name.toLowerCase()) {
-			case 'reset': arr = this._evtReset; break;
-			case 'stopped': arr = this._evtStopped; break;
-			case 'playstatus': arr = this._evtPlayStatus; break;
-			case 'playuserevent': arr = this._evtPlayUserEvent; break;
-		}
-		if (!arr) {
+		const actualKeys = normalizeMapName<T>(name);
+		if (!actualKeys) {
 			return;
 		}
+		type TArray = Array<typeof fn>;
+		const arr: TArray =
+			this._evtMap[actualKeys]! as TArray || (this._evtMap[actualKeys] = []);
 		arr.push(fn);
 	}
 	/**
@@ -543,16 +569,13 @@ export default class PlayerBase {
 	public removeEventHandler<T extends keyof PlayerBaseEventObjectMap>(
 		name: T, fn: (e: PlayerBaseEventObjectMap[T]) => void
 	): void {
-		let arr: any[] | undefined;
-		switch (name.toLowerCase()) {
-			case 'reset': arr = this._evtReset; break;
-			case 'stopped': arr = this._evtStopped; break;
-			case 'playstatus': arr = this._evtPlayStatus; break;
-			case 'playuserevent': arr = this._evtPlayUserEvent; break;
-		}
-		if (!arr) {
+		const actualKeys = normalizeMapName<T>(name);
+		if (!actualKeys) {
 			return;
 		}
+		type TArray = Array<typeof fn>;
+		const arr: TArray =
+			this._evtMap[actualKeys]! as TArray || (this._evtMap[actualKeys] = []);
 		for (let i = arr.length - 1; i >= 0; --i) {
 			if (arr[i] === fn) {
 				arr.splice(i, 1);
@@ -602,6 +625,9 @@ export default class PlayerBase {
 	}
 
 	private prepareForPlay(actx: BaseAudioContext, dest: AudioNode) {
+		if (!this.isPlayerPreparing) {
+			return;
+		}
 		this.resetChannel();
 		if (this.releasePlayerTimer !== null) {
 			clearTimeout(this.releasePlayerTimer);
@@ -661,12 +687,15 @@ export default class PlayerBase {
 			});
 		}
 
+		this.isPlayerPreparing = false;
 		this._isPlayerRunning = true;
 
 		this.playedFrames = 0;
 		this.isWaitingForStop = false;
 
+		// console.log('[PlayerBase] onPlayStart');
 		this.onPlayStart();
+		this.raiseEventSimple('start');
 	}
 
 	/**
@@ -945,6 +974,9 @@ export default class PlayerBase {
 		if (!isAudioAvailable()) {
 			return Promise.reject(new Error('Not supported'));
 		}
+		if (this._isPlayerRunning || this.isPlayerPreparing) {
+			return Promise.reject(new Error('In playing'));
+		}
 
 		if (!noStop) {
 			this.stopPlayer();
@@ -952,14 +984,24 @@ export default class PlayerBase {
 		if (dest) {
 			actx = dest.context;
 		}
-		return this.prepareAudioContext(actx).then((a) => this.prepareForPlay(a, dest || a.destination));
+		// console.log('[PlayerBase] startPlayer', this.isPlayerPreparing, this.isWaitingForStop);
+		this.isPlayerPreparing = true;
+		this.raiseEventSimple('prepare');
+		return this.proxy.waitForFinish(3000)
+			.then(() => this.prepareAudioContext(actx))
+			.then((a) => this.prepareForPlay(a, dest || a.destination));
 	}
 
 	/**
 	 * Stop rendering MIDI events for player engine.
 	 */
 	public stopPlayer() {
+		// console.log('[PlayerBase] stopPlayer', this._isPlayerRunning, this.isWaitingForStop);
 		if (!this._isPlayerRunning) {
+			if (this.isPlayerPreparing) {
+				this.isPlayerPreparing = false;
+				return;
+			}
 			return;
 		}
 		this.preStopPlayer();
@@ -973,7 +1015,7 @@ export default class PlayerBase {
 		}
 		this.setReleaseTimer();
 		this.isWaitingForStop = false;
-		this.raiseEventStopped();
+		this.raiseEventSimple('stopped');
 	}
 
 	/**
@@ -1022,7 +1064,7 @@ export default class PlayerBase {
 		}
 		if (this.isWaitingForStop) {
 			this.isWaitingForStop = false;
-			this.raiseEventStopped();
+			this.raiseEventSimple('stopped');
 		}
 	}
 
