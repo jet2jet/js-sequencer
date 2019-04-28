@@ -452,9 +452,13 @@ export default class PlayerBase {
 	}
 
 	private onStopPlayer() {
-		// console.log('[PlayerBase] onFinishPlayer', this.isWaitingForStop);
-		if (!this.isWaitingForStop) {
-			this.waitForRelease();
+		// console.log('[PlayerBase] onStopPlayer', this.isWaitingForStop);
+		if (!this.isWaitingForStop && this._isPlayerRunning) {
+			this.isWaitingForStop = true;
+			this.proxy.waitForFinish().then(() => {
+				// console.log('All finished', this._isPlayerRunning);
+				this.stopPlayer();
+			});
 		}
 	}
 
@@ -970,19 +974,6 @@ export default class PlayerBase {
 		this.setReleaseTimer();
 		this.isWaitingForStop = false;
 		this.raiseEventStopped();
-	}
-
-	private waitForRelease() {
-		if (!this._isPlayerRunning || this.isWaitingForStop) {
-			return;
-		}
-		// console.log('[PlayerBase] stopAndWait', new Error());
-		this.isWaitingForStop = true;
-		this.proxy.stop();
-		this.proxy.waitForFinish().then(() => {
-			// console.log('All finished', this._isPlayerRunning);
-			this.stopPlayer();
-		});
 	}
 
 	/**
