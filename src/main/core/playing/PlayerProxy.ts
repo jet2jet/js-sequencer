@@ -393,12 +393,13 @@ export default class PlayerProxy {
 	}
 
 	private doStop() {
+		if (!this.stopResolver) {
+			return;
+		}
 		this.userEventData = {};
 		this.userEventId = 0;
-		if (this.stopResolver) {
-			this.stopResolver();
-			this.stopResolver = null;
-		}
+		this.stopResolver();
+		this.stopResolver = null;
 		if (this.onStop) {
 			this.onStop();
 		}
