@@ -14,7 +14,7 @@
     "node": ">=8"
   },
   "name": "sequencer",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "scripts": {
     "build": "better-npm-run build:dev",
     "build:minified": "better-npm-run build:minified",
