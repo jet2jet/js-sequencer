@@ -64,6 +64,7 @@ export interface UnloadSoundfont extends Base {
 export interface Start extends Base {
 	id?: never;
 	type: 'start';
+	playingId: number;
 	renderPort?: MessagePort;
 }
 

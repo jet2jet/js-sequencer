@@ -10,20 +10,11 @@ export interface Base {
 
 /** @internal */
 export type NoResponseMessageTypes = 'initialize' | 'config' | 'unload-sfont';
-/** @internal */
-export type AsyncMessageTypes = 'stop' | 'reset';
 
 /** @internal */
 export interface NoResponseMessage extends Base {
 	id: number;
 	type: NoResponseMessageTypes;
-	data?: never;
-}
-
-/** @internal */
-export interface AsyncMessage extends Base {
-	id?: never;
-	type: AsyncMessageTypes;
 	data?: never;
 }
 
@@ -50,9 +41,18 @@ export interface Render extends Base {
 }
 
 /** @internal */
+export interface Stop extends Base {
+	id?: never;
+	type: 'stop';
+	/** playing id */
+	data: number;
+}
+
+/** @internal */
 export interface Reset extends Base {
 	id?: never;
 	type: 'reset';
+	data?: never;
 }
 
 /** @internal */
@@ -63,8 +63,8 @@ export interface UserEvent extends Base {
 }
 
 /** @internal */
-export type AllTypes = NoResponseMessage | AsyncMessage | LoadSoundfont |
-	Pause | Render | RenderedResponse | Status | Reset | UserEvent;
+export type AllTypes = NoResponseMessage | LoadSoundfont |
+	Pause | Render | RenderedResponse | Status | Stop | Reset | UserEvent;
 
 /** @internal */
 export default AllTypes;

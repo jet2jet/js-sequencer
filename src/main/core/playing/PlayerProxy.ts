@@ -57,6 +57,7 @@ export default class PlayerProxy {
 	public onReset: null | (() => void);
 	public onUserData: null | ((data: any) => void);
 
+	private playingId: number = 0;
 	private stopPromise: Promise<void>;
 	private stopResolver: null | (() => void);
 
@@ -185,7 +186,8 @@ export default class PlayerProxy {
 
 	public startWithExistingConnection() {
 		const data: Message.Start = {
-			type: 'start'
+			type: 'start',
+			playingId: this.initPlayingId()
 		};
 		this.port.postMessage(data);
 		this.stopPromise = new Promise((resolve) => {
@@ -196,6 +198,7 @@ export default class PlayerProxy {
 	private startImpl(renderPort: MessagePort) {
 		const data: Message.Start = {
 			type: 'start',
+			playingId: this.initPlayingId(),
 			renderPort: renderPort
 		};
 		this.port.postMessage(data, [renderPort]);
@@ -337,6 +340,10 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
+	private initPlayingId(): number {
+		return ++this.playingId;
+	}
+
 	private addDefer<TType extends Response.AllTypes['type']>(id: number, type: TType) {
 		return new Promise<ResponseDataType<TType>>((resolve) => {
 			this.defers.push({
@@ -354,8 +361,12 @@ export default class PlayerProxy {
 		}
 		switch (data.type) {
 			case 'stop':
-				// console.log('[PlayerProxy] stop');
-				this.doStop();
+				if (data.data === this.playingId) {
+					// console.log('[PlayerProxy] stop');
+					this.doStop();
+				} else {
+					// console.log('[PlayerProxy] ignore stop: different playingId: ', data.data, 'vs.', this.playingId);
+				}
 				break;
 			case 'rendered':
 				// console.log('[PlayerProxy] rendered', data.data);

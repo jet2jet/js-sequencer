@@ -83,10 +83,11 @@ export default class PlayerImpl {
 	private myClient!: number;
 	/** timer id for onRender method; also used for check 'playing' (non-null indicates 'playing') */
 	private timerId: ReturnType<typeof setTimeout> | null = null;
+	private playingId: number | undefined;
 	private pauseRender: boolean;
 	private startTime: number;
 	private hasFinished: boolean;
-	private waitingForStop: boolean;
+	private promiseWaitingForStop: Promise<void> | undefined;
 	private allRendered: boolean;
 	private finishTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -130,7 +131,6 @@ export default class PlayerImpl {
 		this.pauseRender = false;
 		this.startTime = 0;
 		this.hasFinished = false;
-		this.waitingForStop = false;
 		this.allRendered = false;
 
 		this.sampleRate = data.sampleRate || Defaults.SampleRate;
@@ -153,7 +153,7 @@ export default class PlayerImpl {
 		this.synth.setGain(this.gain);
 
 		// console.log('  synthesizer initialized.');
-		this.postDefaultAsync('reset');
+		this.postReset();
 	}
 
 	private async doInitialize(data: Message.Initialize) {
@@ -223,6 +223,26 @@ export default class PlayerImpl {
 		}
 	}
 
+	private async waitForVoicesStopped() {
+		if (!this.synth.isPlaying()) {
+			return;
+		}
+		const p = this.promiseWaitingForStop || (
+			this.promiseWaitingForStop = (async () => {
+				// console.log('Waiting for voices stopped...');
+				try {
+					await promiseWithTimeout(this.synth.waitForVoicesStopped(), 5000);
+				} catch (_e) {
+					// voice will not stopped, so re-initialize to reset
+					this.resetSynth();
+				}
+				// console.log('  done. (waitForVoicesStopped)');
+				this.promiseWaitingForStop = void 0;
+			})()
+		);
+		await p;
+	}
+
 	private resetSynth() {
 		if (this.renderPort) {
 			this.renderPort.postMessage({ type: 'release' } as RenderMessage.Release);
@@ -246,8 +266,12 @@ export default class PlayerImpl {
 		this.postMessage({ id: id, type: messageType });
 	}
 
-	private postDefaultAsync(messageType: Response.AsyncMessageTypes) {
-		this.postMessage({ type: messageType });
+	private postReset() {
+		this.postMessage({ type: 'reset' });
+	}
+
+	private postStop() {
+		this.postMessage({ type: 'stop', data: this.playingId! });
 	}
 
 	private onSequencerCallback(
@@ -431,10 +455,13 @@ export default class PlayerImpl {
 	}
 
 	private async onStart(data: Message.Start) {
-		if (this.waitingForStop || (!data.renderPort && !this.renderPort)) {
-			this.postDefaultAsync('stop');
+		this.playingId = data.playingId;
+		if (!data.renderPort && !this.renderPort) {
+			// console.log('Sending \'stop\' from onStart:', !!data.renderPort, !!this.renderPort);
+			this.postStop();
 			return;
 		}
+		await this.waitForVoicesStopped();
 
 		if (!this.sequencer) {
 			// console.log('Wait for create sequencer...');
@@ -508,19 +535,13 @@ export default class PlayerImpl {
 				this.sequencer.sendEventAt({
 					type: 'system-reset'
 				}, 0, false);
-				this.waitingForStop = true;
-				// console.log('Waiting for voices stopped...');
-				try {
-					await promiseWithTimeout(this.synth.waitForVoicesStopped(), 5000);
-				} catch (_e) {
-					// voice will not stopped, so re-initialize to reset
-					this.resetSynth();
-				}
-				this.waitingForStop = false;
-				this.postDefaultAsync('stop');
+				this.waitForVoicesStopped();
+				// console.log('Sending \'stop\'');
+				this.postStop();
 			} else if (isWaitingFinish) {
 				// In this case 'this.synth' is not playing but playing process is still active.
-				this.postDefaultAsync('stop');
+				// console.log('Sending \'stop\' because not playing');
+				this.postStop();
 			}
 			// console.log('  Done.');
 		}
