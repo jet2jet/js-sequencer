@@ -638,11 +638,13 @@ export default class Player extends PlayerBase {
 							const x = ++loopStatus.loopIndex;
 							if (x < loopStatus.loopCount) {
 								doSendNextEnableLoop = true;
-							} else if (this.fadeout && x > loopStatus.loopCount) {
-								// start fadeout (do nothing if already in progress)
-								this.doSetupFadeout(this.fadeout);
-								// act as infinite loop
-								loopStatus.loopCount = null;
+							} else if (this.fadeout) {
+								if (x > loopStatus.loopCount) {
+									// start fadeout (do nothing if already in progress)
+									this.doSetupFadeout(this.fadeout);
+									// act as infinite loop
+									loopStatus.loopCount = null;
+								}
 								doSendNextEnableLoop = true;
 							}
 						} else {
