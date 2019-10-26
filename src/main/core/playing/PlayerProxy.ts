@@ -75,7 +75,7 @@ export default class PlayerProxy {
 	private constructor(
 		private port: MessagePort,
 		private framesCount: number,
-		private sampleRate: number
+		public readonly sampleRate: number
 	) {
 		this.stopPromise = Promise.resolve();
 		this.stopResolver = null;

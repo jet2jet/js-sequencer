@@ -606,7 +606,7 @@ export default class PlayerBase {
 			}
 			this.audio = actx = actxBase;
 		} else if (!actx) {
-			actx = this.audio = new AudioContext();
+			actx = this.audio = new AudioContext({ sampleRate: this.proxy.sampleRate });
 			this.isWorkletLoaded = false;
 		}
 		if (useAudioWorklet && !this.isWorkletLoaded) {
