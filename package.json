@@ -11,7 +11,7 @@
     }
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=10"
   },
   "name": "sequencer",
   "version": "4.1.3",
