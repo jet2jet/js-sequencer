@@ -313,8 +313,7 @@ export default class Player extends PlayerBase {
 		}
 		this.stopPlayingNote();
 
-		// this.stopPlayer();
-		this.startPlayer(actx, dest).then(() => {
+		const doPlay = () => {
 			this.sendEvent({
 				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
 				channel: n.channel >= 0 ? n.channel : Constants.ChannelSingleNote,
@@ -323,7 +322,13 @@ export default class Player extends PlayerBase {
 			});
 
 			this.playingNote = n;
-		});
+		};
+		if (this.isPlayerRunning()) {
+			doPlay();
+		} else {
+			// this.stopPlayer();
+			this.startPlayer(actx, dest).then(doPlay);
+		}
 	}
 
 	/**
@@ -356,8 +361,7 @@ export default class Player extends PlayerBase {
 
 		const arr = notes instanceof Array ? notes : [notes];
 
-		// this.stopPlayer();
-		this.startPlayer(actx, dest, true).then(() => {
+		const doPlay = () => {
 			arr.forEach((n) => {
 				this.sendEvent({
 					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
@@ -366,7 +370,13 @@ export default class Player extends PlayerBase {
 					vel: n.velocity
 				});
 			});
-		});
+		};
+		if (this.isPlayerRunning()) {
+			doPlay();
+		} else {
+			// this.stopPlayer();
+			this.startPlayer(actx, dest, true).then(doPlay);
+		}
 	}
 
 	public stopNoteMultiple(notes: NoteObject | NoteObject[], doReleasePlayer?: boolean) {
