@@ -8,6 +8,7 @@
     "newLine": "LF",
     "module": "es6",
     "moduleResolution": "node",
+    "outDir": "../../dist/lib",
     "paths": {
       "js-synthesizer/*": [
         "../node_modules/js-synthesizer/dist/lib/*"

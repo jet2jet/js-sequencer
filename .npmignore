@@ -1,0 +1,16 @@
+/.settings/
+/.vs/
+/.vscode/
+/build/
+/examples/
+/src/
+/tools/
+/typings/
+.editorconfig
+.gitignore
+.gitmodules
+.gitattributes
+.npmignore
+.npmrc
+package-lock.json
+tsconfig.json

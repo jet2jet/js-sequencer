@@ -35,11 +35,10 @@ const webpackConfBase = {
 				test: /\.tsx?$/,
 				use: [
 					{
-						loader: 'ts-project-loader',
+						loader: 'ts-loader',
 						options: {
-							tempBuildDir: isMinified ? void (0) : path.resolve(__dirname, '../dist/lib'),
 							compilerOptions: {
-								declaration: !isMinified
+								declaration: false
 							}
 						}
 					}

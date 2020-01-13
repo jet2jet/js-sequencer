@@ -1,9 +1,9 @@
 {
   "betterScripts": {
-    "build:dev": {
+    "build:lib:dev": {
       "command": "webpack --config ./build/webpack.config.js"
     },
-    "build:minified": {
+    "build:lib:minified": {
       "command": "webpack --config ./build/webpack.config.js",
       "env": {
         "NODE_ENV": "minified"
@@ -11,26 +11,34 @@
     }
   },
   "engines": {
-    "node": ">=10"
+    "node": "10",
+    "npm": ">=6"
   },
   "name": "sequencer",
   "version": "4.1.4",
   "scripts": {
-    "build": "better-npm-run build:dev",
-    "build:minified": "better-npm-run build:minified",
+    "build": "npm run build:ts && npm run build:lib:dev",
+    "build:lib:dev": "better-npm-run build:lib:dev",
+    "build:lib:minified": "better-npm-run build:lib:minified",
+    "build:minified": "npm run build:ts && npm run build:lib:minified",
+    "build:ts": "npm run build:ts:common && npm run build:ts:main && npm run build:ts:worker && npm run build:ts:worklet",
+    "build:ts:common": "tsc -p src/common/tsconfig.json",
+    "build:ts:main": "tsc -p src/main/tsconfig.json",
+    "build:ts:worker": "tsc -p src/worker/tsconfig.json",
+    "build:ts:worklet": "tsc -p src/worklet/tsconfig.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "jet",
   "license": "BSD-3-Clause",
   "devDependencies": {
     "better-npm-run": "^0.1.1",
-    "js-synthesizer": "~1.5.0",
-    "ts-project-loader": "^0.1.2",
+    "js-synthesizer": "~1.5.2",
+    "ts-loader": "^6.2.1",
     "tslint": "^5.12.0",
     "typescript": "3.2.1",
     "typescript-tslint-plugin": "^0.2.1",
-    "webpack": "4.26.1",
-    "webpack-cli": "3.1.2"
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
   },
   "dependencies": {}
 }
