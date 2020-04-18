@@ -4,6 +4,12 @@ import IPositionObject from '../objects/IPositionObject';
 /** Time value (in seconds) */
 export type TimeValue = number;
 
+/** Time rational value in seconds; time = (num / den) */
+export interface TimeRationalValue {
+	num: number;
+	den: number;
+}
+
 /** Loop data for play sequence */
 export interface LoopData {
 	/** Loop count (null or undefined or unspecified for infinite-loop) */

@@ -4,7 +4,9 @@ import IPositionObject from '../objects/IPositionObject';
 import ISequencerObject from '../objects/ISequencerObject';
 import PositionObject from '../objects/PositionObject';
 
-import { TimeValue } from '../types';
+import { TimeRationalValue, TimeValue } from '../types';
+
+import * as TimeRational from '../functions/timeRational';
 
 import AftertouchControl from './controls/AftertouchControl';
 import ControllerControl from './controls/ControllerControl';
@@ -78,22 +80,43 @@ export function sortNotesAndControls(arr: ISequencerObject[]) {
 }
 
 /** Returns the time seconds from position 'valFromNum/valFromDen' to 'valToNum/valToDen' */
-export function calcTimeExFromSMFTempo(smfTempo: number, valFromNum: number, valFromDen: number, valToNum: number, valToDen: number): TimeValue {
+export function calcTimeExFromSMFTempo2(
+	smfTempo: number,
+	valFromNum: number,
+	valFromDen: number,
+	valToNum: number,
+	valToDen: number
+): TimeRationalValue {
 	// return (240 / (60000000 / smfTempo)) * (valToNum / valToDen - valFromNum / valFromDen);
 	// return (smfTempo) * ((valToNum * valFracFrom - valFromNum * valToDen) / (250000 * valToDen * valFromDen));
-	return ((valToNum * valFromDen - valFromNum * valToDen) * smfTempo) / (250000 * valToDen * valFromDen);
+	return {
+		num: ((valToNum * valFromDen - valFromNum * valToDen) * smfTempo),
+		den: (250000 * valToDen * valFromDen)
+	};
+}
+
+/** Returns the time seconds from position 'valFromNum/valFromDen' to 'valToNum/valToDen' */
+export function calcTimeExFromSMFTempo(
+	smfTempo: number,
+	valFromNum: number,
+	valFromDen: number,
+	valToNum: number,
+	valToDen: number
+): TimeValue {
+	const r = calcTimeExFromSMFTempo2(smfTempo, valFromNum, valFromDen, valToNum, valToDen);
+	return r.num / r.den;
 }
 
 // return: sec
-export function calcHoldTime(
+export function calcHoldTime2(
 	note: NoteObject,
 	currentSMFTempo: number,
 	isHolding: boolean,
 	arr: ISequencerObject[],
 	fromIndex: number,
 	disableHold: boolean | undefined
-) {
-	let tm: TimeValue = 0;
+): TimeRationalValue {
+	let tm: TimeRationalValue =  { num: 0, den: 1 };
 	const pos = new PositionObject(note.notePosNumerator, note.notePosDenominator);
 	const posTo = pos.addPositionDirect(note.noteLengthNumerator, note.noteLengthDenominator);
 	if (!disableHold) {
@@ -108,8 +131,13 @@ export function calcHoldTime(
 				}
 			}
 			if (n instanceof TempoControl) {
-				tm += calcTimeExFromSMFTempo(currentSMFTempo, pos.numerator, pos.denominator,
-					n.notePosNumerator, n.notePosDenominator);
+				tm = TimeRational.add(
+					tm,
+					calcTimeExFromSMFTempo2(
+						currentSMFTempo, pos.numerator, pos.denominator,
+						n.notePosNumerator, n.notePosDenominator
+					)
+				);
 				currentSMFTempo = n.value;
 				pos.numerator = n.notePosNumerator;
 				pos.denominator = n.notePosDenominator;
@@ -130,48 +158,66 @@ export function calcHoldTime(
 			}
 		}
 	}
-	tm += calcTimeExFromSMFTempo(currentSMFTempo, pos.numerator, pos.denominator,
-		posTo.numerator, posTo.denominator);
-	return tm;
+	return TimeRational.add(
+		tm,
+		calcTimeExFromSMFTempo2(currentSMFTempo, pos.numerator, pos.denominator,
+			posTo.numerator, posTo.denominator)
+	);
 }
 
-function calculatePositionImpl(
+// return: sec
+export function calcHoldTime(
+	note: NoteObject,
+	currentSMFTempo: number,
+	isHolding: boolean,
+	arr: ISequencerObject[],
+	fromIndex: number,
+	disableHold: boolean | undefined
+) {
+	const r = calcHoldTime2(note, currentSMFTempo, isHolding, arr, fromIndex, disableHold);
+	return r.num / r.den;
+}
+
+function calculatePositionImpl2(
 	notesAndControls: ISequencerObject[],
-	smfTempoFirst: number, posFrom: TimeValue | IPositionObject, posTo: TimeValue | IPositionObject,
-	returnGreaterOrEqual: boolean, disableHold?: boolean
+	smfTempoFirst: number,
+	posFrom: TimeRationalValue | IPositionObject,
+	posTo: TimeRationalValue | IPositionObject | null,
+	returnGreaterOrEqual: boolean,
+	disableHold?: boolean
 ): {
 	from: IPositionObject,
 	to: IPositionObject,
-	timeFrom: TimeValue,
-	timeTo: TimeValue,
-	timeStartOffset: TimeValue,
-	duration: TimeValue
+	timeFrom: TimeRationalValue,
+	timeTo: TimeRationalValue,
+	timeStartOffset: TimeRationalValue,
+	duration: TimeRationalValue
 } | null {
-	let tFrom: TimeValue | null = null;
-	let tTo: TimeValue | null = null;
+	let tFrom: TimeRationalValue | null = null;
+	let tTo: TimeRationalValue | null = null;
 	let retFrom: IPositionObject | null = null;
 	let retTo: IPositionObject | null = null;
 	let isPosSeconds: boolean;
-	if (typeof (posFrom) !== 'number' || typeof (posTo) !== 'number') {
+	if ('numerator' in posFrom || (posTo && 'numerator' in posTo)) {
 		if (!posFrom)
 			return null;
 		retFrom = posFrom as IPositionObject;
 		retTo = posTo as IPositionObject;
 		isPosSeconds = false;
 	} else {
-		if (posFrom > posTo)
+		if (posTo && TimeRational.compare(posFrom, posTo) > 0)
 			return null;
 		tFrom = posFrom;
 		tTo = posTo;
 		isPosSeconds = true;
 	}
-	let timeStartOffset: TimeValue | null = null;
-	let duration: TimeValue | null = null;
+	let timeStartOffset: TimeRationalValue | null = null;
+	let duration: TimeRationalValue | null = null;
 	let posNum = 0;
 	let posDen = 1;
 	let curTempo = smfTempoFirst;
-	let time = 0;
-	let timeFinish = tTo;
+	let time: TimeRationalValue = { num: 0, den: 1 };
+	let timeFinish: TimeRationalValue | null = tTo;
 	const chTempData: Channel[] = [];
 	chTempData.length = 16;
 	for (let i = 0; i < chTempData.length; ++i) {
@@ -196,20 +242,20 @@ function calculatePositionImpl(
 			curTempo = note.value;
 		}
 		if (isPosSeconds) {
-			if (!retFrom && time >= tFrom!) {
+			if (!retFrom && TimeRational.compare(time, tFrom!) >= 0) {
 				if (returnGreaterOrEqual) {
 					posNum = note.notePosNumerator;
 					posDen = note.notePosDenominator;
 				}
 				retFrom = new PositionObject(posNum, posDen);
-				timeStartOffset = (time - tFrom!);
-			} else if (retFrom && !retTo && time >= tTo!) {
+				timeStartOffset = TimeRational.sub(time, tFrom!);
+			} else if (retFrom && !retTo && tTo && TimeRational.compare(time, tTo) >= 0) {
 				if (returnGreaterOrEqual) {
 					posNum = note.notePosNumerator;
 					posDen = note.notePosDenominator;
 				}
 				retTo = new PositionObject(posNum, posDen);
-				duration = (timeFinish! - tFrom!);
+				duration = TimeRational.sub(timeFinish!, tFrom!);
 				break;
 			}
 		} else {
@@ -218,20 +264,20 @@ function calculatePositionImpl(
 					posNum = note.notePosNumerator;
 					posDen = note.notePosDenominator;
 				}
-				const t = calcTimeExFromSMFTempo(curTempo, note.notePosNumerator, note.notePosDenominator,
+				const t = calcTimeExFromSMFTempo2(curTempo, note.notePosNumerator, note.notePosDenominator,
 					retFrom!.numerator, retFrom!.denominator);
 				tFrom = time;
-				timeStartOffset = (t - tFrom);
+				timeStartOffset = TimeRational.sub(t, tFrom);
 			} else if (tFrom !== null && tTo === null && retTo &&
 				note.notePosNumerator * retTo.denominator >= retTo.numerator * note.notePosDenominator) {
 				if (returnGreaterOrEqual) {
 					posNum = note.notePosNumerator;
 					posDen = note.notePosDenominator;
 				}
-				const t = calcTimeExFromSMFTempo(curTempo, note.notePosNumerator, note.notePosDenominator,
+				const t = calcTimeExFromSMFTempo2(curTempo, note.notePosNumerator, note.notePosDenominator,
 					retFrom!.numerator, retFrom!.denominator);
 				tTo = time;
-				duration = ((time + t) - tFrom);
+				duration = TimeRational.sub(TimeRational.add(time, t), tFrom);
 				break;
 			}
 		}
@@ -316,16 +362,16 @@ function calculatePositionImpl(
 			// 120: tempo
 			//let tm = calcTime(curTempo, note.noteLength, note.noteLengthFraction);
 			const ch = chTempData[note.channel];
-			const tm = calcHoldTime(note, curTempo, ch && ch.isHolding, notesAndControls, i, disableHold);
-			const timeEnd = tm + time;
-			if (timeFinish! < timeEnd)
+			const tm = calcHoldTime2(note, curTempo, ch && ch.isHolding, notesAndControls, i, disableHold);
+			const timeEnd = TimeRational.add(tm, time);
+			if (timeFinish && TimeRational.compare(timeFinish, timeEnd) < 0)
 				timeFinish = timeEnd;
 		}
 		if (i + 1 < notesAndControls.length) {
 			const nextNote = notesAndControls[i + 1];
-			const nextTime = calcTimeExFromSMFTempo(curTempo, note.notePosNumerator, note.notePosDenominator,
+			const nextTime = calcTimeExFromSMFTempo2(curTempo, note.notePosNumerator, note.notePosDenominator,
 				nextNote.notePosNumerator, nextNote.notePosDenominator);
-			time += nextTime;
+			time = TimeRational.normalize(TimeRational.add(time, nextTime));
 		}
 		posNum = note.notePosNumerator;
 		posDen = note.notePosDenominator;
@@ -338,16 +384,69 @@ function calculatePositionImpl(
 		} else {
 			tTo = time;
 		}
-		duration = (time - tFrom!);
+		duration = TimeRational.sub(time, tFrom!);
 	}
 	return {
 		from: retFrom!,
 		to: retTo!,
-		timeFrom: tFrom! as number,
-		timeTo: tTo! as number,
+		timeFrom: tFrom!,
+		timeTo: tTo!,
 		timeStartOffset: timeStartOffset!,
 		duration: duration!
 	};
+}
+
+function calculatePositionImpl(
+	notesAndControls: ISequencerObject[],
+	smfTempoFirst: number,
+	posFrom: TimeValue | IPositionObject,
+	posTo: TimeValue | IPositionObject | null,
+	returnGreaterOrEqual: boolean, disableHold?: boolean
+): {
+	from: IPositionObject,
+	to: IPositionObject,
+	timeFrom: TimeValue,
+	timeTo: TimeValue,
+	timeStartOffset: TimeValue,
+	duration: TimeValue
+} | null {
+	const r = calculatePositionImpl2(
+		notesAndControls,
+		smfTempoFirst,
+		typeof posFrom === 'number' ? TimeRational.fromNumber(posFrom) : posFrom,
+		posTo === null
+			? null
+			: typeof posTo === 'number' ? TimeRational.fromNumber(posTo) : posTo,
+		returnGreaterOrEqual,
+		disableHold
+	);
+	return r ? {
+		from: r.from,
+		to: r.to,
+		timeFrom: r.timeFrom.num / r.timeFrom.den,
+		timeTo: r.timeTo.num / r.timeTo.den,
+		timeStartOffset: r.timeStartOffset.num / r.timeStartOffset.den,
+		duration: r.duration.num / r.duration.den
+	} : null;
+}
+
+export function calculatePositionFromSeconds2(
+	notesAndControls: ISequencerObject[],
+	smfTempoFirst: number,
+	timeSecondsFrom: TimeRationalValue,
+	timeSecondsTo: TimeRationalValue | null,
+	returnGreaterOrEqual: boolean,
+	disableHold?: boolean
+): {
+	from: IPositionObject,
+	to: IPositionObject,
+		timeStartOffset: TimeRationalValue,
+		duration: TimeRationalValue
+} | null {
+	if (timeSecondsTo && TimeRational.compare(timeSecondsFrom, timeSecondsTo) > 0)
+		return null;
+	return calculatePositionImpl2(notesAndControls, smfTempoFirst,
+		timeSecondsFrom, timeSecondsTo, returnGreaterOrEqual, disableHold);
 }
 
 export function calculatePositionFromSeconds(
@@ -370,22 +469,22 @@ export function calculatePositionFromSeconds(
 		timeSecondsFrom, timeSecondsTo, returnGreaterOrEqual, disableHold);
 }
 
-function calculateSecondsFromPosition(
+function calculateSecondsFromPosition2(
 	notesAndControls: ISequencerObject[],
 	smfTempoFirst: number,
 	posFrom: IPositionObject,
-	posTo: IPositionObject,
+	posTo: IPositionObject | null,
 	returnGreaterOrEqual: boolean,
 	disableHold?: boolean
 ): {
-	timeFrom: TimeValue,
-	timeTo: TimeValue,
-	timeStartOffset: TimeValue,
-	duration: TimeValue
+	timeFrom: TimeRationalValue,
+	timeTo: TimeRationalValue,
+	timeStartOffset: TimeRationalValue,
+	duration: TimeRationalValue
 } | null {
 	if (!posFrom || (posTo && posFrom.numerator * posTo.denominator >= posFrom.denominator * posTo.numerator))
 		return null;
-	return calculatePositionImpl(notesAndControls, smfTempoFirst,
+	return calculatePositionImpl2(notesAndControls, smfTempoFirst,
 		posFrom, posTo, returnGreaterOrEqual, disableHold);
 }
 
@@ -1364,6 +1463,25 @@ export default class Engine {
 		timeStartOffset: TimeValue,
 		duration: TimeValue
 	} | null {
+		const r = this.calculatePositionEx(
+			TimeRational.fromNumber(timeFrom),
+			TimeRational.fromNumber(timeTo),
+			disableHold
+		);
+		return r ? {
+			from: r.from,
+			to: r.to,
+			timeStartOffset: r.timeStartOffset.num / r.timeStartOffset.den,
+			duration: r.duration.num / r.duration.den
+		} : null;
+	}
+
+	public calculatePositionEx(timeFrom: TimeRationalValue, timeTo: TimeRationalValue, disableHold?: boolean): {
+		from: IPositionObject,
+		to: IPositionObject,
+		timeStartOffset: TimeRationalValue,
+		duration: TimeRationalValue
+	} | null {
 		let arr: ISequencerObject[] = [];
 		this.parts.forEach((p) => {
 			arr = arr.concat(p.notes);
@@ -1372,7 +1490,7 @@ export default class Engine {
 		arr = arr.concat(this.masterControls);
 		sortNotesAndControls(arr);
 
-		const r = calculatePositionFromSeconds(arr, 60000000 / this.tempo, timeFrom, timeTo, true, disableHold);
+		const r = calculatePositionFromSeconds2(arr, 60000000 / this.tempo, timeFrom, timeTo, true, disableHold);
 		// if (!__PROD__ && r) {
 		// 	console.log("From: " + r.from.numerator + "/" + r.from.denominator);
 		// 	console.log("  StartOffset: " + r.timeStartOffset);
@@ -1388,6 +1506,21 @@ export default class Engine {
 		timeStartOffset: TimeValue,
 		duration: TimeValue
 	} | null {
+		const r = this.calculateSecondsEx(posFrom, posTo, disableHold);
+		return r ? {
+			timeFrom: r.timeFrom.num / r.timeFrom.den,
+			timeTo: r.timeTo.num / r.timeTo.den,
+			timeStartOffset: r.timeStartOffset.num / r.timeStartOffset.den,
+			duration: r.duration.num / r.duration.den
+		} : null;
+	}
+
+	public calculateSecondsEx(posFrom: IPositionObject, posTo: IPositionObject | null, disableHold?: boolean): {
+		timeFrom: TimeRationalValue,
+		timeTo: TimeRationalValue,
+		timeStartOffset: TimeRationalValue,
+		duration: TimeRationalValue
+	} | null {
 		let arr: ISequencerObject[] = [];
 		this.parts.forEach((p) => {
 			arr = arr.concat(p.notes);
@@ -1396,7 +1529,7 @@ export default class Engine {
 		arr = arr.concat(this.masterControls);
 		sortNotesAndControls(arr);
 
-		const r = calculateSecondsFromPosition(arr, 60000000 / this.tempo, posFrom, posTo, true, disableHold);
+		const r = calculateSecondsFromPosition2(arr, 60000000 / this.tempo, posFrom, posTo, true, disableHold);
 		// if (!__PROD__ && r) {
 		// 	console.log("From: " + r.timeFrom);
 		// 	console.log("  StartOffset: " + r.timeStartOffset);
@@ -1407,6 +1540,11 @@ export default class Engine {
 	}
 
 	public calculateDuration(disableHold?: boolean): number {
+		const r = this.calculateDurationEx(disableHold);
+		return r.num / r.den;
+	}
+
+	public calculateDurationEx(disableHold?: boolean): TimeRationalValue {
 		let arr: ISequencerObject[] = [];
 		this.parts.forEach((p) => {
 			arr = arr.concat(p.notes);
@@ -1415,14 +1553,21 @@ export default class Engine {
 		arr = arr.concat(this.masterControls);
 		sortNotesAndControls(arr);
 
-		const r = calculatePositionFromSeconds(arr, 60000000 / this.tempo, 0, 0x7FFFFFFF, true, disableHold);
+		const r = calculatePositionFromSeconds2(
+			arr,
+			60000000 / this.tempo,
+			{ num: 0, den: 1 },
+			null,
+			true,
+			disableHold
+		);
 		// if (!__PROD__ && r) {
 		// 	console.log("From: " + r.from.numerator + "/" + r.from.denominator);
 		// 	console.log("  StartOffset: " + r.timeStartOffset);
 		// 	console.log("To: " + r.to.numerator + "/" + r.to.denominator);
 		// 	console.log("  Duration: " + r.duration);
 		// }
-		return (r && r.duration) || 0;
+		return (r && r.duration) || { num: 0, den: 1 };
 	}
 
 	public startLoadSMFData(smfBuffer: ArrayBuffer, offset: number): ILoadSMFContext | null {
