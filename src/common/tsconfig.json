@@ -10,18 +10,8 @@
     "moduleResolution": "node",
     "outDir": "../../dist/lib",
     "paths": {
-      "*": [
-        "../reference/*",
-        "../node_modules/*"
-      ]
+      "*": ["../reference/*", "../node_modules/*"]
     },
-    "plugins": [
-      {
-        "name": "typescript-tslint-plugin",
-        "alwaysShowRuleFailuresAsWarnings": false,
-        "ignoreDefinitionFiles": true
-      }
-    ],
     "removeComments": false,
     "rootDir": "..",
     "skipDefaultLibCheck": true,
@@ -30,14 +20,8 @@
     "strict": true,
     "stripInternal": true,
     "target": "es5",
-    "typeRoots": [
-      "../../typings"
-    ]
+    "typeRoots": ["../../typings"]
   },
-  "include": [
-    "./**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules"]
 }

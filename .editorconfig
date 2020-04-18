@@ -8,7 +8,7 @@ indent_size = 4
 [{*.md,README,README.*,LICENSE,LICENSE.*}]
 indent_style = space
 
-[{*.json,.bowerrc}]
+[{*.json,*.yaml,*.yml,.bowerrc}]
 end_of_line = lf
 indent_style = space
 indent_size = 2

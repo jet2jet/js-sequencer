@@ -10,41 +10,20 @@
     "moduleResolution": "node",
     "outDir": "../../dist/lib",
     "paths": {
-      "js-synthesizer/*": [
-        "../node_modules/js-synthesizer/dist/lib/*"
-      ],
-      "*": [
-        "../reference/*",
-        "../node_modules/*"
-      ]
+      "js-synthesizer/*": ["../node_modules/js-synthesizer/dist/lib/*"],
+      "*": ["../reference/*", "../node_modules/*"]
     },
-    "plugins": [
-      {
-        "name": "typescript-tslint-plugin",
-        "alwaysShowRuleFailuresAsWarnings": false,
-        "ignoreDefinitionFiles": true
-      }
-    ],
     "removeComments": false,
     "rootDir": "..",
-    "rootDirs": [
-      ".",
-      "../common"
-    ],
+    "rootDirs": [".", "../common"],
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "stripInternal": true,
     "target": "es5",
-    "typeRoots": [
-      "../../typings"
-    ]
+    "typeRoots": ["../../typings"]
   },
-  "include": [
-    "./**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules"]
 }

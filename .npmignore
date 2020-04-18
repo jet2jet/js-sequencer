@@ -7,10 +7,14 @@
 /tools/
 /typings/
 .editorconfig
+.eslintignore
+.eslintrc.yml
 .gitignore
 .gitmodules
 .gitattributes
 .npmignore
 .npmrc
+.prettierignore
+.prettierrc.yml
 package-lock.json
 tsconfig.json
