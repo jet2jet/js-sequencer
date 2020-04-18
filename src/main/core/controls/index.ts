@@ -1,4 +1,3 @@
-
 import AftertouchControl from './AftertouchControl';
 import ControllerControl from './ControllerControl';
 import ControlObject from './ControlObject';
@@ -24,5 +23,5 @@ export {
 	SysExControl,
 	SysMsgControl,
 	TempoControl,
-	TimeSignatureControl
+	TimeSignatureControl,
 };

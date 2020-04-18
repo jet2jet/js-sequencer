@@ -1,4 +1,3 @@
-
 import IPositionObject from '../objects/IPositionObject';
 
 /** Time value (in seconds) */

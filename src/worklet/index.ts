@@ -5,7 +5,6 @@ import * as RenderMessage from './types/RenderMessageData';
 import FrameQueue from './core/playing/FrameQueue';
 
 class Processor extends AudioWorkletProcessor {
-
 	private queue = new FrameQueue();
 
 	private isPrerendering = true;
@@ -20,13 +19,16 @@ class Processor extends AudioWorkletProcessor {
 
 		this.prerenderFrames = options.processorOptions!.options.prerenderFrames;
 		this.maxQueueFrames = options.processorOptions!.options.maxQueueFrames;
-		this.halfMaxQueueFrames = Math.floor(this.maxQueueFrames * 3 / 2);
+		this.halfMaxQueueFrames = Math.floor((this.maxQueueFrames * 3) / 2);
 
 		this.port.addEventListener('message', this.onMessage.bind(this));
 		this.port.start();
 	}
 
-	public process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+	public process(
+		_inputs: Float32Array[][],
+		outputs: Float32Array[][]
+	): boolean {
 		if (this.isPrerendering || this.isPaused) {
 			return true;
 		}
@@ -40,8 +42,8 @@ class Processor extends AudioWorkletProcessor {
 					data: {
 						marker,
 						framesBeforeMarker,
-						sampleRate: sampleRate
-					}
+						sampleRate: sampleRate,
+					},
 				} as RenderMessage.UserMarkerResponse);
 			}
 		);
@@ -51,7 +53,7 @@ class Processor extends AudioWorkletProcessor {
 				this.isRendering = true;
 				this.port.postMessage({
 					type: 'queue',
-					data: { pause: false }
+					data: { pause: false },
 				} as RenderMessage.QueueControl);
 			}
 		}
@@ -62,8 +64,8 @@ class Processor extends AudioWorkletProcessor {
 				data: {
 					outFrames: frames,
 					sampleRate: sampleRate,
-					isQueueEmpty: queue.isEmpty()
-				}
+					isQueueEmpty: queue.isEmpty(),
+				},
 			};
 			this.port.postMessage(s);
 		}
@@ -81,7 +83,9 @@ class Processor extends AudioWorkletProcessor {
 					const queue = this.queue;
 					queue.pushFrames(data.data);
 					if (this.isPrerendering) {
-						if (queue.getFrameCountInQueue() >= this.prerenderFrames) {
+						if (
+							queue.getFrameCountInQueue() >= this.prerenderFrames
+						) {
 							this.isPrerendering = false;
 						}
 					}
@@ -91,8 +95,8 @@ class Processor extends AudioWorkletProcessor {
 						data: {
 							outFrames: data.data[0].byteLength / 4,
 							sampleRate: sampleRate,
-							isQueueEmpty: false
-						}
+							isQueueEmpty: false,
+						},
 					};
 					this.port.postMessage(s);
 
@@ -100,7 +104,7 @@ class Processor extends AudioWorkletProcessor {
 						this.isRendering = false;
 						this.port.postMessage({
 							type: 'queue',
-							data: { pause: true }
+							data: { pause: true },
 						} as RenderMessage.QueueControl);
 					}
 				}
@@ -111,8 +115,8 @@ class Processor extends AudioWorkletProcessor {
 					type: 'pause',
 					data: {
 						id: data.data.id,
-						paused: this.isPaused
-					}
+						paused: this.isPaused,
+					},
 				} as RenderMessage.Pause);
 				break;
 			case 'stop':

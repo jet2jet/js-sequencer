@@ -1,4 +1,3 @@
-
 import * as Controls from './controls';
 
 import EditorEngine from './EditorEngine';
@@ -22,5 +21,5 @@ export {
 	Player,
 	PlayerBase,
 	SFontMap,
-	StatusData
+	StatusData,
 };

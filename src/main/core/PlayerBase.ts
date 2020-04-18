@@ -1,4 +1,3 @@
-
 import * as JSSynth from 'js-synthesizer';
 
 import { TimeValue } from '../types';
@@ -16,14 +15,24 @@ import IPlayStream from './IPlayStream';
 import Options from './playing/Options';
 import PlayerProxy from './playing/PlayerProxy';
 
-type IsAlmostSameType<T1, T2, TTrue, TFalse> = T1 extends T2 ? (T2 extends T1 ? TTrue : TFalse) : TFalse;
-type PickKeysForType<T, TType> = ({
+type IsAlmostSameType<T1, T2, TTrue, TFalse> = T1 extends T2
+	? T2 extends T1
+		? TTrue
+		: TFalse
+	: TFalse;
+type PickKeysForType<T, TType> = {
 	[P in keyof T]: IsAlmostSameType<T[P], TType, P, never>;
-})[keyof T] extends (infer U) ?
-	(U extends never ? never : U) : never;
+}[keyof T] extends infer U
+	? U extends never
+		? never
+		: U
+	: never;
 
 type PlayerBaseSimpleEventObjectMap = {
-	[P in PickKeysForType<PlayerBaseEventObjectMap, SimpleEventObject<PlayerBase>>]: PlayerBaseEventObjectMap[P];
+	[P in PickKeysForType<
+		PlayerBaseEventObjectMap,
+		SimpleEventObject<PlayerBase>
+	>]: PlayerBaseEventObjectMap[P];
 };
 
 interface UserEventData {
@@ -65,6 +74,7 @@ interface ChannelStatus {
 	volume: number;
 }
 
+// eslint-disable-next-line no-var
 declare var WebAssembly: any;
 
 const enum Constants {
@@ -79,31 +89,41 @@ const enum Constants {
 	DefaultFadeoutTime = 4,
 	DefaultFadeoutStartTime = 0,
 
-	InitialVolume = 12800,  // 100 * 0x80
+	InitialVolume = 12800, // 100 * 0x80
 
 	ChannelCount = 32,
 
 	ChannelSingleNote = 16,
 	ChannelRootNote = 17,
-	ChannelChordNote = 18
+	ChannelChordNote = 18,
 }
 
-function normalizeMapName<T extends keyof PlayerBaseEventObjectMap>(name: string): T | undefined {
+function normalizeMapName<T extends keyof PlayerBaseEventObjectMap>(
+	name: string
+): T | undefined {
 	switch (name.toLowerCase()) {
-		case 'prepare': return 'prepare' as T;
-		case 'start': return 'start' as T;
-		case 'reset': return 'reset' as T;
-		case 'stopped': return 'stopped' as T;
-		case 'playstatus': return 'playstatus' as T;
-		case 'playuserevent': return 'playuserevent' as T;
-		case 'playusermarkerevent': return 'playusermarkerevent' as T;
-		default: return void 0;
+		case 'prepare':
+			return 'prepare' as T;
+		case 'start':
+			return 'start' as T;
+		case 'reset':
+			return 'reset' as T;
+		case 'stopped':
+			return 'stopped' as T;
+		case 'playstatus':
+			return 'playstatus' as T;
+		case 'playuserevent':
+			return 'playuserevent' as T;
+		case 'playusermarkerevent':
+			return 'playusermarkerevent' as T;
+		default:
+			return void 0;
 	}
 }
 
 function makeDefaultChannelStatus(): ChannelStatus {
 	return {
-		volume: Constants.InitialVolume
+		volume: Constants.InitialVolume,
 	};
 }
 
@@ -131,7 +151,9 @@ export default class PlayerBase {
 	private audioWorkletScripts: string[] = [];
 
 	private _evtMap: {
-		[P in keyof PlayerBaseEventObjectMap]?: Array<(e: PlayerBaseEventObjectMap[P]) => void>;
+		[P in keyof PlayerBaseEventObjectMap]?: Array<
+			(e: PlayerBaseEventObjectMap[P]) => void
+		>;
 	} = {};
 
 	private playOptions: Options = {};
@@ -159,7 +181,10 @@ export default class PlayerBase {
 	}
 
 	public static isSupported() {
-		return typeof AudioContext !== 'undefined' && typeof WebAssembly !== 'undefined';
+		return (
+			typeof AudioContext !== 'undefined' &&
+			typeof WebAssembly !== 'undefined'
+		);
 	}
 
 	public static isAudioWorkletSupported() {
@@ -184,7 +209,12 @@ export default class PlayerBase {
 		sampleRate?: number
 	): Promise<PlayerBase> {
 		return PlayerBase.instantiateProxy(
-			workerJs, depsJs, shareWorker, interval, framesCount, sampleRate
+			workerJs,
+			depsJs,
+			shareWorker,
+			interval,
+			framesCount,
+			sampleRate
 		).then((p) => new PlayerBase(p));
 	}
 
@@ -210,7 +240,13 @@ export default class PlayerBase {
 			sampleRate = Constants.SampleRate;
 		}
 		return PlayerProxy.instantiate(
-			shareWorker, workerJs, depsJs, interval, framesCount, sampleRate, channelCount || 16
+			shareWorker,
+			workerJs,
+			depsJs,
+			interval,
+			framesCount,
+			sampleRate,
+			channelCount || 16
 		);
 	}
 
@@ -230,7 +266,9 @@ export default class PlayerBase {
 	public loadSoundfont(bin: ArrayBuffer) {
 		return this.unloadSoundfont()
 			.then(() => this.proxy.loadSoundfont(bin))
-			.then((id) => { this.sfontDefault = id; });
+			.then((id) => {
+				this.sfontDefault = id;
+			});
 	}
 
 	/**
@@ -239,7 +277,9 @@ export default class PlayerBase {
 	 * @return Promise object which resolves when loading process is done
 	 */
 	public loadSoundfontFromFile(fileElemId: string | HTMLInputElement) {
-		return loadBinaryFromFile(fileElemId).then((bin) => this.loadSoundfont(bin));
+		return loadBinaryFromFile(fileElemId).then((bin) =>
+			this.loadSoundfont(bin)
+		);
 	}
 
 	/**
@@ -294,7 +334,7 @@ export default class PlayerBase {
 				targetPreset: -1,
 				sfontId: sfontId,
 				bank: 0,
-				preset: 0
+				preset: 0,
 			});
 			return sfontId;
 		});
@@ -306,7 +346,9 @@ export default class PlayerBase {
 	 * @return Promise object which resolves with soundfont identifier when succeeded
 	 */
 	public addSoundfontForMapFromFile(fileElemId: string | HTMLInputElement) {
-		return loadBinaryFromFile(fileElemId).then((bin) => this.addSoundfontForMap(bin));
+		return loadBinaryFromFile(fileElemId).then((bin) =>
+			this.addSoundfontForMap(bin)
+		);
 	}
 
 	/**
@@ -327,15 +369,15 @@ export default class PlayerBase {
 		ampPercent?: number | null | undefined
 	) {
 		if (targetBank < 0) {
-			throw new Error('Invalid \'targetBank\' value');
+			throw new Error("Invalid 'targetBank' value");
 		}
 		if (targetPreset < 0) {
-			throw new Error('Invalid \'targetPreset\' value');
+			throw new Error("Invalid 'targetPreset' value");
 		}
 		if (sfont < 0) {
 			sfont = -1;
 		} else if (!this.sfontMap.filter((m) => m.sfontId === sfont)[0]) {
-			throw new Error('Invalid \'sfont\' value');
+			throw new Error("Invalid 'sfont' value");
 		}
 		let ampValue: number | undefined;
 		if (typeof ampPercent === 'number') {
@@ -344,7 +386,10 @@ export default class PlayerBase {
 			ampPercent = void 0;
 		}
 		const a = this.sfontMap.filter(
-			(m) => m.sfontId === sfont && m.targetBank === targetBank && m.targetPreset === targetPreset
+			(m) =>
+				m.sfontId === sfont &&
+				m.targetBank === targetBank &&
+				m.targetPreset === targetPreset
 		)[0];
 		if (a) {
 			a.bank = bank;
@@ -359,7 +404,7 @@ export default class PlayerBase {
 				bank: bank,
 				preset: preset,
 				ampPercent: ampPercent,
-				ampValue: ampValue
+				ampValue: ampValue,
 			});
 		}
 	}
@@ -368,14 +413,16 @@ export default class PlayerBase {
 	 * Return all preset mappings.
 	 */
 	public getAllMaps() {
-		return this.sfontMap.map((m): SFontMap => ({
-			sfontId: m.sfontId,
-			bank: m.bank,
-			preset: m.preset,
-			targetBank: m.targetBank,
-			targetPreset: m.targetPreset,
-			ampPercent: m.ampPercent
-		}));
+		return this.sfontMap.map(
+			(m): SFontMap => ({
+				sfontId: m.sfontId,
+				bank: m.bank,
+				preset: m.preset,
+				targetBank: m.targetBank,
+				targetPreset: m.targetPreset,
+				ampPercent: m.ampPercent,
+			})
+		);
 	}
 
 	/**
@@ -386,17 +433,20 @@ export default class PlayerBase {
 		if (sfont < 0) {
 			sfont = -1;
 		}
-		return this.sfontMap.filter(
-			(m) => (m.sfontId === sfont && m.targetBank >= 0 && m.targetPreset >= 0)
-		).map(
-			(m) => ({
+		return this.sfontMap
+			.filter(
+				(m) =>
+					m.sfontId === sfont &&
+					m.targetBank >= 0 &&
+					m.targetPreset >= 0
+			)
+			.map((m) => ({
 				targetBank: m.targetBank,
 				targetPreset: m.targetPreset,
 				bank: m.bank,
 				preset: m.preset,
-				ampPercent: m.ampPercent
-			})
-		);
+				ampPercent: m.ampPercent,
+			}));
 	}
 
 	/**
@@ -406,11 +456,15 @@ export default class PlayerBase {
 	 * @param targetPreset target to remove map, or omit/undefined to remove all target using the soundfont
 	 * @return true if the soundfont is used by another target, or false if unloaded
 	 */
-	public removeProgramMap(sfont: number, targetBank?: number, targetPreset?: number) {
+	public removeProgramMap(
+		sfont: number,
+		targetBank?: number,
+		targetPreset?: number
+	) {
 		if (sfont < 0) {
 			sfont = -1;
 		}
-		const removeAll = (typeof targetBank === 'undefined');
+		const removeAll = typeof targetBank === 'undefined';
 		let found = false;
 		let remainSFont = false;
 		let mapSFontEmptyIndex = -1;
@@ -421,9 +475,12 @@ export default class PlayerBase {
 					mapSFontEmptyIndex = i;
 				} else {
 					found = true;
-					if (removeAll || (m.targetBank === targetBank && (
-						typeof targetPreset === 'undefined' || m.targetPreset === targetPreset
-					))) {
+					if (
+						removeAll ||
+						(m.targetBank === targetBank &&
+							(typeof targetPreset === 'undefined' ||
+								m.targetPreset === targetPreset))
+					) {
 						this.sfontMap.splice(i, 1);
 					} else {
 						remainSFont = true;
@@ -487,7 +544,11 @@ export default class PlayerBase {
 		const framePos = this.playedFrames + data.framesBeforeMarker;
 		// console.log('onStatusPlayer:', this.playedFrames / s.sampleRate, this.playedFrames);
 
-		this.raiseEventPlayUserMarkerEvent(framePos, data.sampleRate, data.marker);
+		this.raiseEventPlayUserMarkerEvent(
+			framePos,
+			data.sampleRate,
+			data.marker
+		);
 	}
 
 	private onStopPlayer() {
@@ -524,8 +585,7 @@ export default class PlayerBase {
 		const e = new PlayStatusEventObject(this, current, sampleRate);
 		for (const fn of m) {
 			fn(e);
-			if (e.isPropagationStopped())
-				break;
+			if (e.isPropagationStopped()) break;
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -543,16 +603,24 @@ export default class PlayerBase {
 		}
 		return !e.isDefaultPrevented();
 	}
-	private raiseEventPlayUserMarkerEvent(current: number, sampleRate: number, marker: string) {
+	private raiseEventPlayUserMarkerEvent(
+		current: number,
+		sampleRate: number,
+		marker: string
+	) {
 		const m = this._evtMap.playusermarkerevent;
 		if (!m) {
 			return false;
 		}
-		const e = new PlayUserMarkerEventObject(this, current, sampleRate, marker);
+		const e = new PlayUserMarkerEventObject(
+			this,
+			current,
+			sampleRate,
+			marker
+		);
 		for (const fn of m) {
 			fn(e);
-			if (e.isPropagationStopped())
-				break;
+			if (e.isPropagationStopped()) break;
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -580,7 +648,8 @@ export default class PlayerBase {
 	 * @param fn event handler
 	 */
 	public addEventHandler<T extends keyof PlayerBaseEventObjectMap>(
-		name: T, fn: (e: PlayerBaseEventObjectMap[T]) => void
+		name: T,
+		fn: (e: PlayerBaseEventObjectMap[T]) => void
 	): void {
 		const actualKeys = normalizeMapName<T>(name);
 		if (!actualKeys) {
@@ -588,7 +657,8 @@ export default class PlayerBase {
 		}
 		type TArray = Array<typeof fn>;
 		const arr: TArray =
-			this._evtMap[actualKeys]! as TArray || (this._evtMap[actualKeys] = []);
+			(this._evtMap[actualKeys]! as TArray) ||
+			(this._evtMap[actualKeys] = []);
 		arr.push(fn);
 	}
 	/**
@@ -597,7 +667,8 @@ export default class PlayerBase {
 	 * @param fn registered event handler
 	 */
 	public removeEventHandler<T extends keyof PlayerBaseEventObjectMap>(
-		name: T, fn: (e: PlayerBaseEventObjectMap[T]) => void
+		name: T,
+		fn: (e: PlayerBaseEventObjectMap[T]) => void
 	): void {
 		const actualKeys = normalizeMapName<T>(name);
 		if (!actualKeys) {
@@ -605,7 +676,8 @@ export default class PlayerBase {
 		}
 		type TArray = Array<typeof fn>;
 		const arr: TArray =
-			this._evtMap[actualKeys]! as TArray || (this._evtMap[actualKeys] = []);
+			(this._evtMap[actualKeys]! as TArray) ||
+			(this._evtMap[actualKeys] = []);
 		for (let i = arr.length - 1; i >= 0; --i) {
 			if (arr[i] === fn) {
 				arr.splice(i, 1);
@@ -636,11 +708,17 @@ export default class PlayerBase {
 			}
 			this.audio = actx = actxBase;
 		} else if (!actx) {
-			actx = this.audio = new AudioContext({ sampleRate: this.proxy.sampleRate });
+			actx = this.audio = new AudioContext({
+				sampleRate: this.proxy.sampleRate,
+			});
 			this.isWorkletLoaded = false;
 		}
 		if (useAudioWorklet && !this.isWorkletLoaded) {
-			const fnNext = (a: BaseAudioContext, s: string[], i: number): Promise<BaseAudioContext> => {
+			const fnNext = (
+				a: BaseAudioContext,
+				s: string[],
+				i: number
+			): Promise<BaseAudioContext> => {
 				return a.audioWorklet.addModule(s[i]).then(() => {
 					if (i === s.length - 1) {
 						this.isWorkletLoaded = true;
@@ -664,7 +742,10 @@ export default class PlayerBase {
 			this.releasePlayerTimer = null;
 		}
 		if (this.outputStream) {
-			if (this.playingStream && this.playingStream === this.outputStream) {
+			if (
+				this.playingStream &&
+				this.playingStream === this.outputStream
+			) {
 				this.proxy.startWithExistingConnection();
 			} else {
 				if (this.playingStream) {
@@ -690,9 +771,16 @@ export default class PlayerBase {
 			if (node) {
 				this.proxy.startWithExistingConnection();
 			} else {
-				const useAudioWorklet = (this.audioWorkletScripts.length > 0);
-				node = useAudioWorklet ? this.proxy.startWithAudioWorkletNode(actx, this.playOptions) :
-					this.proxy.startWithScriptProcessorNode(actx, this.playOptions);
+				const useAudioWorklet = this.audioWorkletScripts.length > 0;
+				node = useAudioWorklet
+					? this.proxy.startWithAudioWorkletNode(
+							actx,
+							this.playOptions
+					  )
+					: this.proxy.startWithScriptProcessorNode(
+							actx,
+							this.playOptions
+					  );
 				this.playingNode = node;
 				doConnect = true;
 			}
@@ -706,14 +794,15 @@ export default class PlayerBase {
 		// This is necessary because the default soundfont of synthesizer is
 		// always the last loaded soundfont and cannot be changed
 		for (let channel = 0; channel < Constants.ChannelChordNote; ++channel) {
-			const isDrum = (channel === 9 || (this.channel16IsDrums && channel === 15));
+			const isDrum =
+				channel === 9 || (this.channel16IsDrums && channel === 15);
 			const bank = isDrum ? 128 : 0;
 			this.proxy.sendEventNow({
 				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
 				channel: channel,
 				sfontId: this.sfontDefault!,
 				bank: bank,
-				preset: 0
+				preset: 0,
 			});
 		}
 
@@ -735,15 +824,29 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public sendEvent(ev: JSSynth.SequencerEvent, time?: TimeValue | null | undefined) {
+	public sendEvent(
+		ev: JSSynth.SequencerEvent,
+		time?: TimeValue | null | undefined
+	) {
 		switch (ev.type) {
 			case JSSynth.EventType.ProgramChange:
 				return this.doChangeProgram(ev.channel, ev.preset, time);
 			case JSSynth.EventType.ProgramSelect:
-				return this.doChangeProgram(ev.channel, ev.preset, time, ev.bank, ev.sfontId);
+				return this.doChangeProgram(
+					ev.channel,
+					ev.preset,
+					time,
+					ev.bank,
+					ev.sfontId
+				);
 			case JSSynth.EventType.ControlChange:
 				if (ev.control === 0x07 || ev.control === 0x27) {
-					return this.changeVolume(ev.channel, ev.control === 0x07, ev.value, time);
+					return this.changeVolume(
+						ev.channel,
+						ev.control === 0x07,
+						ev.value,
+						time
+					);
 				}
 				break; // use default processing
 		}
@@ -775,9 +878,20 @@ export default class PlayerBase {
 		time?: TimeValue | null | undefined
 	) {
 		if (typeof time === 'undefined' || time === null) {
-			this.proxy.sendGeneratorValueNow(channel, type, value, keepCurrentVoice);
+			this.proxy.sendGeneratorValueNow(
+				channel,
+				type,
+				value,
+				keepCurrentVoice
+			);
 		} else {
-			this.proxy.sendGeneratorValue(channel, type, value, keepCurrentVoice, time * 1000);
+			this.proxy.sendGeneratorValue(
+				channel,
+				type,
+				value,
+				keepCurrentVoice,
+				time * 1000
+			);
 		}
 		return true;
 	}
@@ -791,10 +905,13 @@ export default class PlayerBase {
 	 * @param data any data for the event
 	 */
 	public sendUserEvent(type: string, time: TimeValue, data?: any) {
-		this.proxy.sendUserData({
-			type: type,
-			data: data
-		} as UserEventData, time * 1000);
+		this.proxy.sendUserData(
+			{
+				type: type,
+				data: data,
+			} as UserEventData,
+			time * 1000
+		);
 	}
 
 	/**
@@ -822,7 +939,12 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public changeProgram(channel: number, preset: number, bank?: number | null, time?: TimeValue | null) {
+	public changeProgram(
+		channel: number,
+		preset: number,
+		bank?: number | null,
+		time?: TimeValue | null
+	) {
 		return this.doChangeProgram(channel, preset, time, bank);
 	}
 
@@ -835,7 +957,12 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public changeVolume(channel: number, isMSB: boolean, value: number, time?: TimeValue | null | undefined): boolean;
+	public changeVolume(
+		channel: number,
+		isMSB: boolean,
+		value: number,
+		time?: TimeValue | null | undefined
+	): boolean;
 	/**
 	 * Send 'change volume' event to the sequencer.
 	 * @param channel MIDI channel number
@@ -844,7 +971,11 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public changeVolume(channel: number, value: number, time?: TimeValue | null | undefined): boolean;
+	public changeVolume(
+		channel: number,
+		value: number,
+		time?: TimeValue | null | undefined
+	): boolean;
 
 	public changeVolume(
 		channel: number,
@@ -852,7 +983,9 @@ export default class PlayerBase {
 		arg3?: number | TimeValue | null | undefined,
 		arg4?: TimeValue | null | undefined
 	): boolean {
-		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+		const ch =
+			this.channels[channel] ||
+			(this.channels[channel] = makeDefaultChannelStatus());
 		let actualValue: number;
 		if (typeof arg2 === 'number') {
 			// arg2: actualValue (number)
@@ -863,18 +996,18 @@ export default class PlayerBase {
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: channel,
 				control: 0x07,
-				value: Math.floor(arg2 / 0x80)
+				value: Math.floor(arg2 / 0x80),
 			};
-			if (!this.doSendEvent(ev, arg3 as (TimeValue | null | undefined))) {
+			if (!this.doSendEvent(ev, arg3 as TimeValue | null | undefined)) {
 				return false;
 			}
 			ev = {
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: channel,
 				control: 0x27,
-				value: (arg2 & 0x7F)
+				value: arg2 & 0x7f,
 			};
-			if (!this.doSendEvent(ev, arg3 as (TimeValue | null | undefined))) {
+			if (!this.doSendEvent(ev, arg3 as TimeValue | null | undefined)) {
 				return false;
 			}
 		} else {
@@ -883,7 +1016,7 @@ export default class PlayerBase {
 			// arg4: time (TimeValue)
 			const value = arg3 as number;
 			if (arg2) {
-				actualValue = (ch.volume & 0x7F) + (value * 0x80);
+				actualValue = (ch.volume & 0x7f) + value * 0x80;
 			} else {
 				actualValue = Math.floor(ch.volume / 0x80) * 0x80 + value;
 			}
@@ -893,7 +1026,7 @@ export default class PlayerBase {
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
 					control: 0x07,
-					value: Math.floor(newValue / 0x80)
+					value: Math.floor(newValue / 0x80),
 				};
 				if (!this.doSendEvent(ev, arg4)) {
 					return false;
@@ -902,7 +1035,7 @@ export default class PlayerBase {
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
 					control: 0x27,
-					value: (newValue & 0x7F)
+					value: newValue & 0x7f,
 				};
 				if (!this.doSendEvent(ev, arg4)) {
 					return false;
@@ -912,7 +1045,7 @@ export default class PlayerBase {
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
 					control: arg2 ? 0x07 : 0x27,
-					value: value
+					value: value,
 				};
 				if (!this.doSendEvent(ev, arg4)) {
 					return false;
@@ -925,7 +1058,11 @@ export default class PlayerBase {
 		return true;
 	}
 
-	protected doSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue | null | undefined, noHook?: boolean) {
+	protected doSendEvent(
+		ev: JSSynth.SequencerEvent,
+		time: TimeValue | null | undefined,
+		noHook?: boolean
+	) {
 		if (!noHook && !this.preSendEvent(ev, time)) {
 			return false;
 		}
@@ -945,13 +1082,17 @@ export default class PlayerBase {
 		bank?: number | null,
 		sfontId?: number | null
 	) {
-		const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+		const ch =
+			this.channels[channel] ||
+			(this.channels[channel] = makeDefaultChannelStatus());
 		ch.preset = preset;
 		if (typeof bank === 'number') {
 			ch.bank = bank;
 		}
-		const isDrum = (channel === 9 || (this.channel16IsDrums && channel === 15));
-		const bankCurrent = (typeof ch.bank === 'number' ? ch.bank : isDrum ? 128 : 0);
+		const isDrum =
+			channel === 9 || (this.channel16IsDrums && channel === 15);
+		const bankCurrent =
+			typeof ch.bank === 'number' ? ch.bank : isDrum ? 128 : 0;
 		let ev: JSSynth.SequencerEventTypes.ProgramSelectEvent | undefined;
 		let ampValue: number = 0;
 		for (const m of this.sfontMap) {
@@ -961,7 +1102,7 @@ export default class PlayerBase {
 					channel: channel,
 					sfontId: m.sfontId < 0 ? this.sfontDefault! : m.sfontId,
 					bank: m.bank,
-					preset: m.preset
+					preset: m.preset,
 				};
 				if (typeof m.ampValue !== 'undefined') {
 					ampValue = m.ampValue;
@@ -973,9 +1114,10 @@ export default class PlayerBase {
 			ev = {
 				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
 				channel: channel,
-				sfontId: (typeof sfontId === 'number' ? sfontId : this.sfontDefault!),
+				sfontId:
+					typeof sfontId === 'number' ? sfontId : this.sfontDefault!,
 				bank: bankCurrent,
-				preset: preset
+				preset: preset,
 			};
 		}
 		this.sendGeneratorValue(
@@ -1025,7 +1167,8 @@ export default class PlayerBase {
 		// console.log('[PlayerBase] startPlayer', this.isPlayerPreparing, this.isWaitingForStop);
 		this.isPlayerPreparing = true;
 		this.raiseEventSimple('prepare');
-		return this.proxy.waitForFinish(3000)
+		return this.proxy
+			.waitForFinish(3000)
 			.then(() => this.prepareAudioContext(actx))
 			.then((a) => this.prepareForPlay(a, dest || a.destination));
 	}
@@ -1148,23 +1291,29 @@ export default class PlayerBase {
 		if (this._isPlayerRunning) {
 			return Promise.resolve();
 		}
-		return this.proxy.configure({
-			channel16IsDrums: value
-		}).then(() => {
-			this.channel16IsDrums = value;
-		});
+		return this.proxy
+			.configure({
+				channel16IsDrums: value,
+			})
+			.then(() => {
+				this.channel16IsDrums = value;
+			});
 	}
 
 	/**
 	 * Set the script URLs for audio worklet processings.
 	 * If nothing is set, the audio worklet is not used.
 	 */
-	public setAudioWorkletScripts(audioWorkletScripts: ReadonlyArray<string> | null | undefined) {
+	public setAudioWorkletScripts(
+		audioWorkletScripts: readonly string[] | null | undefined
+	) {
 		if (typeof AudioWorkletNode === 'undefined') {
 			return;
 		}
 
-		this.audioWorkletScripts = audioWorkletScripts ? audioWorkletScripts.slice(0) : [];
+		this.audioWorkletScripts = audioWorkletScripts
+			? audioWorkletScripts.slice(0)
+			: [];
 		this.isWorkletLoaded = false;
 	}
 
@@ -1173,7 +1322,7 @@ export default class PlayerBase {
 	 */
 	public setRenderFrameCount(count: number) {
 		return this.proxy.configure({
-			framesCount: count
+			framesCount: count,
 		});
 	}
 
@@ -1187,7 +1336,7 @@ export default class PlayerBase {
 	 */
 	public setSynthGain(value: number) {
 		return this.proxy.configure({
-			gain: value
+			gain: value,
 		});
 	}
 
@@ -1202,13 +1351,17 @@ export default class PlayerBase {
 		this.outputStream = stream;
 	}
 
-	private calculateVolumeForChannel(ch: ChannelStatus | undefined, value: number) {
-		const bank = ch && ch.bank || 0;
-		const preset = ch && ch.preset || 0;
-		const f = this.sfontMap.filter((m) => m.targetBank === bank && m.targetPreset === preset)
+	private calculateVolumeForChannel(
+		ch: ChannelStatus | undefined,
+		value: number
+	) {
+		const bank = (ch && ch.bank) || 0;
+		const preset = (ch && ch.preset) || 0;
+		const f = this.sfontMap
+			.filter((m) => m.targetBank === bank && m.targetPreset === preset)
 			.shift();
 		if (f && typeof f.ampPercent === 'number') {
-			value = value * f.ampPercent / 100;
+			value = (value * f.ampPercent) / 100;
 		}
 		return value;
 	}
@@ -1216,11 +1369,17 @@ export default class PlayerBase {
 	protected onPlayStart() {
 		// do nothing
 	}
-	protected preSendEvent(_ev: JSSynth.SequencerEvent, _time: TimeValue | null | undefined): boolean {
+	protected preSendEvent(
+		_ev: JSSynth.SequencerEvent,
+		_time: TimeValue | null | undefined
+	): boolean {
 		// do nothing
 		return true;
 	}
-	protected preSendSysEx(_data: { rawData: Uint8Array | null | undefined; }, _time: TimeValue | null | undefined): boolean {
+	protected preSendSysEx(
+		_data: { rawData: Uint8Array | null | undefined },
+		_time: TimeValue | null | undefined
+	): boolean {
 		// do nothing
 		return true;
 	}

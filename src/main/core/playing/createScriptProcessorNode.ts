@@ -1,11 +1,14 @@
-
 import * as RenderMessage from '../../types/RenderMessageData';
 
 import FrameQueue from './FrameQueue';
 import Options, { Defaults } from './Options';
 
 /** @internal */
-export default function createScriptProcessorNode(ctx: BaseAudioContext, renderFrameCount: number, options: Options) {
+export default function createScriptProcessorNode(
+	ctx: BaseAudioContext,
+	renderFrameCount: number,
+	options: Options
+) {
 	{
 		let x = 0;
 		while (renderFrameCount) {
@@ -14,7 +17,7 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 		}
 		while (x) {
 			--x;
-			renderFrameCount = renderFrameCount ? (renderFrameCount << 1) : 1;
+			renderFrameCount = renderFrameCount ? renderFrameCount << 1 : 1;
 		}
 		if (renderFrameCount < 512) {
 			renderFrameCount = 512;
@@ -27,15 +30,21 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 	const queue = new FrameQueue();
 	const node = ctx.createScriptProcessor(renderFrameCount, 0, 2);
 	const rate = ctx.sampleRate;
-	const prerenderFrames = rate * ((typeof options.prerenderSeconds !== 'undefined') ?
-		options.prerenderSeconds : Defaults.PrerenderSeconds);
-	const maxQueueFrames = rate * ((typeof options.maxQueueSeconds !== 'undefined') ?
-		options.maxQueueSeconds : Defaults.MaxQueueSeconds);
-	const halfMaxQueueFrames = Math.floor(maxQueueFrames * 2 / 3);
+	const prerenderFrames =
+		rate *
+		(typeof options.prerenderSeconds !== 'undefined'
+			? options.prerenderSeconds
+			: Defaults.PrerenderSeconds);
+	const maxQueueFrames =
+		rate *
+		(typeof options.maxQueueSeconds !== 'undefined'
+			? options.maxQueueSeconds
+			: Defaults.MaxQueueSeconds);
+	const halfMaxQueueFrames = Math.floor((maxQueueFrames * 2) / 3);
 
 	const frameBuffers: [Float32Array, Float32Array] = [
 		new Float32Array(renderFrameCount),
-		new Float32Array(renderFrameCount)
+		new Float32Array(renderFrameCount),
 	];
 
 	let isPrerendering = true;
@@ -63,8 +72,8 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 						data: {
 							outFrames: data.data[0].byteLength / 4,
 							sampleRate: rate,
-							isQueueEmpty: false
-						}
+							isQueueEmpty: false,
+						},
 					};
 					port1.postMessage(s);
 
@@ -72,7 +81,7 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 						isRendering = false;
 						port1.postMessage({
 							type: 'queue',
-							data: { pause: true }
+							data: { pause: true },
 						} as RenderMessage.QueueControl);
 					}
 				}
@@ -83,8 +92,8 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 					type: 'pause',
 					data: {
 						id: data.data.id,
-						paused: isPaused
-					}
+						paused: isPaused,
+					},
 				} as RenderMessage.Pause);
 				break;
 			case 'stop':
@@ -123,8 +132,8 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 					data: {
 						marker,
 						framesBeforeMarker,
-						sampleRate: rate
-					}
+						sampleRate: rate,
+					},
 				} as RenderMessage.UserMarkerResponse);
 			}
 		);
@@ -134,7 +143,7 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 				isRendering = true;
 				port1.postMessage({
 					type: 'queue',
-					data: { pause: false }
+					data: { pause: false },
 				} as RenderMessage.QueueControl);
 			}
 		}
@@ -145,8 +154,14 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 			return;
 		}
 		if (frames < frameBuffers[0].length) {
-			e.outputBuffer.copyToChannel(frameBuffers[0].subarray(0, frames), 0);
-			e.outputBuffer.copyToChannel(frameBuffers[1].subarray(0, frames), 1);
+			e.outputBuffer.copyToChannel(
+				frameBuffers[0].subarray(0, frames),
+				0
+			);
+			e.outputBuffer.copyToChannel(
+				frameBuffers[1].subarray(0, frames),
+				1
+			);
 		} else {
 			e.outputBuffer.copyToChannel(frameBuffers[0], 0);
 			e.outputBuffer.copyToChannel(frameBuffers[1], 1);
@@ -157,14 +172,14 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 			data: {
 				outFrames: frames,
 				sampleRate: rate,
-				isQueueEmpty: queue.isEmpty()
-			}
+				isQueueEmpty: queue.isEmpty(),
+			},
 		};
 		port1.postMessage(s);
 	};
 
 	return {
 		node: node,
-		port: port2
+		port: port2,
 	};
 }

@@ -1,4 +1,3 @@
-
 import ISequencerObject from '../../objects/ISequencerObject';
 
 import Engine from '../Engine';
@@ -24,7 +23,7 @@ export default class ControlObject implements ISequencerObject {
 		return {
 			objType: 'ControlObject',
 			notePosNumerator: this.notePosNumerator,
-			notePosDenominator: this.notePosDenominator
+			notePosDenominator: this.notePosDenominator,
 		};
 	}
 
@@ -82,8 +81,10 @@ export default class ControlObject implements ISequencerObject {
 		if (!obj || !(obj instanceof ControlObject)) {
 			return false;
 		}
-		return this.notePosNumerator * obj.notePosDenominator ===
-			this.notePosDenominator * obj.notePosNumerator;
+		return (
+			this.notePosNumerator * obj.notePosDenominator ===
+			this.notePosDenominator * obj.notePosNumerator
+		);
 	}
 	public isSimilar(obj: any) {
 		return this.isEqualType(obj) && this.isEqualPosition(obj);
@@ -105,10 +106,12 @@ export function getControlFromJSONObject(obj: any): ControlObject {
 	if (Object.create) {
 		ret = Object.create(ctor.prototype) as ControlObject;
 	} else {
-		// tslint:disable-next-line:only-arrow-functions no-empty
-		const fn: { prototype: any; new(): any; } = function() { } as typeof Object;
+		const fn: {
+			prototype: any;
+			new (): any;
+		} = function () {} as typeof Object; // eslint-disable-line @typescript-eslint/no-empty-function
 		fn.prototype = ctor.prototype;
-		ret = new fn() as ControlObject;
+		ret = new fn() as ControlObject; // eslint-disable-line new-cap
 	}
 	ret.fromJSONObject(obj);
 	return ret;

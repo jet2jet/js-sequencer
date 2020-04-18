@@ -1,4 +1,3 @@
-
 import * as JSSynth from 'js-synthesizer';
 
 import PlayerBase, { StatusData } from './PlayerBase';
@@ -33,7 +32,11 @@ import SimpleEventObject from '../events/SimpleEventObject';
 
 import { isAudioAvailable } from '../functions';
 
-import Engine, { calcTimeExFromSMFTempo, calculatePositionFromSeconds, sortNotesAndControls } from './Engine';
+import Engine, {
+	calcTimeExFromSMFTempo,
+	calculatePositionFromSeconds,
+	sortNotesAndControls,
+} from './Engine';
 import NoteObject from './NoteObject';
 import Part from './Part';
 
@@ -63,6 +66,7 @@ interface ChannelStatus {
 	volume: number;
 }
 
+// eslint-disable-next-line no-var
 declare var WebAssembly: any;
 
 const enum Constants {
@@ -77,19 +81,21 @@ const enum Constants {
 	DefaultFadeoutTime = 4,
 	DefaultFadeoutStartTime = 0,
 
-	InitialVolume = 12800,  // 100 * 0x80
+	InitialVolume = 12800, // 100 * 0x80
 
 	ChannelCount = 32,
 
 	ChannelSingleNote = 16,
 	ChannelRootNote = 17,
-	ChannelChordNote = 18
+	ChannelChordNote = 18,
 }
 
-function convertBkChordsToNotes(bkChords: BackgroundChord[], endPos: IPositionObject): NoteObject[] {
+function convertBkChordsToNotes(
+	bkChords: BackgroundChord[],
+	endPos: IPositionObject
+): NoteObject[] {
 	const arr: NoteObject[] = [];
-	if (!bkChords)
-		return arr;
+	if (!bkChords) return arr;
 	for (let i = 0; i < bkChords.length; ++i) {
 		const bc = bkChords[i];
 		const posNum = bc.posNumerator;
@@ -106,10 +112,24 @@ function convertBkChordsToNotes(bkChords: BackgroundChord[], endPos: IPositionOb
 		const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
 		const noteLengthDen = posDen * nextPosDen;
 
-		let n = new NoteObject(posNum, posDen, noteLengthNum, noteLengthDen, bc.rootNote, Constants.ChannelRootNote);
+		let n = new NoteObject(
+			posNum,
+			posDen,
+			noteLengthNum,
+			noteLengthDen,
+			bc.rootNote,
+			Constants.ChannelRootNote
+		);
 		arr.push(n);
 		for (const note of bc.notes) {
-			n = new NoteObject(posNum, posDen, noteLengthNum, noteLengthDen, note, Constants.ChannelChordNote);
+			n = new NoteObject(
+				posNum,
+				posDen,
+				noteLengthNum,
+				noteLengthDen,
+				note,
+				Constants.ChannelChordNote
+			);
 			arr.push(n);
 		}
 	}
@@ -122,26 +142,26 @@ function makeEventData(object: ISequencerObject): JSSynth.SequencerEvent {
 			type: JSSynth.SequencerEventTypes.EventType.KeyPressure,
 			channel: object.channel,
 			key: object.noteValue,
-			value: object.value
+			value: object.value,
 		};
 	} else if (object instanceof ControllerControl) {
 		return {
 			type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 			channel: object.channel,
 			control: object.value1,
-			value: object.value2
+			value: object.value2,
 		};
 	} else if (object instanceof PitchWheelControl) {
 		return {
 			type: JSSynth.SequencerEventTypes.EventType.PitchBend,
 			channel: object.channel,
-			value: object.value
+			value: object.value,
 		};
 	} else if (object instanceof PressureControl) {
 		return {
 			type: JSSynth.SequencerEventTypes.EventType.ChannelPressure,
 			channel: object.channel,
-			value: object.value
+			value: object.value,
 		};
 	} else {
 		throw new Error('Not supported');
@@ -150,7 +170,7 @@ function makeEventData(object: ISequencerObject): JSSynth.SequencerEvent {
 
 function makeDefaultChannelStatus(): ChannelStatus {
 	return {
-		volume: Constants.InitialVolume
+		volume: Constants.InitialVolume,
 	};
 }
 
@@ -195,11 +215,16 @@ export default class Player extends PlayerBase {
 
 		this.addEventHandler('playuserevent', (e) => this.onPlayUserEvent(e));
 		this.addEventHandler('playstatus', (e) => this.onPlayStatusEvent(e));
-		this.addEventHandler('playusermarkerevent', (e) => this.onPlayUserMarkerEvent(e));
+		this.addEventHandler('playusermarkerevent', (e) =>
+			this.onPlayUserMarkerEvent(e)
+		);
 	}
 
 	public static isSupported() {
-		return typeof AudioContext !== 'undefined' && typeof WebAssembly !== 'undefined';
+		return (
+			typeof AudioContext !== 'undefined' &&
+			typeof WebAssembly !== 'undefined'
+		);
 	}
 
 	public static isAudioWorkletSupported() {
@@ -226,7 +251,13 @@ export default class Player extends PlayerBase {
 		sampleRate?: number
 	): Promise<Player> {
 		return PlayerBase.instantiateProxy(
-			workerJs, depsJs, shareWorker, interval, framesCount, sampleRate, Constants.ChannelChordNote
+			workerJs,
+			depsJs,
+			shareWorker,
+			interval,
+			framesCount,
+			sampleRate,
+			Constants.ChannelChordNote
 		).then((p) => new Player(engine, p));
 	}
 
@@ -242,14 +273,23 @@ export default class Player extends PlayerBase {
 	 * @param fn event handler
 	 */
 	public addEventHandler<T extends keyof PlayerEventObjectMap>(
-		name: T, fn: (e: PlayerEventObjectMap[T]) => void
+		name: T,
+		fn: (e: PlayerEventObjectMap[T]) => void
 	): void {
 		let arr: any[];
 		switch (name.toLowerCase()) {
-			case 'playqueue': arr = this._evtPlayQueue; break;
-			case 'playendnote': arr = this._evtPlayEndNote; break;
-			case 'playallqueued': arr = this._evtPlayAllQueued; break;
-			case 'playlooped': arr = this._evtPlayLooped; break;
+			case 'playqueue':
+				arr = this._evtPlayQueue;
+				break;
+			case 'playendnote':
+				arr = this._evtPlayEndNote;
+				break;
+			case 'playallqueued':
+				arr = this._evtPlayAllQueued;
+				break;
+			case 'playlooped':
+				arr = this._evtPlayLooped;
+				break;
 			default:
 				return super.addEventHandler(
 					name as keyof PlayerBaseEventObjectMap,
@@ -266,14 +306,23 @@ export default class Player extends PlayerBase {
 	 * @param fn registered event handler
 	 */
 	public removeEventHandler<T extends keyof PlayerEventObjectMap>(
-		name: T, fn: (e: PlayerEventObjectMap[T]) => void
+		name: T,
+		fn: (e: PlayerEventObjectMap[T]) => void
 	): void {
 		let arr: any[];
 		switch (name.toLowerCase()) {
-			case 'playqueue': arr = this._evtPlayQueue; break;
-			case 'playendnote': arr = this._evtPlayEndNote; break;
-			case 'playallqueued': arr = this._evtPlayAllQueued; break;
-			case 'playlooped': arr = this._evtPlayLooped; break;
+			case 'playqueue':
+				arr = this._evtPlayQueue;
+				break;
+			case 'playendnote':
+				arr = this._evtPlayEndNote;
+				break;
+			case 'playallqueued':
+				arr = this._evtPlayAllQueued;
+				break;
+			case 'playlooped':
+				arr = this._evtPlayLooped;
+				break;
 			default:
 				return super.removeEventHandler(
 					name as keyof PlayerBaseEventObjectMap,
@@ -290,12 +339,22 @@ export default class Player extends PlayerBase {
 		}
 	}
 
-	private raiseEventPlayQueue(current: number, total: number, playing: number, played: number) {
-		const e = new PlayQueueEventObject(this, current, total, playing, played);
+	private raiseEventPlayQueue(
+		current: number,
+		total: number,
+		playing: number,
+		played: number
+	) {
+		const e = new PlayQueueEventObject(
+			this,
+			current,
+			total,
+			playing,
+			played
+		);
 		for (const fn of this._evtPlayQueue) {
 			fn(e);
-			if (e.isPropagationStopped())
-				break;
+			if (e.isPropagationStopped()) break;
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -303,21 +362,27 @@ export default class Player extends PlayerBase {
 		const e = new PlayEndNoteEventObject(this, playing, played);
 		for (const fn of this._evtPlayEndNote) {
 			fn(e);
-			if (e.isPropagationStopped())
-				break;
+			if (e.isPropagationStopped()) break;
 		}
 		return !e.isDefaultPrevented();
 	}
-	private raiseEventPlayAllQueued(total: number, playing: number, played: number) {
+	private raiseEventPlayAllQueued(
+		total: number,
+		playing: number,
+		played: number
+	) {
 		const e = new PlayQueueEventObject(this, total, total, playing, played);
 		for (const fn of this._evtPlayAllQueued) {
 			fn(e);
-			if (e.isPropagationStopped())
-				break;
+			if (e.isPropagationStopped()) break;
 		}
 		return !e.isDefaultPrevented();
 	}
-	private raiseEventPlayLooped(loopStatus: LoopStatus, currentFrame: number, sampleRate: number) {
+	private raiseEventPlayLooped(
+		loopStatus: LoopStatus,
+		currentFrame: number,
+		sampleRate: number
+	) {
 		const e = new PlayLoopedEventObject(
 			this,
 			loopStatus.start,
@@ -328,13 +393,16 @@ export default class Player extends PlayerBase {
 		);
 		for (const fn of this._evtPlayLooped) {
 			fn(e);
-			if (e.isPropagationStopped())
-				break;
+			if (e.isPropagationStopped()) break;
 		}
 		return !e.isDefaultPrevented();
 	}
 
-	public playNote(n: NoteObject, actx?: BaseAudioContext | null, dest?: AudioNode | null) {
+	public playNote(
+		n: NoteObject,
+		actx?: BaseAudioContext | null,
+		dest?: AudioNode | null
+	) {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -343,9 +411,10 @@ export default class Player extends PlayerBase {
 		const doPlay = () => {
 			this.sendEvent({
 				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
-				channel: n.channel >= 0 ? n.channel : Constants.ChannelSingleNote,
+				channel:
+					n.channel >= 0 ? n.channel : Constants.ChannelSingleNote,
 				key: n.noteValue,
-				vel: n.velocity
+				vel: n.velocity,
 			});
 
 			this.playingNote = n;
@@ -368,7 +437,7 @@ export default class Player extends PlayerBase {
 			this.sendEvent({
 				type: JSSynth.SequencerEventTypes.EventType.NoteOff,
 				channel: n.channel >= 0 ? n.channel : 0,
-				key: n.noteValue
+				key: n.noteValue,
 			});
 			this.playingNote = null;
 		}
@@ -392,9 +461,12 @@ export default class Player extends PlayerBase {
 			arr.forEach((n) => {
 				this.sendEvent({
 					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
-					channel: n.channel >= 0 ? n.channel : Constants.ChannelSingleNote,
+					channel:
+						n.channel >= 0
+							? n.channel
+							: Constants.ChannelSingleNote,
 					key: n.noteValue,
-					vel: n.velocity
+					vel: n.velocity,
 				});
 			});
 		};
@@ -406,7 +478,10 @@ export default class Player extends PlayerBase {
 		}
 	}
 
-	public stopNoteMultiple(notes: NoteObject | NoteObject[], doReleasePlayer?: boolean) {
+	public stopNoteMultiple(
+		notes: NoteObject | NoteObject[],
+		doReleasePlayer?: boolean
+	) {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -416,7 +491,7 @@ export default class Player extends PlayerBase {
 			this.sendEvent({
 				type: JSSynth.SequencerEventTypes.EventType.NoteOff,
 				channel: n.channel >= 0 ? n.channel : 0,
-				key: n.noteValue
+				key: n.noteValue,
 			});
 			this.playingNote = null;
 		});
@@ -435,7 +510,10 @@ export default class Player extends PlayerBase {
 		if (this._availablePlayNote) {
 			return;
 		}
-		if (this.renderedTime < this.queuedNotesTime || this.playedTime < this.renderedTime) {
+		if (
+			this.renderedTime < this.queuedNotesTime ||
+			this.playedTime < this.renderedTime
+		) {
 			// console.log('_checkStopped:', this.playedTime, this.renderedTime);
 			return;
 		}
@@ -475,7 +553,10 @@ export default class Player extends PlayerBase {
 		let index = 0;
 		while (index < notesAndControls.length) {
 			const o = notesAndControls[index];
-			if (o.notePosNumerator * from.denominator >= from.numerator * o.notePosDenominator) {
+			if (
+				o.notePosNumerator * from.denominator >=
+				from.numerator * o.notePosDenominator
+			) {
 				break;
 			}
 			++index;
@@ -483,18 +564,35 @@ export default class Player extends PlayerBase {
 			curPos.numerator = o.notePosNumerator;
 			curPos.denominator = o.notePosDenominator;
 
-			this.processObject(o, index, notesAndControls.length, curPos, 0, null, true);
+			this.processObject(
+				o,
+				index,
+				notesAndControls.length,
+				curPos,
+				0,
+				null,
+				true
+			);
 		}
 		// reset these because the values may be changed in processObject
 		this.queuedNotesTime = 0;
 		this.queuedNotesBaseTime = 0;
 
-		this.queuedNotesPos = { numerator: from.numerator, denominator: from.denominator };
-		this.queuedNotesBasePos = { numerator: from.numerator, denominator: from.denominator };
+		this.queuedNotesPos = {
+			numerator: from.numerator,
+			denominator: from.denominator,
+		};
+		this.queuedNotesBasePos = {
+			numerator: from.numerator,
+			denominator: from.denominator,
+		};
 		return index;
 	}
 
-	private prepareLoop(_notesAndControls: ISequencerObject[], _loopStatus: LoopStatus) {
+	private prepareLoop(
+		_notesAndControls: ISequencerObject[],
+		_loopStatus: LoopStatus
+	) {
 		// enabled at first; disabled on loop
 		this.loopEnabled = true;
 	}
@@ -506,7 +604,8 @@ export default class Player extends PlayerBase {
 		fadeout.progress = true;
 		fadeout.startTime = this.queuedNotesTime + fadeout.startTimeFromLoop;
 		fadeout.curStep = 0;
-		fadeout.nextTime = fadeout.startTime + fadeout.fadeoutTime / fadeout.step;
+		fadeout.nextTime =
+			fadeout.startTime + fadeout.fadeoutTime / fadeout.step;
 	}
 
 	private doProcessFadeout(time: TimeValue) {
@@ -521,7 +620,10 @@ export default class Player extends PlayerBase {
 		return true;
 	}
 
-	protected preSendEvent(ev: JSSynth.SequencerEvent, time: TimeValue | null | undefined) {
+	protected preSendEvent(
+		ev: JSSynth.SequencerEvent,
+		time: TimeValue | null | undefined
+	) {
 		if (typeof time === 'undefined' || time === null) {
 			return true;
 		}
@@ -535,23 +637,34 @@ export default class Player extends PlayerBase {
 			const fadeout = this.fadeout;
 			if (fadeout && fadeout.progress) {
 				const channel = ev.channel;
-				const ch = this.channels[channel] || (this.channels[channel] = makeDefaultChannelStatus());
+				const ch =
+					this.channels[channel] ||
+					(this.channels[channel] = makeDefaultChannelStatus());
 				let actualValue: number;
 				if (ev.control === 0x07) {
-					actualValue = (ch.volume & 0x7F) + (ev.value * 0x80);
+					actualValue = (ch.volume & 0x7f) + ev.value * 0x80;
 				} else {
-					actualValue = Math.floor(ch.volume / 0x80) * 0x80 + ev.value;
+					actualValue =
+						Math.floor(ch.volume / 0x80) * 0x80 + ev.value;
 				}
-				const newValue = Math.floor(actualValue * (fadeout.step - fadeout.curStep) / fadeout.step);
+				const newValue = Math.floor(
+					(actualValue * (fadeout.step - fadeout.curStep)) /
+						fadeout.step
+				);
 				// console.log(`[Player] inject volume for fadeout (actual = ${actualValue}, new = ${newValue})`);
-				this.doSendEvent({
-					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: channel,
-					control: 0x07,
-					value: Math.floor(newValue / 0x80)
-				}, time, true);
+				this.doSendEvent(
+					{
+						type:
+							JSSynth.SequencerEventTypes.EventType.ControlChange,
+						channel: channel,
+						control: 0x07,
+						value: Math.floor(newValue / 0x80),
+					},
+					time,
+					true
+				);
 				ev.control = 0x27;
-				ev.value = newValue & 0x7F;
+				ev.value = newValue & 0x7f;
 			}
 		}
 		return true;
@@ -572,25 +685,37 @@ export default class Player extends PlayerBase {
 		const time = fadeout.nextTime;
 		const r = (fadeout.step - fadeout.curStep) / fadeout.step;
 
-		fadeout.nextTime = fadeout.startTime + fadeout.fadeoutTime * (fadeout.curStep + 1) / fadeout.step;
+		fadeout.nextTime =
+			fadeout.startTime +
+			(fadeout.fadeoutTime * (fadeout.curStep + 1)) / fadeout.step;
 		// console.log(`[Player] fadeout: time = ${time}, next = ${fadeout.nextTime}, rate = ${r}`);
 
 		// (including background-chord channel)
 		for (let channel = 0; channel < Constants.ChannelChordNote; ++channel) {
 			const ch = this.channels[channel];
-			const vol = Math.floor((ch ? ch.volume : Constants.InitialVolume) * r);
-			this.doSendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
-				control: 0x07,
-				value: Math.floor(vol / 0x80)
-			}, time, true);
-			this.doSendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
-				control: 0x27,
-				value: (vol & 0x7F)
-			}, time, true);
+			const vol = Math.floor(
+				(ch ? ch.volume : Constants.InitialVolume) * r
+			);
+			this.doSendEvent(
+				{
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					channel: channel,
+					control: 0x07,
+					value: Math.floor(vol / 0x80),
+				},
+				time,
+				true
+			);
+			this.doSendEvent(
+				{
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					channel: channel,
+					control: 0x27,
+					value: vol & 0x7f,
+				},
+				time,
+				true
+			);
 		}
 		return true;
 	}
@@ -628,27 +753,41 @@ export default class Player extends PlayerBase {
 					const nextObject = notesAndControls[currentIndex];
 					nextPos = {
 						numerator: nextObject.notePosNumerator,
-						denominator: nextObject.notePosDenominator
+						denominator: nextObject.notePosDenominator,
 					};
 				}
-				if (loopStatus.loopCount === null || this.fadeout || loopStatus.loopIndex < loopStatus.loopCount) {
+				if (
+					loopStatus.loopCount === null ||
+					this.fadeout ||
+					loopStatus.loopIndex < loopStatus.loopCount
+				) {
 					if (
-						(loopStatus.end && nextPos && nextPos.numerator * loopStatus.end.denominator >= loopStatus.end.numerator * nextPos.denominator) ||
-						(currentIndex >= maxCount)
+						(loopStatus.end &&
+							nextPos &&
+							nextPos.numerator * loopStatus.end.denominator >=
+								loopStatus.end.numerator *
+									nextPos.denominator) ||
+						currentIndex >= maxCount
 					) {
 						// if loop-point reached but not enabled, wait for enabling
 						if (!this.loopEnabled) {
 							break;
 						}
 						// --- do loop ---
-						const basePos2: IPositionObject = this.queuedNotesBasePos!;
+						const basePos2: IPositionObject = this
+							.queuedNotesBasePos!;
 						let timeCurrent: number;
 						if (nextPos) {
 							// (in this case loopStatus.end is not null)
-							timeCurrent = this.queuedNotesBaseTime + calcTimeExFromSMFTempo(
-								this.tempo, basePos2.numerator, basePos2.denominator,
-								loopStatus.end!.numerator, loopStatus.end!.denominator
-							);
+							timeCurrent =
+								this.queuedNotesBaseTime +
+								calcTimeExFromSMFTempo(
+									this.tempo,
+									basePos2.numerator,
+									basePos2.denominator,
+									loopStatus.end!.numerator,
+									loopStatus.end!.denominator
+								);
 							// console.log(`[Player] do loop: next = { ${nextPos.numerator} / ${nextPos.denominator} }, time = ${timeCurrent}`);
 						} else {
 							timeCurrent = this.queuedNotesTime;
@@ -657,16 +796,20 @@ export default class Player extends PlayerBase {
 						// send stop events for all playing notes
 						this.noteOffAllPlayingNotes(timeCurrent);
 						// re-send events before loop-start position
-						currentIndex = this.doLoadAllObjects(notesAndControls, loopStatus.start, timeCurrent);
+						currentIndex = this.doLoadAllObjects(
+							notesAndControls,
+							loopStatus.start,
+							timeCurrent
+						);
 						// set current position to loop-start position
 						// (Note: curPos === this.queuedNotesPos)
 						curPos.numerator = loopStatus.start.numerator;
 						curPos.denominator = loopStatus.start.denominator;
-						this.queuedNotesTime = timeCurrent;  // processPlayingNotes may update queuedNotesTime
+						this.queuedNotesTime = timeCurrent; // processPlayingNotes may update queuedNotesTime
 						this.queuedNotesBaseTime = timeCurrent;
 						this.queuedNotesBasePos = {
 							numerator: curPos.numerator,
-							denominator: curPos.denominator
+							denominator: curPos.denominator,
 						};
 						this.loopEnabled = false;
 						// increment loop index
@@ -689,16 +832,26 @@ export default class Player extends PlayerBase {
 						}
 						if (doSendNextEnableLoop) {
 							// console.log('[Player] send enable-loop event');
-							this.sendUserEvent('enable-loop', this.queuedNotesTime);
+							this.sendUserEvent(
+								'enable-loop',
+								this.queuedNotesTime
+							);
 						}
-						this.sendUserMarker('looped:' + JSON.stringify(loopStatus), this.queuedNotesTime);
+						this.sendUserMarker(
+							'looped:' + JSON.stringify(loopStatus),
+							this.queuedNotesTime
+						);
 					}
 				}
 			}
 			if (currentIndex >= maxCount) {
 				if (this._availablePlayNote) {
 					this._availablePlayNote = false;
-					this.raiseEventPlayAllQueued(maxCount, this._playingNotes.length, this._allPlayedNoteCount);
+					this.raiseEventPlayAllQueued(
+						maxCount,
+						this._playingNotes.length,
+						this._allPlayedNoteCount
+					);
 				}
 				if (this.processPlayingNotes()) {
 					continue;
@@ -726,11 +879,26 @@ export default class Player extends PlayerBase {
 			curPos.numerator = o.notePosNumerator;
 			curPos.denominator = o.notePosDenominator;
 			const basePos: IPositionObject = this.queuedNotesBasePos!;
-			const time = this.queuedNotesTime = this.queuedNotesBaseTime + calcTimeExFromSMFTempo(
-				this.tempo, basePos.numerator, basePos.denominator, curPos.numerator, curPos.denominator
-			);
+			const time = (this.queuedNotesTime =
+				this.queuedNotesBaseTime +
+				calcTimeExFromSMFTempo(
+					this.tempo,
+					basePos.numerator,
+					basePos.denominator,
+					curPos.numerator,
+					curPos.denominator
+				));
 
-			if (!this.processObject(o, currentIndex, maxCount, curPos, time, endTime)) {
+			if (
+				!this.processObject(
+					o,
+					currentIndex,
+					maxCount,
+					curPos,
+					time,
+					endTime
+				)
+			) {
 				// force finish playing
 				this.noteOffAllPlayingNotes(this.queuedNotesTime);
 				// disable loop
@@ -752,7 +920,13 @@ export default class Player extends PlayerBase {
 		// 	', queuedNotesTime =', this.queuedNotesTime,
 		// 	', toTime =', toTime);
 		this._nextPlayTimerId = setTimeout(
-			this.doRenderNotes.bind(this, notesAndControls, currentIndex, endTime, loopStatus),
+			this.doRenderNotes.bind(
+				this,
+				notesAndControls,
+				currentIndex,
+				endTime,
+				loopStatus
+			),
 			5
 		);
 	}
@@ -768,10 +942,16 @@ export default class Player extends PlayerBase {
 	}
 
 	private onPlayUserMarkerEvent(e: PlayUserMarkerEventObject) {
-		if (/^looped\:/.test(e.marker)) {
+		if (/^looped:/.test(e.marker)) {
 			try {
-				const loopStatus: LoopStatus = JSON.parse(e.marker.substring(7));
-				this.raiseEventPlayLooped(loopStatus, e.currentFrame, e.sampleRate);
+				const loopStatus: LoopStatus = JSON.parse(
+					e.marker.substring(7)
+				);
+				this.raiseEventPlayLooped(
+					loopStatus,
+					e.currentFrame,
+					e.sampleRate
+				);
 			} catch {
 				// do nothing
 			}
@@ -797,12 +977,23 @@ export default class Player extends PlayerBase {
 		const len = notesAndControls.length;
 		for (; index < len; ++index) {
 			const o = notesAndControls[index];
-			if (stopPosition.numerator * o.notePosDenominator <= stopPosition.denominator * o.notePosNumerator) {
+			if (
+				stopPosition.numerator * o.notePosDenominator <=
+				stopPosition.denominator * o.notePosNumerator
+			) {
 				break;
 			}
 			curPos.numerator = o.notePosNumerator;
 			curPos.denominator = o.notePosDenominator;
-			this.processObject(o, index + 1, notesAndControls.length, curPos, currentTime, null, true);
+			this.processObject(
+				o,
+				index + 1,
+				notesAndControls.length,
+				curPos,
+				currentTime,
+				null,
+				true
+			);
 		}
 		return index;
 	}
@@ -821,7 +1012,10 @@ export default class Player extends PlayerBase {
 		} else if (o instanceof TempoControl) {
 			// process tempo
 			this.queuedNotesBaseTime = this.queuedNotesTime;
-			this.queuedNotesBasePos = { numerator: curPos.numerator, denominator: curPos.denominator };
+			this.queuedNotesBasePos = {
+				numerator: curPos.numerator,
+				denominator: curPos.denominator,
+			};
 			this.tempo = o.value;
 			return true;
 		} else if (
@@ -832,52 +1026,75 @@ export default class Player extends PlayerBase {
 			// do nothing
 			return true;
 		} else if (o instanceof ControllerControl) {
-			const ch = this.channels[o.channel] || (this.channels[o.channel] = makeDefaultChannelStatus());
-			if (o.value1 === 0) { // Bank select MSB
+			const ch =
+				this.channels[o.channel] ||
+				(this.channels[o.channel] = makeDefaultChannelStatus());
+			if (o.value1 === 0) {
+				// Bank select MSB
 				const val = o.value2 * 0x80;
 				if (typeof ch.bank === 'number') {
-					ch.bank = (ch.bank & 0x7F) + val;
+					ch.bank = (ch.bank & 0x7f) + val;
 				} else {
 					ch.bank = val;
 				}
-			} else if (o.value1 === 32) { // Bank select LSB
+			} else if (o.value1 === 32) {
+				// Bank select LSB
 				const val = o.value2;
 				if (typeof ch.bank === 'number') {
 					ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
 				} else {
 					ch.bank = val;
 				}
-			} else if (o.value1 === 7) { // Volume MSB
+			} else if (o.value1 === 7) {
+				// Volume MSB
 				return this.changeVolume(o.channel, true, o.value2, time);
-			} else if (o.value1 === 39) { // Volume LSB
+			} else if (o.value1 === 39) {
+				// Volume LSB
 				return this.changeVolume(o.channel, false, o.value2, time);
 			}
-			return this.doSendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: o.channel,
-				control: o.value1,
-				value: o.value2
-			}, time);
+			return this.doSendEvent(
+				{
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					channel: o.channel,
+					control: o.value1,
+					value: o.value2,
+				},
+				time
+			);
 		} else if (o instanceof ProgramChangeControl) {
 			return this.changeProgram(o.channel, o.value, null, time);
 		} else if (o instanceof NoteObject) {
 			if (noSound) {
 				return true;
 			}
-			const cont = this.sendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
-				channel: o.channel,
-				key: o.noteValue,
-				vel: o.velocity
-			}, time);
+			const cont = this.sendEvent(
+				{
+					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+					channel: o.channel,
+					key: o.noteValue,
+					vel: o.velocity,
+				},
+				time
+			);
 
 			++this._allPlayedNoteCount;
-			this.raiseEventPlayQueue(index, totalObjects, this._playingNotes.length, this._allPlayedNoteCount);
+			this.raiseEventPlayQueue(
+				index,
+				totalObjects,
+				this._playingNotes.length,
+				this._allPlayedNoteCount
+			);
 
-			const stopPos = new PositionObject(o.noteLengthNumerator, o.noteLengthDenominator);
+			const stopPos = new PositionObject(
+				o.noteLengthNumerator,
+				o.noteLengthDenominator
+			);
 			stopPos.addPositionMe(curPos);
 			if (endTimePos) {
-				if (stopPos.numerator * endTimePos.denominator > endTimePos.numerator * stopPos.denominator) {
+				if (
+					stopPos.numerator * endTimePos.denominator >
+					endTimePos.numerator * stopPos.denominator
+				) {
 					stopPos.numerator = endTimePos.numerator;
 					stopPos.denominator = endTimePos.denominator;
 				}
@@ -892,7 +1109,10 @@ export default class Player extends PlayerBase {
 					this._playingNotes.push(o);
 				} else {
 					const n = this._playingNotes[j];
-					if (o.playEndPosNum * n.playEndPosDen! < n.playEndPosNum! * o.playEndPosDen) {
+					if (
+						o.playEndPosNum * n.playEndPosDen! <
+						n.playEndPosNum! * o.playEndPosDen
+					) {
 						this._playingNotes.splice(j, 0, o);
 						break;
 					}
@@ -917,21 +1137,34 @@ export default class Player extends PlayerBase {
 		if (n) {
 			if (
 				!nextObject ||
-				n.playEndPosNum! * nextObject.notePosDenominator <= nextObject.notePosNumerator * n.playEndPosDen!
+				n.playEndPosNum! * nextObject.notePosDenominator <=
+					nextObject.notePosNumerator * n.playEndPosDen!
 			) {
 				this._playingNotes.shift();
 				curPos.numerator = n.playEndPosNum!;
 				curPos.denominator = n.playEndPosDen!;
-				const time2 = this.queuedNotesTime = this.queuedNotesBaseTime + calcTimeExFromSMFTempo(
-					this.tempo, basePos.numerator, basePos.denominator, curPos.numerator, curPos.denominator
+				const time2 = (this.queuedNotesTime =
+					this.queuedNotesBaseTime +
+					calcTimeExFromSMFTempo(
+						this.tempo,
+						basePos.numerator,
+						basePos.denominator,
+						curPos.numerator,
+						curPos.denominator
+					));
+				this.sendEvent(
+					{
+						type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+						channel: n.channel,
+						key: n.noteValue,
+						vel: 0,
+					},
+					time2
 				);
-				this.sendEvent({
-					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
-					channel: n.channel,
-					key: n.noteValue,
-					vel: 0
-				}, time2);
-				this.raiseEventPlayEndNote(this._playingNotes.length, this._allPlayedNoteCount);
+				this.raiseEventPlayEndNote(
+					this._playingNotes.length,
+					this._allPlayedNoteCount
+				);
 				return true;
 			}
 		}
@@ -941,12 +1174,15 @@ export default class Player extends PlayerBase {
 	private noteOffAllPlayingNotes(timeToOff: TimeValue) {
 		let len = this._playingNotes.length;
 		this._playingNotes.splice(0).forEach((n) => {
-			this.sendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
-				channel: n.channel,
-				key: n.noteValue,
-				vel: 0
-			}, timeToOff);
+			this.sendEvent(
+				{
+					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+					channel: n.channel,
+					key: n.noteValue,
+					vel: 0,
+				},
+				timeToOff
+			);
 			this.raiseEventPlayEndNote(--len, this._allPlayedNoteCount);
 		});
 	}
@@ -971,24 +1207,38 @@ export default class Player extends PlayerBase {
 			// this._prepareToPlayNotes(notesAndControls, from, to);
 			this._isPlayingSequence = true;
 
-			const startIndex = this.prepareBasePos(notesAndControls, from, timeStartOffset);
+			const startIndex = this.prepareBasePos(
+				notesAndControls,
+				from,
+				timeStartOffset
+			);
 
 			this.channels.forEach((ch, i) => {
 				if (ch) {
 					if (typeof ch.bank === 'number') {
-						this.sendEvent({
-							type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-							channel: i,
-							control: 0, // Bank MSB
-							value: Math.floor(ch.bank / 0x80)
-						}, 0);
-						if ((ch.bank & 0x7F) !== 0) {
-							this.sendEvent({
-								type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+						this.sendEvent(
+							{
+								type:
+									JSSynth.SequencerEventTypes.EventType
+										.ControlChange,
 								channel: i,
-								control: 32, // Bank LSB
-								value: (ch.bank & 0x7F)
-							}, 0);
+								control: 0, // Bank MSB
+								value: Math.floor(ch.bank / 0x80),
+							},
+							0
+						);
+						if ((ch.bank & 0x7f) !== 0) {
+							this.sendEvent(
+								{
+									type:
+										JSSynth.SequencerEventTypes.EventType
+											.ControlChange,
+									channel: i,
+									control: 32, // Bank LSB
+									value: ch.bank & 0x7f,
+								},
+								0
+							);
 						}
 					}
 					if (typeof ch.preset === 'number') {
@@ -1002,28 +1252,35 @@ export default class Player extends PlayerBase {
 				start: loopData.start || { numerator: 0, denominator: 1 },
 				end: loopData.end,
 				loopCount: typeof loopCount === 'number' ? loopCount : null,
-				loopIndex: 0
+				loopIndex: 0,
 			};
-			const fadeoutData = (typeof fadeout === 'boolean') ?
-				(fadeout ? { enabled: true } : void 0) :
-				fadeout;
+			const fadeoutData =
+				typeof fadeout === 'boolean'
+					? fadeout
+						? { enabled: true }
+						: void 0
+					: fadeout;
 			if (fadeoutData && fadeoutData.enabled) {
 				this.fadeout = {
 					progress: false,
 					step: fadeoutData.step || Constants.DefaultFadeoutStep,
-					startTimeFromLoop: typeof fadeoutData.startTimeFromLoop === 'number' ?
-						fadeoutData.startTimeFromLoop : Constants.DefaultFadeoutStartTime,
-					fadeoutTime: typeof fadeoutData.fadeoutTime === 'number' ?
-						fadeoutData.fadeoutTime : Constants.DefaultFadeoutTime,
+					startTimeFromLoop:
+						typeof fadeoutData.startTimeFromLoop === 'number'
+							? fadeoutData.startTimeFromLoop
+							: Constants.DefaultFadeoutStartTime,
+					fadeoutTime:
+						typeof fadeoutData.fadeoutTime === 'number'
+							? fadeoutData.fadeoutTime
+							: Constants.DefaultFadeoutTime,
 					curStep: 0,
 					startTime: 0,
-					nextTime: 0
+					nextTime: 0,
 				};
 				if (!loopStatus && fadeoutData) {
 					loopStatus = {
 						start: { numerator: 0, denominator: 1 },
 						loopCount: 0,
-						loopIndex: 0
+						loopIndex: 0,
 					};
 				}
 			} else {
@@ -1052,10 +1309,14 @@ export default class Player extends PlayerBase {
 		if (this._isPlayingSequence) {
 			this.stopSequence();
 		} else {
-			let arr = (part.notes as ReadonlyArray<ISequencerObject>).concat(part.controls);
+			let arr = (part.notes as readonly ISequencerObject[]).concat(
+				part.controls
+			);
 			arr = arr.concat(this.engine.masterControls);
 			if (backgroundChords && backgroundEndPos) {
-				arr = arr.concat(convertBkChordsToNotes(backgroundChords, backgroundEndPos));
+				arr = arr.concat(
+					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
+				);
 			}
 			sortNotesAndControls(arr);
 			this.startPlayData(arr, from, to, null, actx);
@@ -1068,7 +1329,14 @@ export default class Player extends PlayerBase {
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null
 	) {
-		this.playPartRange(part, null, null, backgroundChords, backgroundEndPos, actx);
+		this.playPartRange(
+			part,
+			null,
+			null,
+			backgroundChords,
+			backgroundEndPos,
+			actx
+		);
 	}
 
 	/** Play sequence data from engine instance, with start position and end position, etc. */
@@ -1096,11 +1364,22 @@ export default class Player extends PlayerBase {
 			});
 			arr = arr.concat(this.engine.masterControls);
 			if (backgroundChords && backgroundEndPos) {
-				arr = arr.concat(convertBkChordsToNotes(backgroundChords, backgroundEndPos));
+				arr = arr.concat(
+					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
+				);
 			}
 			sortNotesAndControls(arr);
 
-			this.startPlayData(arr, from, to, timeStartOffset, actx, dest, loopData, fadeout);
+			this.startPlayData(
+				arr,
+				from,
+				to,
+				timeStartOffset,
+				actx,
+				dest,
+				loopData,
+				fadeout
+			);
 		}
 	}
 
@@ -1111,7 +1390,17 @@ export default class Player extends PlayerBase {
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
 	) {
-		this.playSequenceRange(null, null, null, null, null, actx, dest, loopData, fadeout);
+		this.playSequenceRange(
+			null,
+			null,
+			null,
+			null,
+			null,
+			actx,
+			dest,
+			loopData,
+			fadeout
+		);
 	}
 
 	public playSequenceTimeRange(
@@ -1137,11 +1426,19 @@ export default class Player extends PlayerBase {
 			});
 			arr = arr.concat(this.engine.masterControls);
 			if (backgroundChords && backgroundEndPos) {
-				arr = arr.concat(convertBkChordsToNotes(backgroundChords, backgroundEndPos));
+				arr = arr.concat(
+					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
+				);
 			}
 			sortNotesAndControls(arr);
 
-			const r = calculatePositionFromSeconds(arr, 60000000 / this.engine.tempo, timeFrom, timeTo, true);
+			const r = calculatePositionFromSeconds(
+				arr,
+				60000000 / this.engine.tempo,
+				timeFrom,
+				timeTo,
+				true
+			);
 			// if (!__PROD__ && r) {
 			// 	console.log("From: " + r.from.numerator + "/" + r.from.denominator);
 			// 	console.log("  StartOffset: " + r.timeStartOffset);

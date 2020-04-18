@@ -1,4 +1,3 @@
-
 export default abstract class EventObjectBase {
 	private _preventDefault = false;
 	private _stopPropagation = false;

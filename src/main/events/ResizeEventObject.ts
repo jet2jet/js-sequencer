@@ -1,4 +1,3 @@
-
 import SimpleEventObject from './SimpleEventObject';
 
 import EditorEngine from '../core/EditorEngine';

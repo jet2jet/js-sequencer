@@ -1,4 +1,3 @@
-
 import IPositionObject from './IPositionObject';
 
 import { gcd, isUndefined } from '../functions';
@@ -16,41 +15,43 @@ export default class PositionObject implements IPositionObject {
 		return this;
 	}
 	public fromJSONObject(obj: any) {
-		if (!isUndefined(obj.numerator))
-			this.numerator = obj.numerator;
-		else
-			this.numerator = obj.position;
-		if (!isUndefined(obj.denominator))
-			this.denominator = obj.denominator;
-		else
-			this.denominator = obj.positionFraction;
+		if (!isUndefined(obj.numerator)) this.numerator = obj.numerator;
+		else this.numerator = obj.position;
+		if (!isUndefined(obj.denominator)) this.denominator = obj.denominator;
+		else this.denominator = obj.positionFraction;
 	}
 
 	public addPosition(pos: IPositionObject) {
 		const g = gcd(this.denominator, pos.denominator);
 		return new PositionObject(
-			(this.numerator * pos.denominator + pos.numerator * this.denominator) / g,
-			this.denominator * pos.denominator / g
+			(this.numerator * pos.denominator +
+				pos.numerator * this.denominator) /
+				g,
+			(this.denominator * pos.denominator) / g
 		);
 	}
 	public addPositionDirect(numerator: number, denominator: number) {
 		const g = gcd(this.denominator, denominator);
 		return new PositionObject(
 			(this.numerator * denominator + numerator * this.denominator) / g,
-			this.denominator * denominator / g
+			(this.denominator * denominator) / g
 		);
 	}
 	public addPositionMe(pos: IPositionObject) {
 		const g = gcd(this.denominator, pos.denominator);
-		const n = (this.numerator * pos.denominator + pos.numerator * this.denominator) / g;
-		const d = this.denominator * pos.denominator / g;
+		const n =
+			(this.numerator * pos.denominator +
+				pos.numerator * this.denominator) /
+			g;
+		const d = (this.denominator * pos.denominator) / g;
 		this.numerator = n;
 		this.denominator = d;
 	}
 	public addPositionMeDirect(numerator: number, denominator: number) {
 		const g = gcd(this.denominator, denominator);
-		const n = (this.numerator * denominator + numerator * this.denominator) / g;
-		const d = this.denominator * denominator / g;
+		const n =
+			(this.numerator * denominator + numerator * this.denominator) / g;
+		const d = (this.denominator * denominator) / g;
 		this.numerator = n;
 		this.denominator = d;
 	}

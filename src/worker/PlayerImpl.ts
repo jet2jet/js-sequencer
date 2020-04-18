@@ -1,12 +1,11 @@
-
 import { GeneratorTypes } from 'js-synthesizer/Constants';
 import ISequencer from 'js-synthesizer/ISequencer';
 import ISequencerEventData from 'js-synthesizer/ISequencerEventData';
-import SequencerEvent, { EventType as SequencerEventTypes } from 'js-synthesizer/SequencerEvent';
+import SequencerEvent, {
+	EventType as SequencerEventTypes,
+} from 'js-synthesizer/SequencerEvent';
 import Synthesizer from 'js-synthesizer/Synthesizer';
 import SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
-
-declare var JSSynth: typeof import('js-synthesizer');
 
 import * as Message from './types/MessageData';
 import * as RenderMessage from './types/RenderMessageData';
@@ -16,11 +15,15 @@ const enum Defaults {
 	SampleRate = 48000,
 	FramesCount = 8192,
 	Interval = 40,
-	Gain = 1
+	Gain = 1,
 }
 
 type GenEvent = Message.Generator['data'];
 
+// eslint-disable-next-line no-var
+declare var JSSynth: typeof import('js-synthesizer');
+
+// eslint-disable-next-line no-var
 declare var Module: any;
 
 let promiseWasmInitialized: Promise<void>;
@@ -29,24 +32,30 @@ let _module: any;
 function waitForWasmInitialized() {
 	if (!promiseWasmInitialized) {
 		_module = Module;
-		promiseWasmInitialized = Promise.resolve().then(() => new Promise<void>((resolve) => {
-			if (_module.calledRun) {
-				resolve();
-			} else {
-				const fn = _module.onRuntimeInitialized;
-				_module.onRuntimeInitialized = () => {
-					resolve();
-					if (fn) {
-						fn();
+		promiseWasmInitialized = Promise.resolve().then(
+			() =>
+				new Promise<void>((resolve) => {
+					if (_module.calledRun) {
+						resolve();
+					} else {
+						const fn = _module.onRuntimeInitialized;
+						_module.onRuntimeInitialized = () => {
+							resolve();
+							if (fn) {
+								fn();
+							}
+						};
 					}
-				};
-			}
-		}));
+				})
+		);
 	}
 	return promiseWasmInitialized;
 }
 
-function promiseWithTimeout<T>(promise: Promise<T>, timeoutMilliseconds: number) {
+function promiseWithTimeout<T>(
+	promise: Promise<T>,
+	timeoutMilliseconds: number
+) {
 	return new Promise<T>((resolve, reject) => {
 		let resolved = false;
 		const id = setTimeout(() => {
@@ -75,7 +84,6 @@ function promiseWithTimeout<T>(promise: Promise<T>, timeoutMilliseconds: number)
 }
 
 export default class PlayerImpl {
-
 	private port: MessagePort;
 	private renderPort: MessagePort | undefined;
 	private synth!: Synthesizer;
@@ -137,7 +145,8 @@ export default class PlayerImpl {
 		this.allRendered = false;
 
 		this.sampleRate = data.sampleRate || Defaults.SampleRate;
-		this.midiChannelCount = Math.ceil(((data.channelCount || 16) + 15) / 16) * 16;
+		this.midiChannelCount =
+			Math.ceil(((data.channelCount || 16) + 15) / 16) * 16;
 		this.timerInterval = Defaults.Interval;
 		this.framesCount = Defaults.FramesCount;
 		this.gain = Defaults.Gain;
@@ -145,12 +154,15 @@ export default class PlayerImpl {
 
 		this.onRenderMessageBind = this.onRenderMessage.bind(this);
 
-		this.doInitialize(data).catch((e) => { console.error(e); throw e; });
+		this.doInitialize(data).catch((e) => {
+			console.error(e);
+			throw e;
+		});
 	}
 
 	private doInitSynth() {
 		const obj: SynthesizerSettings = {
-			midiChannelCount: this.midiChannelCount
+			midiChannelCount: this.midiChannelCount,
 		};
 		this.synth.init(this.sampleRate, obj);
 		this.synth.setGain(this.gain);
@@ -230,27 +242,35 @@ export default class PlayerImpl {
 		if (!this.synth.isPlaying()) {
 			return;
 		}
-		const p = this.promiseWaitingForStop || (
-			this.promiseWaitingForStop = (async () => {
+		const p =
+			this.promiseWaitingForStop ||
+			(this.promiseWaitingForStop = (async () => {
 				// console.log('Waiting for voices stopped...');
 				try {
-					await promiseWithTimeout(this.synth.waitForVoicesStopped(), 5000);
+					await promiseWithTimeout(
+						this.synth.waitForVoicesStopped(),
+						5000
+					);
 				} catch (_e) {
 					// voice will not stopped, so re-initialize to reset
 					this.resetSynth();
 				}
 				// console.log('  done. (waitForVoicesStopped)');
 				this.promiseWaitingForStop = void 0;
-			})()
-		);
+			})());
 		await p;
 	}
 
 	private resetSynth() {
 		if (this.renderPort) {
-			this.renderPort.postMessage({ type: 'release' } as RenderMessage.Release);
+			this.renderPort.postMessage({
+				type: 'release',
+			} as RenderMessage.Release);
 			this.renderPort.close();
-			this.renderPort.removeEventListener('message', this.onRenderMessageBind);
+			this.renderPort.removeEventListener(
+				'message',
+				this.onRenderMessageBind
+			);
 			this.renderPort = void 0;
 		}
 		if (this.sequencer) {
@@ -265,7 +285,10 @@ export default class PlayerImpl {
 		this.port.postMessage(data, transfer);
 	}
 
-	private postDefaultResponse(id: number, messageType: Response.NoResponseMessageTypes) {
+	private postDefaultResponse(
+		id: number,
+		messageType: Response.NoResponseMessageTypes
+	) {
 		this.postMessage({ id: id, type: messageType });
 	}
 
@@ -290,7 +313,10 @@ export default class PlayerImpl {
 				// console.log(`[onSequencerCallback] finished marker reached`);
 				this.hasFinished = true;
 				this.synth.midiAllSoundsOff();
-				this.finishTimer = setTimeout(this.onStopForFinish.bind(this), 2000);
+				this.finishTimer = setTimeout(
+					this.onStopForFinish.bind(this),
+					2000
+				);
 			} else {
 				const data = this.userMsgMap[id];
 				if (data) {
@@ -302,13 +328,13 @@ export default class PlayerImpl {
 					} else if ('userEvent' in data) {
 						this.postMessage({
 							type: 'user-event',
-							data: data.userEvent!
+							data: data.userEvent!,
 						});
 					} else if ('userMarker' in data) {
 						if (this.renderPort) {
 							const sendData: RenderMessage.UserMarkerSend = {
 								type: 'user-marker-send',
-								data: data.userMarker!
+								data: data.userMarker!,
 							};
 							this.renderPort.postMessage(sendData);
 						}
@@ -318,13 +344,20 @@ export default class PlayerImpl {
 		}
 	}
 
-	private onProcessGenEvent({ channel, type, value, keepCurrentVoice }: GenEvent) {
+	private onProcessGenEvent({
+		channel,
+		type,
+		value,
+		keepCurrentVoice,
+	}: GenEvent) {
 		const data = this.channelGenData;
 		const chData = data[channel] || (data[channel] = {});
-		const o = chData[type] || (chData[type] = {
-			init: this.synth.getGenerator(channel, type),
-			prev: 0
-		});
+		const o =
+			chData[type] ||
+			(chData[type] = {
+				init: this.synth.getGenerator(channel, type),
+				prev: 0,
+			});
 		const newVal = value === null ? o.init : value;
 
 		// setGenerator affects to the current voices.
@@ -335,7 +368,9 @@ export default class PlayerImpl {
 			const diff = newVal - o.prev;
 			const syn = this.synth.getRawSynthesizer();
 			// prot: int fluid_synth_get_active_voice_count(fluid_synth_t*)
-			const voiceCount: number = _module._fluid_synth_get_active_voice_count(syn);
+			const voiceCount: number = _module._fluid_synth_get_active_voice_count(
+				syn
+			);
 			// fluid_voice_t* voiceList = malloc(sizeof(fluid_voice_t*) * voiceCount)
 			const voiceList: number = _module._malloc(voiceCount * 4);
 			// prot: void fluid_synth_get_voicelist(fluid_synth_t*, fluid_voice_t*, int, int)
@@ -371,13 +406,13 @@ export default class PlayerImpl {
 		const size = this.framesCount;
 		const buffers: [ArrayBuffer, ArrayBuffer] = [
 			new ArrayBuffer(size * 4),
-			new ArrayBuffer(size * 4)
+			new ArrayBuffer(size * 4),
 		];
 		this.synth.render(buffers.map((buffer) => new Float32Array(buffer)));
 
 		const data: RenderMessage.Render = {
 			type: 'render',
-			data: buffers
+			data: buffers,
 		};
 		this.renderPort!.postMessage(data, buffers);
 
@@ -437,7 +472,9 @@ export default class PlayerImpl {
 	private onClose() {
 		this.doStopTimer();
 		if (this.renderPort) {
-			this.renderPort.postMessage({ type: 'release' } as RenderMessage.Release);
+			this.renderPort.postMessage({
+				type: 'release',
+			} as RenderMessage.Release);
 			this.renderPort.close();
 			this.renderPort = void 0;
 		}
@@ -459,7 +496,7 @@ export default class PlayerImpl {
 		this.postMessage({
 			id: data.id,
 			type: 'load-sfont',
-			data: sfontId
+			data: sfontId,
 		});
 	}
 
@@ -514,7 +551,10 @@ export default class PlayerImpl {
 		this.startTime = tick;
 		if (data.renderPort) {
 			this.renderPort = data.renderPort;
-			data.renderPort.addEventListener('message', this.onRenderMessageBind);
+			data.renderPort.addEventListener(
+				'message',
+				this.onRenderMessageBind
+			);
 			data.renderPort.start();
 		}
 		this.channelGenData = {};
@@ -530,16 +570,15 @@ export default class PlayerImpl {
 			this.postMessage({
 				type: data.type,
 				id: data.id,
-				data: false
+				data: false,
 			});
-			return;
 		} else {
 			this.renderPort.postMessage({
 				type: 'pause',
 				data: {
 					id: data.id,
-					paused: data.paused
-				}
+					paused: data.paused,
+				},
 			} as RenderMessage.Pause);
 		}
 	}
@@ -554,12 +593,18 @@ export default class PlayerImpl {
 		this.starting = false;
 		if (this.sequencer && this.timerId !== null) {
 			this.doStopTimer();
-			this.renderPort!.postMessage({ type: 'stop' } as RenderMessage.Stop);
+			this.renderPort!.postMessage({
+				type: 'stop',
+			} as RenderMessage.Stop);
 			if (this.synth.isPlaying()) {
 				this.sequencer.removeAllEvents();
-				this.sequencer.sendEventAt({
-					type: 'system-reset'
-				}, 0, false);
+				this.sequencer.sendEventAt(
+					{
+						type: 'system-reset',
+					},
+					0,
+					false
+				);
 				await this.waitForVoicesStopped();
 				// console.log('Sending \'stop\'');
 				this.postStop();
@@ -580,9 +625,14 @@ export default class PlayerImpl {
 				await this.onStop();
 			}
 			if (this.renderPort) {
-				this.renderPort.postMessage({ type: 'release' } as RenderMessage.Release);
+				this.renderPort.postMessage({
+					type: 'release',
+				} as RenderMessage.Release);
 				this.renderPort.close();
-				this.renderPort.removeEventListener('message', this.onRenderMessageBind);
+				this.renderPort.removeEventListener(
+					'message',
+					this.onRenderMessageBind
+				);
 				this.renderPort = void 0;
 			}
 			// console.log('Unregistereing clients from sequencer and close sequencer...');
@@ -606,7 +656,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: -1,
 				data: data.data,
-				tick: tick
+				tick: tick,
 			});
 		}
 	}
@@ -620,19 +670,24 @@ export default class PlayerImpl {
 		this.userMsgMap[id] = { sysEx: bin };
 
 		if (data.time === null) {
-			this.sequencer.sendEventToClientAt(this.myClient, {
-				type: SequencerEventTypes.Timer,
-				data: id
-			}, 0, false);
+			this.sequencer.sendEventToClientAt(
+				this.myClient,
+				{
+					type: SequencerEventTypes.Timer,
+					data: id,
+				},
+				0,
+				false
+			);
 		} else {
 			const tick = this.startTime + data.time;
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
 					type: SequencerEventTypes.Timer,
-					data: id
+					data: id,
 				},
-				tick: tick
+				tick: tick,
 			});
 		}
 	}
@@ -643,23 +698,28 @@ export default class PlayerImpl {
 		}
 		const id = this.userMsgMapId++;
 		this.userMsgMap[id] = {
-			genEvent: data.data
+			genEvent: data.data,
 		};
 
 		if (data.time === null) {
-			this.sequencer.sendEventToClientAt(this.myClient, {
-				type: SequencerEventTypes.Timer,
-				data: id
-			}, 0, false);
+			this.sequencer.sendEventToClientAt(
+				this.myClient,
+				{
+					type: SequencerEventTypes.Timer,
+					data: id,
+				},
+				0,
+				false
+			);
 		} else {
 			const tick = this.startTime + data.time;
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
 					type: SequencerEventTypes.Timer,
-					data: id
+					data: id,
 				},
-				tick: tick
+				tick: tick,
 			});
 		}
 	}
@@ -672,19 +732,24 @@ export default class PlayerImpl {
 		this.userMsgMap[id] = { userEvent: data.data };
 
 		if (data.time === null) {
-			this.sequencer.sendEventToClientAt(this.myClient, {
-				type: SequencerEventTypes.Timer,
-				data: id
-			}, 0, false);
+			this.sequencer.sendEventToClientAt(
+				this.myClient,
+				{
+					type: SequencerEventTypes.Timer,
+					data: id,
+				},
+				0,
+				false
+			);
 		} else {
 			const tick = this.startTime + data.time;
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
 					type: SequencerEventTypes.Timer,
-					data: id
+					data: id,
 				},
-				tick: tick
+				tick: tick,
 			});
 		}
 	}
@@ -694,10 +759,15 @@ export default class PlayerImpl {
 			return;
 		}
 		if (data.time === null) {
-			this.sequencer.sendEventToClientAt(this.myClient, {
-				type: SequencerEventTypes.Timer,
-				data: -1
-			}, 0, false);
+			this.sequencer.sendEventToClientAt(
+				this.myClient,
+				{
+					type: SequencerEventTypes.Timer,
+					data: -1,
+				},
+				0,
+				false
+			);
 		} else {
 			const tick = this.startTime + data.time;
 			// console.log(`[onFinishMarker] queue finish marker at ${tick}`);
@@ -705,9 +775,9 @@ export default class PlayerImpl {
 				client: this.myClient,
 				data: {
 					type: SequencerEventTypes.Timer,
-					data: -1
+					data: -1,
 				},
-				tick: tick
+				tick: tick,
 			});
 		}
 	}
@@ -720,19 +790,24 @@ export default class PlayerImpl {
 		this.userMsgMap[id] = { userMarker: data.marker };
 
 		if (data.time === null) {
-			this.sequencer.sendEventToClientAt(this.myClient, {
-				type: SequencerEventTypes.Timer,
-				data: id
-			}, 0, false);
+			this.sequencer.sendEventToClientAt(
+				this.myClient,
+				{
+					type: SequencerEventTypes.Timer,
+					data: id,
+				},
+				0,
+				false
+			);
 		} else {
 			const tick = this.startTime + data.time;
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
 					type: SequencerEventTypes.Timer,
-					data: id
+					data: id,
 				},
-				tick: tick
+				tick: tick,
 			});
 		}
 	}
@@ -763,7 +838,7 @@ export default class PlayerImpl {
 				this.postMessage({
 					type: 'pause',
 					id: data.data.id,
-					data: data.data.paused
+					data: data.data.paused,
 				});
 				break;
 			case 'user-marker-resp':

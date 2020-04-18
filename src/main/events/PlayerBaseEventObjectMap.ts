@@ -1,4 +1,3 @@
-
 import PlayStatusEventObject from './PlayStatusEventObject';
 import PlayUserEventObject from './PlayUserEventObject';
 import PlayUserMarkerEventObject from './PlayUserMarkerEventObject';

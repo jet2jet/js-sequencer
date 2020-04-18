@@ -1,4 +1,3 @@
-
 const fs = require('fs');
 const path = require('path');
 
@@ -18,9 +17,14 @@ const commonRootPath = path.resolve(__dirname, '../src/common');
 
 const moduleExtensions = ['.tsx', '.ts', '.js'];
 
-const headerTextTemplate = fs.readFileSync(path.resolve(__dirname, '../src/banner/header.txt'), 'utf8');
+const headerTextTemplate = fs.readFileSync(
+	path.resolve(__dirname, '../src/banner/header.txt'),
+	'utf8'
+);
 const preparedHeaderText = prependHeaderTextImpl(
-	LIBRARY_NAME, AUTHOR, LIBRARY_VERSION
+	LIBRARY_NAME,
+	AUTHOR,
+	LIBRARY_VERSION
 );
 
 /**
@@ -31,13 +35,12 @@ const preparedHeaderText = prependHeaderTextImpl(
 function toNumberStringWithZero(num, length) {
 	num = num.toString();
 	length -= num.length;
-	if (length > 0)
-		num = Array(length + 1).join('0') + num;
+	if (length > 0) num = Array(length + 1).join('0') + num;
 	return num;
 }
 
 function prependHeaderTextImpl(name, author, version) {
-	var date = new Date();
+	const date = new Date();
 	return headerTextTemplate
 		.replace('[name]', name)
 		.replace('[author]', author)
@@ -45,32 +48,37 @@ function prependHeaderTextImpl(name, author, version) {
 		.replace('[year4]', toNumberStringWithZero(date.getFullYear(), 4))
 		.replace(
 			'[date]',
-			toNumberStringWithZero(date.getFullYear(), 4) + '-' +
-			toNumberStringWithZero(date.getMonth() + 1, 2) + '-' +
-			toNumberStringWithZero(date.getDate(), 2)
+			toNumberStringWithZero(date.getFullYear(), 4) +
+				'-' +
+				toNumberStringWithZero(date.getMonth() + 1, 2) +
+				'-' +
+				toNumberStringWithZero(date.getDate(), 2)
 		);
 }
 
 function existsModule(name, extensions) {
-	return fs.existsSync(name) || extensions.some((ext) => {
-		return fs.existsSync(name + ext);
-	});
+	return (
+		fs.existsSync(name) ||
+		extensions.some((ext) => {
+			return fs.existsSync(name + ext);
+		})
+	);
 }
 
 module.exports = (env) => {
 	const isMinified = !!(env && env.minified);
-	const suffix = isMinified ? ".min" : "";
+	const suffix = isMinified ? '.min' : '';
 
 	const webpackConfBase = {
-		mode: isMinified ? "production" : "development",
-		devtool: "source-map",
+		mode: isMinified ? 'production' : 'development',
+		devtool: 'source-map',
 		module: {
 			rules: [
 				{
 					test: /\.tsx?$/,
 					use: [
 						{
-							loader: "ts-loader",
+							loader: 'ts-loader',
 							options: {
 								compilerOptions: {
 									declaration: false,
@@ -92,15 +100,18 @@ module.exports = (env) => {
 			}),
 			new webpack.NormalModuleReplacementPlugin(/^\./, (resource) => {
 				// if module is not found in the project directory, search commonRootPath
-				const inputPath = path.resolve(resource.context, resource.request);
+				const inputPath = path.resolve(
+					resource.context,
+					resource.request
+				);
 				if (!existsModule(inputPath, moduleExtensions)) {
 					const relPathFromSrc = path.normalize(
 						path.relative(sourceRootDir, inputPath)
 					);
 					if (!/^\.\./.test(relPathFromSrc)) {
 						const relPathFromProject = relPathFromSrc.replace(
-							/^.*?[\\\/]/,
-							""
+							/^.*?[\\/]/,
+							''
 						);
 						const commonPath = path.resolve(
 							commonRootPath,
@@ -123,32 +134,32 @@ module.exports = (env) => {
 		Object.assign(
 			{
 				entry: {
-					[LIBRARY_FILENAME]: path.resolve(mainRootPath, "index.ts"),
+					[LIBRARY_FILENAME]: path.resolve(mainRootPath, 'index.ts'),
 				},
 				externals: {
-					"js-synthesizer": {
-						commonjs: "js-synthesizer",
-						commonjs2: "js-synthesizer",
-						amd: "js-synthesizer",
-						root: "JSSynth",
+					'js-synthesizer': {
+						commonjs: 'js-synthesizer',
+						commonjs2: 'js-synthesizer',
+						amd: 'js-synthesizer',
+						root: 'JSSynth',
 					},
 				},
 				output: {
-					path: path.resolve(__dirname, "../dist"),
+					path: path.resolve(__dirname, '../dist'),
 					filename: `[name]${suffix}.js`,
-					libraryTarget: "umd",
+					libraryTarget: 'umd',
 					library: {
 						root: LIBRARY_NAMESPACE,
 						amd: LIBRARY_NAMESPACE,
 						commonjs: LIBRARY_NAME,
 					},
-					globalObject: "this",
+					globalObject: 'this',
 				},
 				resolve: {
 					extensions: moduleExtensions,
 					modules: [
-						path.resolve(__dirname, "..", "reference"),
-						"node_modules",
+						path.resolve(__dirname, '..', 'reference'),
+						'node_modules',
 					],
 				},
 			},
@@ -159,21 +170,21 @@ module.exports = (env) => {
 				entry: {
 					[`${LIBRARY_FILENAME}.worker`]: path.resolve(
 						__dirname,
-						"../src/worker/index.ts"
+						'../src/worker/index.ts'
 					),
 				},
 				externals: {
-					"js-synthesizer": "JSSynth",
+					'js-synthesizer': 'JSSynth',
 				},
 				output: {
-					path: path.resolve(__dirname, "../dist"),
+					path: path.resolve(__dirname, '../dist'),
 					filename: `[name]${suffix}.js`,
 				},
 				resolve: {
 					extensions: moduleExtensions,
 					modules: [
-						path.resolve(__dirname, "..", "reference"),
-						"node_modules",
+						path.resolve(__dirname, '..', 'reference'),
+						'node_modules',
 					],
 				},
 			},
@@ -184,21 +195,21 @@ module.exports = (env) => {
 				entry: {
 					[`${LIBRARY_FILENAME}.worklet`]: path.resolve(
 						__dirname,
-						"../src/worklet/index.ts"
+						'../src/worklet/index.ts'
 					),
 				},
 				externals: {
-					"js-synthesizer": "JSSynth",
+					'js-synthesizer': 'JSSynth',
 				},
 				output: {
-					path: path.resolve(__dirname, "../dist"),
+					path: path.resolve(__dirname, '../dist'),
 					filename: `[name]${suffix}.js`,
 				},
 				resolve: {
 					extensions: moduleExtensions,
 					modules: [
-						path.resolve(__dirname, "..", "reference"),
-						"node_modules",
+						path.resolve(__dirname, '..', 'reference'),
+						'node_modules',
 					],
 				},
 			},

@@ -1,5 +1,6 @@
-
-import ControlObject, { getControlFromJSONObject } from './controls/ControlObject';
+import ControlObject, {
+	getControlFromJSONObject,
+} from './controls/ControlObject';
 
 import Engine from './Engine';
 import NoteObject from './NoteObject';

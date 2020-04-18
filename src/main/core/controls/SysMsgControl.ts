@@ -1,4 +1,3 @@
-
 import ControlObject, { _objCtors } from './ControlObject';
 
 import { isUndefined } from '../../functions';
@@ -9,23 +8,35 @@ export default class SysMsgControl extends ControlObject {
 
 	constructor();
 	constructor(
-		posNumerator: number, posDenominator: number, type: number,
-		arrayBuffer: ArrayBuffer, offset?: number, len?: number
+		posNumerator: number,
+		posDenominator: number,
+		type: number,
+		arrayBuffer: ArrayBuffer,
+		offset?: number,
+		len?: number
 	);
 
 	constructor(
-		posNumerator?: number, posDenominator?: number,
-		type?: number, arrayBuffer?: ArrayBuffer, offset?: number, len?: number
+		posNumerator?: number,
+		posDenominator?: number,
+		type?: number,
+		arrayBuffer?: ArrayBuffer,
+		offset?: number,
+		len?: number
 	) {
 		super();
 		this.msgType = type || 0;
-		const dataLen = (typeof len === 'number') ? len : ((arrayBuffer && arrayBuffer.byteLength - (offset || 0)) || 0);
+		const dataLen =
+			typeof len === 'number'
+				? len
+				: (arrayBuffer && arrayBuffer.byteLength - (offset || 0)) || 0;
 		this.rawData = new Uint8Array(dataLen);
 		if (dataLen) {
-			this.rawData.set(new Uint8Array(arrayBuffer!, offset || 0, dataLen));
+			this.rawData.set(
+				new Uint8Array(arrayBuffer!, offset || 0, dataLen)
+			);
 		}
-		if (isUndefined(posNumerator) || isUndefined(posDenominator))
-			return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -34,7 +45,8 @@ export default class SysMsgControl extends ControlObject {
 			objType: 'SysMsgControl',
 			notePosNumerator: this.notePosNumerator,
 			notePosDenominator: this.notePosDenominator,
-			msgType: this.msgType, rawData: ([] as number[]).slice.call(this.rawData)
+			msgType: this.msgType,
+			rawData: ([] as number[]).slice.call(this.rawData),
 		};
 	}
 	public fromJSONObject(obj: any) {
@@ -44,17 +56,20 @@ export default class SysMsgControl extends ControlObject {
 		this.rawData.set(obj.rawData);
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof SysMsgControl))
+		if (!obj || !(obj instanceof SysMsgControl)) return false;
+		if (
+			this.notePosNumerator * obj.notePosDenominator !==
+			this.notePosDenominator * obj.notePosNumerator
+		)
 			return false;
-		if (this.notePosNumerator * obj.notePosDenominator !==
-			this.notePosDenominator * obj.notePosNumerator)
-			return false;
-		if (!(this.msgType === obj.msgType) || !(this.rawData.byteLength === obj.rawData.byteLength))
+		if (
+			!(this.msgType === obj.msgType) ||
+			!(this.rawData.byteLength === obj.rawData.byteLength)
+		)
 			return false;
 		let l = this.rawData.byteLength;
 		while (l--) {
-			if (!(this.rawData[l] === obj.rawData[l]))
-				return false;
+			if (!(this.rawData[l] === obj.rawData[l])) return false;
 		}
 		return true;
 	}

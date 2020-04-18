@@ -1,4 +1,3 @@
-
 /** @internal */
 export interface StatusData {
 	outFrames: number;
@@ -79,8 +78,16 @@ export interface UserMarkerResponse extends Base {
 }
 
 /** @internal */
-export type AllTypes = Render | RenderedResponse | Status | QueueControl |
-	Pause | Stop | Release | UserMarkerSend | UserMarkerResponse;
+export type AllTypes =
+	| Render
+	| RenderedResponse
+	| Status
+	| QueueControl
+	| Pause
+	| Stop
+	| Release
+	| UserMarkerSend
+	| UserMarkerResponse;
 
 /** @internal */
 export default AllTypes;

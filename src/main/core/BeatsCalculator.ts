@@ -1,4 +1,3 @@
-
 import { gcd } from '../functions';
 
 /** @internal */
@@ -12,7 +11,10 @@ export default class BeatsCalculator {
 	public incrementPosition(delta: number) {
 		this.posNumerator += delta * this.beatsDenPerGcd;
 	}
-	public changeTimeSignature(beatsNumerator: number, beatsDenominator: number) {
+	public changeTimeSignature(
+		beatsNumerator: number,
+		beatsDenominator: number
+	) {
 		const g = gcd(this.posDenominator, beatsDenominator);
 		const q = beatsDenominator / g;
 		// this.beatsDenPerGcd = this.posDenominator / g;

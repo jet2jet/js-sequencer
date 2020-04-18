@@ -1,4 +1,3 @@
-
 import BackgroundChord from './BackgroundChord';
 import Channel from './Channel';
 import IPositionObject from './IPositionObject';
@@ -10,5 +9,5 @@ export {
 	Channel,
 	IPositionObject,
 	ISequencerObject,
-	PositionObject
+	PositionObject,
 };

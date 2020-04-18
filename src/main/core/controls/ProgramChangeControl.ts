@@ -1,4 +1,3 @@
-
 import ControlObject, { _objCtors } from './ControlObject';
 
 import { isUndefined } from '../../functions';
@@ -8,14 +7,23 @@ export default class ProgramChangeControl extends ControlObject {
 	public value: number;
 
 	constructor();
-	constructor(posNumerator: number, posDenominator: number, channel: number, value: number);
+	constructor(
+		posNumerator: number,
+		posDenominator: number,
+		channel: number,
+		value: number
+	);
 
-	constructor(posNumerator?: number, posDenominator?: number, channel?: number, value?: number) {
+	constructor(
+		posNumerator?: number,
+		posDenominator?: number,
+		channel?: number,
+		value?: number
+	) {
 		super();
 		this.channel = channel || 0;
 		this.value = value || 0;
-		if (isUndefined(posNumerator) || isUndefined(posDenominator))
-			return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -25,7 +33,7 @@ export default class ProgramChangeControl extends ControlObject {
 			notePosNumerator: this.notePosNumerator,
 			notePosDenominator: this.notePosDenominator,
 			channel: this.channel,
-			value: this.value
+			value: this.value,
 		};
 	}
 	public fromJSONObject(obj: any) {
@@ -34,13 +42,13 @@ export default class ProgramChangeControl extends ControlObject {
 		this.value = obj.value;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof ProgramChangeControl))
+		if (!obj || !(obj instanceof ProgramChangeControl)) return false;
+		if (
+			this.notePosNumerator * obj.notePosDenominator !==
+			this.notePosDenominator * obj.notePosNumerator
+		)
 			return false;
-		if (this.notePosNumerator * obj.notePosDenominator !==
-			this.notePosDenominator * obj.notePosNumerator)
-			return false;
-		return this.channel === obj.channel &&
-			this.value === obj.value;
+		return this.channel === obj.channel && this.value === obj.value;
 	}
 	public isEqualType(obj: any): obj is ProgramChangeControl {
 		return obj instanceof ProgramChangeControl;

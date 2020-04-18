@@ -1,4 +1,3 @@
-
 import * as RenderMessage from '../../types/RenderMessageData';
 
 import IPlayStream from '../IPlayStream';
@@ -6,7 +5,11 @@ import IPlayStream from '../IPlayStream';
 import Options from './Options';
 
 /** @internal */
-export default function createPortWithStream(stream: IPlayStream, sampleRate: number, options: Options): MessagePort {
+export default function createPortWithStream(
+	stream: IPlayStream,
+	sampleRate: number,
+	options: Options
+): MessagePort {
 	const channel = new MessageChannel();
 	const port = channel.port1;
 
@@ -20,7 +23,12 @@ export default function createPortWithStream(stream: IPlayStream, sampleRate: nu
 		switch (data.type) {
 			case 'render':
 				{
-					stream.renderFrames(sampleRate, data.data[0], data.data[1], isPaused);
+					stream.renderFrames(
+						sampleRate,
+						data.data[0],
+						data.data[1],
+						isPaused
+					);
 					const outFrames = data.data[0].byteLength / 4;
 					{
 						const s: RenderMessage.RenderedResponse = {
@@ -28,8 +36,8 @@ export default function createPortWithStream(stream: IPlayStream, sampleRate: nu
 							data: {
 								outFrames: outFrames,
 								sampleRate: sampleRate,
-								isQueueEmpty: true
-							}
+								isQueueEmpty: true,
+							},
 						};
 						port.postMessage(s);
 					}
@@ -39,8 +47,8 @@ export default function createPortWithStream(stream: IPlayStream, sampleRate: nu
 							data: {
 								outFrames: outFrames,
 								sampleRate: sampleRate,
-								isQueueEmpty: true
-							}
+								isQueueEmpty: true,
+							},
 						};
 						port.postMessage(s);
 					}
@@ -55,8 +63,8 @@ export default function createPortWithStream(stream: IPlayStream, sampleRate: nu
 					type: 'pause',
 					data: {
 						id: data.data.id,
-						paused: isPaused
-					}
+						paused: isPaused,
+					},
 				} as RenderMessage.Pause);
 				break;
 			case 'stop':

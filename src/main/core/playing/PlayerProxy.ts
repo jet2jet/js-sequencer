@@ -1,4 +1,3 @@
-
 import * as JSSynth from 'js-synthesizer';
 
 import * as Message from '../../types/MessageData';
@@ -12,15 +11,20 @@ import Options from './Options';
 
 import IPlayStream from '../IPlayStream';
 
-type ResponseDataTypeBase<TType extends Response.AllTypes['type'],
-	TResponseType extends Response.AllTypes> =
-	TResponseType extends { type: TType } ? TResponseType['data'] : never;
-type ResponseDataType<TType extends Response.AllTypes['type']> =
-	ResponseDataTypeBase<TType, Response.AllTypes>;
+type ResponseDataTypeBase<
+	TType extends Response.AllTypes['type'],
+	TResponseType extends Response.AllTypes
+> = TResponseType extends { type: TType } ? TResponseType['data'] : never;
+type ResponseDataType<
+	TType extends Response.AllTypes['type']
+> = ResponseDataTypeBase<TType, Response.AllTypes>;
 
 let _workerShared: Worker | undefined;
 
-function promiseWithTimeout<T>(promise: Promise<T>, timeoutMilliseconds: number) {
+function promiseWithTimeout<T>(
+	promise: Promise<T>,
+	timeoutMilliseconds: number
+) {
 	return new Promise<T>((resolve, reject) => {
 		let resolved = false;
 		const id = setTimeout(() => {
@@ -50,7 +54,6 @@ function promiseWithTimeout<T>(promise: Promise<T>, timeoutMilliseconds: number)
 
 /** @internal */
 export default class PlayerProxy {
-
 	public onQueued: null | ((status: RenderMessage.StatusData) => void);
 	public onStatus: null | ((status: RenderMessage.StatusData) => void);
 	public onStop: null | (() => void);
@@ -69,7 +72,7 @@ export default class PlayerProxy {
 		resolve: (data?: any) => void;
 	}>;
 	private userEventData: {
-		[key: string]: { data: any; };
+		[key: string]: { data: any };
 	} = {};
 	private userEventId: number = 0;
 
@@ -117,7 +120,7 @@ export default class PlayerProxy {
 			port: channel.port2,
 			interval: interval,
 			sampleRate: sampleRate,
-			channelCount: channelCount
+			channelCount: channelCount,
 		};
 		const ret = proxy.addDefer(0, 'initialize').then(() => proxy);
 		worker.postMessage(initData, [channel.port2]);
@@ -126,7 +129,7 @@ export default class PlayerProxy {
 
 	public close() {
 		const data: Message.Close = {
-			type: 'close'
+			type: 'close',
 		};
 		this.port.postMessage(data);
 		this.port.close();
@@ -136,7 +139,7 @@ export default class PlayerProxy {
 		const data: Message.LoadSoundfont = {
 			id: this.msgId++,
 			type: 'load-sfont',
-			data: bin
+			data: bin,
 		};
 		const ret = this.addDefer(data.id, 'load-sfont');
 		this.port.postMessage(data, transfer ? [bin] : []);
@@ -147,7 +150,7 @@ export default class PlayerProxy {
 		const data: Message.UnloadSoundfont = {
 			id: this.msgId++,
 			type: 'unload-sfont',
-			sfontId: sfontId
+			sfontId: sfontId,
 		};
 		const ret: Promise<void> = this.addDefer(data.id, 'unload-sfont');
 		this.port.postMessage(data);
@@ -162,14 +165,17 @@ export default class PlayerProxy {
 		const data: Message.Configure = {
 			...config,
 			id: this.msgId++,
-			type: 'config'
+			type: 'config',
 		};
 		const ret: Promise<void> = this.addDefer(data.id, 'config');
 		this.port.postMessage(data);
 		return ret;
 	}
 
-	public startWithScriptProcessorNode(ctx: BaseAudioContext, options: Options) {
+	public startWithScriptProcessorNode(
+		ctx: BaseAudioContext,
+		options: Options
+	) {
 		const r = createScriptProcessorNode(ctx, this.framesCount, options);
 		this.startImpl(r.port);
 		return r.node;
@@ -189,7 +195,7 @@ export default class PlayerProxy {
 	public startWithExistingConnection() {
 		const data: Message.Start = {
 			type: 'start',
-			playingId: this.initPlayingId()
+			playingId: this.initPlayingId(),
 		};
 		this.port.postMessage(data);
 		this.stopPromise = new Promise((resolve) => {
@@ -201,7 +207,7 @@ export default class PlayerProxy {
 		const data: Message.Start = {
 			type: 'start',
 			playingId: this.initPlayingId(),
-			renderPort: renderPort
+			renderPort: renderPort,
 		};
 		this.port.postMessage(data, [renderPort]);
 		this.stopPromise = new Promise((resolve) => {
@@ -213,7 +219,7 @@ export default class PlayerProxy {
 		const data: Message.Pause = {
 			id: this.msgId++,
 			type: 'pause',
-			paused: isPaused
+			paused: isPaused,
 		};
 		const ret = this.addDefer(data.id, 'pause');
 		this.port.postMessage(data);
@@ -225,15 +231,20 @@ export default class PlayerProxy {
 	}
 
 	public releasePlayer(resetSynth?: boolean) {
-		this.port.postMessage({ type: 'release', resetSynth: resetSynth } as Message.Release);
+		this.port.postMessage({
+			type: 'release',
+			resetSynth: resetSynth,
+		} as Message.Release);
 	}
 
 	public waitForFinish(timeoutMilliseconds?: number) {
 		if (typeof timeoutMilliseconds === 'number') {
-			return promiseWithTimeout(this.stopPromise, timeoutMilliseconds)
-				.catch(() => {
-					this.doStop();
-				});
+			return promiseWithTimeout(
+				this.stopPromise,
+				timeoutMilliseconds
+			).catch(() => {
+				this.doStop();
+			});
 		} else {
 			return this.stopPromise;
 		}
@@ -243,7 +254,7 @@ export default class PlayerProxy {
 		const data: Message.Event = {
 			type: 'event',
 			time: time,
-			data: eventData
+			data: eventData,
 		};
 		this.port.postMessage(data);
 	}
@@ -252,7 +263,7 @@ export default class PlayerProxy {
 		const data: Message.Event = {
 			type: 'event',
 			time: null,
-			data: eventData
+			data: eventData,
 		};
 		this.port.postMessage(data);
 	}
@@ -261,7 +272,7 @@ export default class PlayerProxy {
 		const data: Message.SysEx = {
 			type: 'sysex',
 			time: time,
-			data: bin.slice(0).buffer
+			data: bin.slice(0).buffer,
 		};
 		this.port.postMessage(data, [data.data]);
 	}
@@ -270,7 +281,7 @@ export default class PlayerProxy {
 		const data: Message.SysEx = {
 			type: 'sysex',
 			time: null,
-			data: bin.slice(0).buffer
+			data: bin.slice(0).buffer,
 		};
 		this.port.postMessage(data, [data.data]);
 	}
@@ -289,8 +300,8 @@ export default class PlayerProxy {
 				channel,
 				type,
 				value,
-				keepCurrentVoice
-			}
+				keepCurrentVoice,
+			},
 		};
 		this.port.postMessage(data);
 	}
@@ -308,8 +319,8 @@ export default class PlayerProxy {
 				channel,
 				type,
 				value,
-				keepCurrentVoice
-			}
+				keepCurrentVoice,
+			},
 		};
 		this.port.postMessage(data);
 	}
@@ -321,7 +332,7 @@ export default class PlayerProxy {
 		const data: Message.UserEvent = {
 			type: 'user-event',
 			time: time,
-			data: text
+			data: text,
 		};
 		this.port.postMessage(data);
 	}
@@ -329,7 +340,7 @@ export default class PlayerProxy {
 	public sendFinishMarker(time: number) {
 		const data: Message.FinishMarker = {
 			type: 'finish',
-			time: time
+			time: time,
 		};
 		this.port.postMessage(data);
 	}
@@ -337,7 +348,7 @@ export default class PlayerProxy {
 	public sendFinishMarkerNow() {
 		const data: Message.FinishMarker = {
 			type: 'finish',
-			time: null
+			time: null,
 		};
 		this.port.postMessage(data);
 	}
@@ -346,7 +357,7 @@ export default class PlayerProxy {
 		const data: Message.UserMarker = {
 			type: 'user-marker',
 			time: time,
-			marker: marker
+			marker: marker,
 		};
 		this.port.postMessage(data);
 	}
@@ -355,12 +366,15 @@ export default class PlayerProxy {
 		return ++this.playingId;
 	}
 
-	private addDefer<TType extends Response.AllTypes['type']>(id: number, type: TType) {
+	private addDefer<TType extends Response.AllTypes['type']>(
+		id: number,
+		type: TType
+	) {
 		return new Promise<ResponseDataType<TType>>((resolve) => {
 			this.defers.push({
 				id: id,
 				type: type,
-				resolve: resolve
+				resolve: resolve,
 			});
 		});
 	}

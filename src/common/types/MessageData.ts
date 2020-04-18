@@ -1,12 +1,14 @@
-
 import * as JSSynth from 'js-synthesizer';
 
-type Flatten<T> = { [P in keyof T]: T[P]; };
-type PartialRequired<T, TKeys extends keyof T> = Flatten<{
-	[P in keyof T]: T[P];
-} & {
-	[P in TKeys]-?: T[P];
-}>;
+type Flatten<T> = { [P in keyof T]: T[P] };
+type PartialRequired<T, TKeys extends keyof T> = Flatten<
+	{
+		[P in keyof T]: T[P];
+	} &
+		{
+			[P in TKeys]-?: T[P];
+		}
+>;
 
 /** @internal */
 export interface Base {
@@ -149,7 +151,21 @@ export interface UserMarker extends Base {
 }
 
 /** @internal */
-export type AllTypes = Initialize | Close | Configure | LoadSoundfont | UnloadSoundfont |
-	Start | Pause | Stop | Release | Event | SysEx | Generator | UserEvent | FinishMarker | UserMarker;
+export type AllTypes =
+	| Initialize
+	| Close
+	| Configure
+	| LoadSoundfont
+	| UnloadSoundfont
+	| Start
+	| Pause
+	| Stop
+	| Release
+	| Event
+	| SysEx
+	| Generator
+	| UserEvent
+	| FinishMarker
+	| UserMarker;
 /** @internal */
 export default AllTypes;

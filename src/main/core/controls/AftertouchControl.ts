@@ -1,4 +1,3 @@
-
 import ControlObject, { _objCtors } from './ControlObject';
 
 import { isUndefined } from '../../functions';
@@ -9,15 +8,26 @@ export default class AftertouchControl extends ControlObject {
 	public value: number;
 
 	constructor();
-	constructor(posNumerator: number, posDenominator: number, noteValue: number, channel: number, value: number);
+	constructor(
+		posNumerator: number,
+		posDenominator: number,
+		noteValue: number,
+		channel: number,
+		value: number
+	);
 
-	constructor(posNumerator?: number, posDenominator?: number, noteValue?: number, channel?: number, value?: number) {
+	constructor(
+		posNumerator?: number,
+		posDenominator?: number,
+		noteValue?: number,
+		channel?: number,
+		value?: number
+	) {
 		super();
 		this.noteValue = noteValue || 0;
 		this.channel = channel || 0;
 		this.value = value || 0;
-		if (isUndefined(posNumerator) || isUndefined(posDenominator))
-			return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -28,7 +38,7 @@ export default class AftertouchControl extends ControlObject {
 			notePosDenominator: this.notePosDenominator,
 			noteValue: this.noteValue,
 			channel: this.channel,
-			value: this.value
+			value: this.value,
 		};
 	}
 	public fromJSONObject(obj: any) {
@@ -38,14 +48,17 @@ export default class AftertouchControl extends ControlObject {
 		this.value = obj.value;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof AftertouchControl))
+		if (!obj || !(obj instanceof AftertouchControl)) return false;
+		if (
+			this.notePosNumerator * obj.notePosDenominator !==
+			this.notePosDenominator * obj.notePosNumerator
+		)
 			return false;
-		if (this.notePosNumerator * obj.notePosDenominator !==
-			this.notePosDenominator * obj.notePosNumerator)
-			return false;
-		return this.noteValue === obj.noteValue &&
+		return (
+			this.noteValue === obj.noteValue &&
 			this.channel === obj.channel &&
-			this.value === obj.value;
+			this.value === obj.value
+		);
 	}
 	public isEqualType(obj: any): obj is AftertouchControl {
 		return obj instanceof AftertouchControl;

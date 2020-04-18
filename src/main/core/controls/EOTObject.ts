@@ -1,4 +1,3 @@
-
 import ControlObject from './ControlObject';
 
 import { isUndefined } from '../../functions';
@@ -9,8 +8,7 @@ export default class EOTObject extends ControlObject {
 
 	constructor(posNumerator?: number, posDenominator?: number) {
 		super();
-		if (isUndefined(posNumerator) || isUndefined(posDenominator))
-			return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -19,17 +17,18 @@ export default class EOTObject extends ControlObject {
 		return {
 			objType: 'EOTObject',
 			notePosNumerator: this.notePosNumerator,
-			notePosDenominator: this.notePosDenominator
+			notePosDenominator: this.notePosDenominator,
 		};
 	}
 	public fromJSONObject(obj: any) {
 		super.fromJSONObject(obj);
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof EOTObject))
-			return false;
-		return this.notePosNumerator * obj.notePosDenominator ===
-			this.notePosDenominator * obj.notePosNumerator;
+		if (!obj || !(obj instanceof EOTObject)) return false;
+		return (
+			this.notePosNumerator * obj.notePosDenominator ===
+			this.notePosDenominator * obj.notePosNumerator
+		);
 	}
 	public isEqualType(obj: any): obj is EOTObject {
 		return obj instanceof EOTObject;

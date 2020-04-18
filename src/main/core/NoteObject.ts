@@ -1,4 +1,3 @@
-
 import { TimeValue } from '../types';
 
 import Engine from './Engine';
@@ -32,13 +31,21 @@ export default class NoteObject implements NoteObjectBase {
 
 	constructor();
 	constructor(
-		posNumerator: number, posDenominator: number,
-		noteLength: number, noteLengthDenominator: number, noteValue: number, channel: number
+		posNumerator: number,
+		posDenominator: number,
+		noteLength: number,
+		noteLengthDenominator: number,
+		noteValue: number,
+		channel: number
 	);
 
 	constructor(
-		posNumerator?: number, posDenominator?: number,
-		noteLengthNumerator?: number, noteLengthDenominator?: number, noteValue?: number, channel?: number
+		posNumerator?: number,
+		posDenominator?: number,
+		noteLengthNumerator?: number,
+		noteLengthDenominator?: number,
+		noteValue?: number,
+		channel?: number
 	) {
 		this.engine = null;
 		this.notePosNumerator = posNumerator || 0;
@@ -56,8 +63,7 @@ export default class NoteObject implements NoteObjectBase {
 	public attachEngine(engine: Engine) {
 		this.detachEngine();
 		this.engine = engine;
-		if (engine)
-			engine._afterAttachEngine(this);
+		if (engine) engine._afterAttachEngine(this);
 	}
 
 	public detachEngine() {
@@ -74,26 +80,22 @@ export default class NoteObject implements NoteObjectBase {
 			noteLengthDenominator: this.noteLengthDenominator,
 			noteValue: this.noteValue,
 			channel: this.channel,
-			velocity: this.velocity
+			velocity: this.velocity,
 		};
 	}
 	public fromJSONObject(obj: any) {
 		if (!isUndefined(obj.notePosNumerator))
 			this.notePosNumerator = obj.notePosNumerator;
-		else
-			this.notePosNumerator = obj.notePos;
+		else this.notePosNumerator = obj.notePos;
 		if (!isUndefined(obj.notePosDenominator))
 			this.notePosDenominator = obj.notePosDenominator;
-		else
-			this.notePosDenominator = obj.notePosFraction;
+		else this.notePosDenominator = obj.notePosFraction;
 		if (!isUndefined(obj.noteLengthNumerator))
 			this.noteLengthNumerator = obj.noteLengthNumerator;
-		else
-			this.noteLengthNumerator = obj.noteLength;
+		else this.noteLengthNumerator = obj.noteLength;
 		if (!isUndefined(obj.noteLengthDenominator))
 			this.noteLengthDenominator = obj.noteLengthDenominator;
-		else
-			this.noteLengthDenominator = obj.noteLengthFraction;
+		else this.noteLengthDenominator = obj.noteLengthFraction;
 		this.noteValue = obj.noteValue;
 		this.channel = obj.channel;
 		this.velocity = obj.velocity;

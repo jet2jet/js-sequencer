@@ -1,5 +1,8 @@
-
-import { RenderedResponse, Status, UserMarkerResponse } from './RenderMessageData';
+import {
+	RenderedResponse,
+	Status,
+	UserMarkerResponse,
+} from './RenderMessageData';
 
 /** @internal */
 export interface Base {
@@ -63,8 +66,17 @@ export interface UserEvent extends Base {
 }
 
 /** @internal */
-export type AllTypes = NoResponseMessage | LoadSoundfont |
-	Pause | Render | RenderedResponse | Status | UserMarkerResponse | Stop | Reset | UserEvent;
+export type AllTypes =
+	| NoResponseMessage
+	| LoadSoundfont
+	| Pause
+	| Render
+	| RenderedResponse
+	| Status
+	| UserMarkerResponse
+	| Stop
+	| Reset
+	| UserEvent;
 
 /** @internal */
 export default AllTypes;

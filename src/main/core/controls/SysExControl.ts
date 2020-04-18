@@ -1,4 +1,3 @@
-
 import ControlObject, { _objCtors } from './ControlObject';
 
 import { isUndefined } from '../../functions';
@@ -7,12 +6,26 @@ export default class SysExControl extends ControlObject {
 	public rawData: Uint8Array;
 
 	constructor();
-	constructor(posNumerator: number, posDenominator: number, data: Uint8Array, move?: boolean);
-	constructor(posNumerator: number, posDenominator: number, arrayBuffer: ArrayBuffer, offset?: number, len?: number);
+	constructor(
+		posNumerator: number,
+		posDenominator: number,
+		data: Uint8Array,
+		move?: boolean
+	);
+	constructor(
+		posNumerator: number,
+		posDenominator: number,
+		arrayBuffer: ArrayBuffer,
+		offset?: number,
+		len?: number
+	);
 
 	constructor(
-		posNumerator?: number, posDenominator?: number,
-		arrayBuffer?: ArrayBuffer | Uint8Array, offsetOrMove?: number | boolean, len?: number
+		posNumerator?: number,
+		posDenominator?: number,
+		arrayBuffer?: ArrayBuffer | Uint8Array,
+		offsetOrMove?: number | boolean,
+		len?: number
 	) {
 		super();
 		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
@@ -29,7 +42,13 @@ export default class SysExControl extends ControlObject {
 			const dataLen = len || (arrayBuffer && arrayBuffer.byteLength) || 0;
 			this.rawData = new Uint8Array(dataLen);
 			if (dataLen) {
-				this.rawData.set(new Uint8Array(arrayBuffer!, (offsetOrMove as number) || 0, dataLen));
+				this.rawData.set(
+					new Uint8Array(
+						arrayBuffer!,
+						(offsetOrMove as number) || 0,
+						dataLen
+					)
+				);
 			}
 		}
 		this.notePosNumerator = posNumerator;
@@ -40,7 +59,7 @@ export default class SysExControl extends ControlObject {
 			objType: 'SysExControl',
 			notePosNumerator: this.notePosNumerator,
 			notePosDenominator: this.notePosDenominator,
-			rawData: ([] as number[]).slice.call(this.rawData)
+			rawData: ([] as number[]).slice.call(this.rawData),
 		};
 	}
 	public fromJSONObject(obj: any) {
@@ -52,8 +71,10 @@ export default class SysExControl extends ControlObject {
 		if (!obj || !(obj instanceof SysExControl)) {
 			return false;
 		}
-		if (this.notePosNumerator * obj.notePosDenominator !==
-			this.notePosDenominator * obj.notePosNumerator) {
+		if (
+			this.notePosNumerator * obj.notePosDenominator !==
+			this.notePosDenominator * obj.notePosNumerator
+		) {
 			return false;
 		}
 		if (!(this.rawData.byteLength === obj.rawData.byteLength)) {

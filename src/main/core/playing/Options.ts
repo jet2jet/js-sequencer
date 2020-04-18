@@ -1,7 +1,6 @@
-
 export const enum Defaults {
 	PrerenderSeconds = 2,
-	MaxQueueSeconds = 15
+	MaxQueueSeconds = 15,
 }
 
 export default interface Options {

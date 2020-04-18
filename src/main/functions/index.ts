@@ -1,4 +1,3 @@
-
 export function getItemFromArray<T>(arr: T[], item: T): number {
 	return arr.indexOf(item);
 }
@@ -9,7 +8,11 @@ export function removeItemFromArray<T>(arr: T[], item: T): boolean {
 }
 
 export function gcd(m: number, n: number) {
-	if (m < n) { const x = m; m = n; n = x; }
+	if (m < n) {
+		const x = m;
+		m = n;
+		n = x;
+	}
 	while (n) {
 		const r = m % n;
 		m = n;
@@ -27,9 +30,12 @@ export function isAudioAvailable() {
 }
 
 export function loadBinaryFromFile(fileElemId: string | HTMLInputElement) {
-	const f: HTMLInputElement = (fileElemId && (fileElemId as HTMLInputElement).files) ?
-		(fileElemId as HTMLInputElement) :
-		(document.getElementById(fileElemId as string) as HTMLInputElement);
+	const f: HTMLInputElement =
+		fileElemId && (fileElemId as HTMLInputElement).files
+			? (fileElemId as HTMLInputElement)
+			: (document.getElementById(
+					fileElemId as string
+			  ) as HTMLInputElement);
 	if (!f || !f.files || !f.files.length) {
 		return Promise.reject(new Error('Invalid argument'));
 	}

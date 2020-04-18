@@ -1,4 +1,3 @@
-
 import * as Message from './types/MessageData';
 
 import PlayerImpl from './PlayerImpl';
@@ -6,7 +5,7 @@ import PlayerImpl from './PlayerImpl';
 function initialize(data: Message.Initialize) {
 	self.importScripts(...data.deps);
 
-	// tslint:disable-next-line:no-unused-expression
+	// eslint-disable-next-line no-new
 	new PlayerImpl(data);
 }
 

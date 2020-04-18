@@ -1,4 +1,3 @@
-
 interface EventListenerOptions {
 	capture?: boolean;
 }
@@ -82,13 +81,12 @@ interface Event {
 
 declare var Event: {
 	prototype: Event;
-	new(type: string, eventInitDict?: EventInit): Event;
+	new (type: string, eventInitDict?: EventInit): Event;
 	readonly AT_TARGET: number;
 	readonly BUBBLING_PHASE: number;
 	readonly CAPTURING_PHASE: number;
 	readonly NONE: number;
 };
-
 
 interface EventTarget {
 	/**
@@ -101,7 +99,11 @@ interface EventTarget {
 	 * be removed.
 	 * The event listener is appended to target's event listener list and is not appended if it has the same type, callback, and capture.
 	 */
-	addEventListener(type: string, listener: EventListenerOrEventListenerObject | null, options?: boolean | AddEventListenerOptions): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject | null,
+		options?: boolean | AddEventListenerOptions
+	): void;
 	/**
 	 * Dispatches a synthetic event event to target and returns true
 	 * if either event's cancelable attribute value is false or its preventDefault() method was not invoked, and false otherwise.
@@ -110,15 +112,21 @@ interface EventTarget {
 	/**
 	 * Removes the event listener in target's event listener list with the same type, callback, and options.
 	 */
-	removeEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: EventListenerOptions | boolean): void;
+	removeEventListener(
+		type: string,
+		callback: EventListenerOrEventListenerObject | null,
+		options?: EventListenerOptions | boolean
+	): void;
 }
 
 declare var EventTarget: {
 	prototype: EventTarget;
-	new(): EventTarget;
+	new (): EventTarget;
 };
 
-declare type EventListenerOrEventListenerObject = EventListener | EventListenerObject;
+declare type EventListenerOrEventListenerObject =
+	| EventListener
+	| EventListenerObject;
 
 interface MessageChannel {
 	readonly port1: MessagePort;
@@ -127,7 +135,7 @@ interface MessageChannel {
 
 declare var MessageChannel: {
 	prototype: MessageChannel;
-	new(): MessageChannel;
+	new (): MessageChannel;
 };
 
 interface MessageEventInit extends EventInit {
@@ -139,74 +147,90 @@ interface MessageEventInit extends EventInit {
 }
 
 interface MessageEvent extends Event {
-    /**
-     * Returns the data of the message.
-     */
+	/**
+	 * Returns the data of the message.
+	 */
 	readonly data: any;
-    /**
-     * Returns the last event ID string, for
-     * server-sent events.
-     */
+	/**
+	 * Returns the last event ID string, for
+	 * server-sent events.
+	 */
 	readonly lastEventId: string;
-    /**
-     * Returns the origin of the message, for server-sent events and
-     * cross-document messaging.
-     */
+	/**
+	 * Returns the origin of the message, for server-sent events and
+	 * cross-document messaging.
+	 */
 	readonly origin: string;
-    /**
-     * Returns the MessagePort array sent with the message, for cross-document
-     * messaging and channel messaging.
-     */
+	/**
+	 * Returns the MessagePort array sent with the message, for cross-document
+	 * messaging and channel messaging.
+	 */
 	readonly ports: ReadonlyArray<MessagePort>;
-    /**
-     * Returns the WindowProxy of the source window, for cross-document
-     * messaging, and the MessagePort being attached, in the connect event fired at
-     * SharedWorkerGlobalScope objects.
-     */
+	/**
+	 * Returns the WindowProxy of the source window, for cross-document
+	 * messaging, and the MessagePort being attached, in the connect event fired at
+	 * SharedWorkerGlobalScope objects.
+	 */
 	readonly source: MessageEventSource | null;
 }
 
 declare var MessageEvent: {
 	prototype: MessageEvent;
-	new(type: string, eventInitDict?: MessageEventInit): MessageEvent;
+	new (type: string, eventInitDict?: MessageEventInit): MessageEvent;
 };
 
 declare type MessageEventSource = MessagePort;
 declare type Transferable = ArrayBuffer | MessagePort;
 
 interface MessagePortEventMap {
-	'message': MessageEvent;
-	'messageerror': MessageEvent;
+	message: MessageEvent;
+	messageerror: MessageEvent;
 }
 
 interface MessagePort extends EventTarget {
 	onmessage: ((this: MessagePort, ev: MessageEvent) => any) | null;
 	onmessageerror: ((this: MessagePort, ev: MessageEvent) => any) | null;
-    /**
-     * Disconnects the port, so that it is no longer active.
-     */
+	/**
+	 * Disconnects the port, so that it is no longer active.
+	 */
 	close(): void;
-    /**
-     * Posts a message through the channel. Objects listed in transfer are
-     * transferred, not just cloned, meaning that they are no longer usable on the sending side.
-     * Throws a 'DataCloneError' DOMException if
-     * transfer contains duplicate objects or port, or if message
-     * could not be cloned.
-     */
+	/**
+	 * Posts a message through the channel. Objects listed in transfer are
+	 * transferred, not just cloned, meaning that they are no longer usable on the sending side.
+	 * Throws a 'DataCloneError' DOMException if
+	 * transfer contains duplicate objects or port, or if message
+	 * could not be cloned.
+	 */
 	postMessage(message: any, transfer?: Transferable[]): void;
-    /**
-     * Begins dispatching messages received on the port.
-     */
+	/**
+	 * Begins dispatching messages received on the port.
+	 */
 	start(): void;
-	addEventListener<K extends keyof MessagePortEventMap>(type: K, listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-	addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-	removeEventListener<K extends keyof MessagePortEventMap>(type: K, listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-	removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+	addEventListener<K extends keyof MessagePortEventMap>(
+		type: K,
+		listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	removeEventListener<K extends keyof MessagePortEventMap>(
+		type: K,
+		listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
+		options?: boolean | EventListenerOptions
+	): void;
+	removeEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | EventListenerOptions
+	): void;
 }
 
 declare var MessagePort: {
 	prototype: MessagePort;
-	new(): MessagePort;
+	new (): MessagePort;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -221,7 +245,7 @@ interface AudioWorkletNodeOptions extends AudioNodeOptions {
 	numberOfInputs?: number;
 	numberOfOutputs?: number;
 	outputChannelCount?: number[];
-	parameterData?: { [key: string]: number; };
+	parameterData?: { [key: string]: number };
 	processorOptions?: any;
 }
 
@@ -229,21 +253,31 @@ abstract class AudioWorkletProcessor {
 	public port: MessagePort;
 
 	constructor(options: AudioWorkletNodeOptions);
-	public abstract process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: any): boolean;
+	public abstract process(
+		inputs: Float32Array[][],
+		outputs: Float32Array[][],
+		parameters: any
+	): boolean;
 }
 
 type ProcessorConstructor<T extends AudioWorkletProcessor> = {
-	new(options: AudioWorkletNodeOptions): T;
+	new (options: AudioWorkletNodeOptions): T;
 };
 
-declare function registerProcessor<T extends AudioWorkletProcessor>(name: string, ctor: ProcessorConstructor<T>): void;
+declare function registerProcessor<T extends AudioWorkletProcessor>(
+	name: string,
+	ctor: ProcessorConstructor<T>
+): void;
 declare const currentFrame: number;
 declare const currentTime: number;
 declare const sampleRate: number;
 
 interface AudioWorkletGlobalScopeObject {
 	[key: string]: any;
-	registerProcessor<T extends AudioWorkletProcessor>(name: string, ctor: ProcessorConstructor<T>): void;
+	registerProcessor<T extends AudioWorkletProcessor>(
+		name: string,
+		ctor: ProcessorConstructor<T>
+	): void;
 	currentFrame: number;
 	currentTime: number;
 	sampleRate: number;

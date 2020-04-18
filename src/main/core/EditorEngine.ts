@@ -1,4 +1,3 @@
-
 import BackgroundChord from '../objects/BackgroundChord';
 import IPositionObject from '../objects/IPositionObject';
 import ISequencerObject from '../objects/ISequencerObject';
@@ -7,8 +6,18 @@ import PositionObject from '../objects/PositionObject';
 import ControlObject from './controls/ControlObject';
 import TimeSignatureControl from './controls/TimeSignatureControl';
 
-import { gcd, getItemFromArray, isUndefined, loadBinaryFromFile, removeItemFromArray } from '../functions';
-import MyWeakMap, { createWeakMap, getWeakMap, setWeakMap } from '../functions/MyWeakMap';
+import {
+	gcd,
+	getItemFromArray,
+	isUndefined,
+	loadBinaryFromFile,
+	removeItemFromArray,
+} from '../functions';
+import MyWeakMap, {
+	createWeakMap,
+	getWeakMap,
+	setWeakMap,
+} from '../functions/MyWeakMap';
 
 import EditorEventObjectMap from '../events/EditorEventObjectMap';
 import EngineEventObjectMap from '../events/EngineEventObjectMap';
@@ -44,14 +53,14 @@ interface Coord {
 }
 
 const NOTE_HEIGHT = 16;
-const NOTE_WIDTH = 60;   // width of a quarter note
+const NOTE_WIDTH = 60; // width of a quarter note
 const NOTE_PADDING_X = 50;
 const NOTE_PADDING_Y = 60;
 
 export const enum MouseMode {
 	MOUSEMODE_DRAW = 0,
 	MOUSEMODE_MOVE = 1,
-	MOUSEMODE_DELETE = 2
+	MOUSEMODE_DELETE = 2,
 }
 
 const MAX_TOPMOST_VALUE = 127;
@@ -63,7 +72,10 @@ function getScrollTop(): number {
 	} else if (!isUndefined(window.scrollTop)) {
 		return window.scrollTop;
 	} else if (!isUndefined(document.body.scrollTop)) {
-		if (document.documentElement && !isUndefined(document.documentElement.scrollTop)) {
+		if (
+			document.documentElement &&
+			!isUndefined(document.documentElement.scrollTop)
+		) {
 			return document.documentElement.scrollTop;
 		}
 		return document.body.scrollTop;
@@ -96,10 +108,12 @@ function getOffsetY(elem: HTMLElement, e: MouseEvent): number {
 //   actX, actY: 編集領域の左上座標
 // return: [object] ({ x: xVal, y: yVal })
 function calcNotePosEx(actX: number, actY: number, denominator: number): Coord {
-	const wd = NOTE_WIDTH * 4 / denominator;
+	const wd = (NOTE_WIDTH * 4) / denominator;
 	return {
 		x: Math.floor((actX - NOTE_PADDING_X) / wd) * wd + NOTE_PADDING_X,
-		y: Math.floor((actY - NOTE_PADDING_Y) / NOTE_HEIGHT) * NOTE_HEIGHT + NOTE_PADDING_Y
+		y:
+			Math.floor((actY - NOTE_PADDING_Y) / NOTE_HEIGHT) * NOTE_HEIGHT +
+			NOTE_PADDING_Y,
 	};
 }
 // 指定された座標を、音符を配置できる座標に丸めて返す
@@ -109,23 +123,27 @@ function calcNotePos(_this: EditorEngine, actX: number, actY: number): Coord {
 }
 // 指定された座標を、音符の長さを設定できる座標に丸めて返す
 //   actX, actY: 編集領域の左上座標
-function calcNoteLength(_this: EditorEngine, actX: number, actY: number): Coord {
+function calcNoteLength(
+	_this: EditorEngine,
+	actX: number,
+	actY: number
+): Coord {
 	return calcNotePosEx(actX, actY, _this.noteLengthDenominator);
 }
 
 function notePosToX(posNumerator: number, posDenominator: number) {
-	return (posNumerator * 4 / posDenominator) * NOTE_WIDTH;
+	return ((posNumerator * 4) / posDenominator) * NOTE_WIDTH;
 }
 
 function noteXToNearestPos(x: number, posDen: number) {
-	const wd = NOTE_WIDTH * 4 / posDen;
-	const pos = Math.floor(0.5 + (x / wd));
+	const wd = (NOTE_WIDTH * 4) / posDen;
+	const pos = Math.floor(0.5 + x / wd);
 	return pos;
 }
 
 function calcBackgroundPositionY(noteTopmostValue: number) {
 	// 基準値が12の倍数(60)でないときは以下の処理を行う
-	//noteTopmostValue -= 60; while (noteTopmostValue < 0) noteTopmostValue += 12;
+	// noteTopmostValue -= 60; while (noteTopmostValue < 0) noteTopmostValue += 12;
 	// 画像は11(=B)が一番上に来る
 	noteTopmostValue++;
 	noteTopmostValue %= 12;
@@ -136,7 +154,10 @@ function calcLabelPositionY(i: number, noteTopmostValue: number) {
 	return (noteTopmostValue - i * 12) * NOTE_HEIGHT + NOTE_PADDING_Y;
 }
 
-function initControlObjectElement(c: ControlObject, controlElementMap: MyWeakMap<HTMLElement, ControlObject>) {
+function initControlObjectElement(
+	c: ControlObject,
+	controlElementMap: MyWeakMap<HTMLElement, ControlObject>
+) {
 	if (c.element) {
 		c.textNode!.nodeValue = c.getText();
 		return;
@@ -159,12 +180,17 @@ function moveControlObject(c: ControlObject, x: number, y: number) {
 	}
 	const l = NOTE_PADDING_X;
 	const t = 0;
-	c.element.style.left = (x + l) + 'px';
-	c.element.style.top = (y + t) + 'px';
-	//if (!this.txtNode) { this.txtNode = document.createTextNode(""); this.element.appendChild(this.txtNode); }
-	//this.txtNode.nodeValue = l + ", " + t;
-	c.element.style.display = (x < -NOTE_WIDTH || x >= (c.engine as EditorEngine).getEditWidth() ||
-		y < 0 || y >= (c.engine as EditorEngine).getEditHeight()) ? 'none' : '';
+	c.element.style.left = x + l + 'px';
+	c.element.style.top = y + t + 'px';
+	// if (!this.txtNode) { this.txtNode = document.createTextNode(""); this.element.appendChild(this.txtNode); }
+	// this.txtNode.nodeValue = l + ", " + t;
+	c.element.style.display =
+		x < -NOTE_WIDTH ||
+		x >= (c.engine as EditorEngine).getEditWidth() ||
+		y < 0 ||
+		y >= (c.engine as EditorEngine).getEditHeight()
+			? 'none'
+			: '';
 }
 function updateControlObjectPosition(obj: ControlObject) {
 	let c: ControlObject | null;
@@ -177,14 +203,16 @@ function updateControlObjectPosition(obj: ControlObject) {
 	let y = 1;
 	if (
 		c !== null &&
-		c.notePosNumerator * obj.notePosDenominator === obj.notePosNumerator * c.notePosDenominator &&
+		c.notePosNumerator * obj.notePosDenominator ===
+			obj.notePosNumerator * c.notePosDenominator &&
 		c.y > 0
 	) {
 		y = c.y + 13;
 	}
 	moveControlObject(
 		obj,
-		notePosToX(obj.notePosNumerator, obj.notePosDenominator) - (obj.engine as EditorEngine).scrollPosX,
+		notePosToX(obj.notePosNumerator, obj.notePosDenominator) -
+			(obj.engine as EditorEngine).scrollPosX,
 		y
 	);
 
@@ -193,20 +221,24 @@ function updateControlObjectPosition(obj: ControlObject) {
 	}
 }
 
-function initNoteObjectElement(n: NoteObject, noteElementMap: MyWeakMap<HTMLElement, NoteObject>) {
+function initNoteObjectElement(
+	n: NoteObject,
+	noteElementMap: MyWeakMap<HTMLElement, NoteObject>
+) {
 	if (n.element) {
 		return;
 	}
 
 	n.element = document.createElement('span');
 	setWeakMap(noteElementMap, n.element, n);
-	const wd = (n.noteLengthNumerator * 4 / n.noteLengthDenominator) * NOTE_WIDTH;
+	const wd =
+		((n.noteLengthNumerator * 4) / n.noteLengthDenominator) * NOTE_WIDTH;
 	{
 		const s = n.element.style;
 		s.display = 'block';
 		s.position = 'absolute';
-		s.width = (wd) + 'px';
-		s.height = (NOTE_HEIGHT) + 'px';
+		s.width = wd + 'px';
+		s.height = NOTE_HEIGHT + 'px';
 		s.backgroundColor = '#ff00ff';
 		s.borderColor = '#000000';
 		s.borderStyle = 'solid';
@@ -225,28 +257,32 @@ function moveNoteObject(n: NoteObject, x: number, y: number) {
 	}
 	const l = 0;
 	const t = 1;
-	//let wd = (n.noteLengthNumerator * 4 / n.noteLengthDenominator) * NOTE_WIDTH;
-	n.element.style.left = (x + l) + 'px';
-	n.element.style.top = (y + t) + 'px';
-	//if (!this.txtNode) { this.txtNode = document.createTextNode(""); n.element.appendChild(this.txtNode); }
-	//n.txtNode.nodeValue = l + ", " + t;
-	//n.element.style.display = (x + wd < 0 || x >= this.sequencer._width ||
-	//	y < NOTE_PADDING_Y || y >= this.sequencer._height) ? "none" : "block";
+	// let wd = (n.noteLengthNumerator * 4 / n.noteLengthDenominator) * NOTE_WIDTH;
+	n.element.style.left = x + l + 'px';
+	n.element.style.top = y + t + 'px';
+	// if (!this.txtNode) { this.txtNode = document.createTextNode(""); n.element.appendChild(this.txtNode); }
+	// n.txtNode.nodeValue = l + ", " + t;
+	// n.element.style.display = (x + wd < 0 || x >= this.sequencer._width ||
+	// 	y < NOTE_PADDING_Y || y >= this.sequencer._height) ? "none" : "block";
 	n.element.style.display = 'block';
 }
 function updateNoteObjectPosition(n: NoteObject) {
-	//moveNoteObject(n, notePosToX(n.notePosNumerator, n.notePosDenominator) + NOTE_PADDING_X,
-	//	(n.engine.noteTopmostValue - n.noteValue) * NOTE_HEIGHT + NOTE_PADDING_Y);
-	moveNoteObject(n, notePosToX(n.notePosNumerator, n.notePosDenominator) + NOTE_PADDING_X,
-		(MAX_TOPMOST_VALUE - n.noteValue) * NOTE_HEIGHT + NOTE_PADDING_Y);
+	// moveNoteObject(n, notePosToX(n.notePosNumerator, n.notePosDenominator) + NOTE_PADDING_X,
+	// 	(n.engine.noteTopmostValue - n.noteValue) * NOTE_HEIGHT + NOTE_PADDING_Y);
+	moveNoteObject(
+		n,
+		notePosToX(n.notePosNumerator, n.notePosDenominator) + NOTE_PADDING_X,
+		(MAX_TOPMOST_VALUE - n.noteValue) * NOTE_HEIGHT + NOTE_PADDING_Y
+	);
 }
 function updateNoteObjectLength(n: NoteObject) {
 	if (!n.element) {
 		return;
 	}
 
-	const wd = (n.noteLengthNumerator * 4 / n.noteLengthDenominator) * NOTE_WIDTH;
-	n.element.style.width = (wd) + 'px';
+	const wd =
+		((n.noteLengthNumerator * 4) / n.noteLengthDenominator) * NOTE_WIDTH;
+	n.element.style.width = wd + 'px';
 }
 
 // valが極力1になるように値を調整する
@@ -267,7 +303,11 @@ function normalizeDenominator(val: number, denominator: number) {
 	return { value: val, denominator: denominator };
 }
 
-function _initPartList(listElement: HTMLSelectElement, parts: Part[], curPart: Part) {
+function _initPartList(
+	listElement: HTMLSelectElement,
+	parts: Part[],
+	curPart: Part
+) {
 	while (listElement.options.length > 0) {
 		listElement.removeChild(listElement.options[0]);
 	}
@@ -284,7 +324,6 @@ function _initPartList(listElement: HTMLSelectElement, parts: Part[], curPart: P
 }
 
 export default class EditorEngine extends Engine {
-
 	public backgroundChords: BackgroundChord[] = [];
 	public backgroundEndPos: IPositionObject | null = null;
 
@@ -311,13 +350,13 @@ export default class EditorEngine extends Engine {
 	private listElement: HTMLSelectElement | null;
 	private _width: number;
 	private _height: number;
-	private noteTopmostValue: number;   // 画面で一番上に来る音符の値
-	private noteDragging: NoteObject | null;   // マウスのボタンが押された瞬間に選択している音符
-	private controlElementMap: MyWeakMap<HTMLElement, ControlObject>;  // ControlObjectとHTMLElementのWeakMap
-	private noteElementMap: MyWeakMap<HTMLElement, NoteObject>;        // NoteObjectとHTMLElementのWeakMap
-	//private xRelative: number;          // マウスのボタンが押された瞬間に選択した音符からのマウスの相対x座標
-	private mouseMode: MouseMode;       // マウスによる編集モード
-	private isMoveDragMode: boolean;    // 音符をドラッグして移動するモードかどうか
+	private noteTopmostValue: number; // 画面で一番上に来る音符の値
+	private noteDragging: NoteObject | null; // マウスのボタンが押された瞬間に選択している音符
+	private controlElementMap: MyWeakMap<HTMLElement, ControlObject>; // ControlObjectとHTMLElementのWeakMap
+	private noteElementMap: MyWeakMap<HTMLElement, NoteObject>; // NoteObjectとHTMLElementのWeakMap
+	// private xRelative: number;          // マウスのボタンが押された瞬間に選択した音符からのマウスの相対x座標
+	private mouseMode: MouseMode; // マウスによる編集モード
+	private isMoveDragMode: boolean; // 音符をドラッグして移動するモードかどうか
 	private maxScrollX: number;
 	private maxScrollY: number;
 	private _evtScrollX: Array<(e: ScrollEventObject) => void>;
@@ -351,7 +390,8 @@ export default class EditorEngine extends Engine {
 		this.listElement = null;
 		this._width = this.baseElement.offsetWidth - 0;
 		this._height = this.baseElement.offsetHeight - 0;
-		MIN_TOPMOST_VALUE = Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) - 1;
+		MIN_TOPMOST_VALUE =
+			Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) - 1;
 		if (MIN_TOPMOST_VALUE < 0) {
 			MIN_TOPMOST_VALUE = 0;
 		}
@@ -360,11 +400,14 @@ export default class EditorEngine extends Engine {
 		this.noteDragging = null;
 		this.controlElementMap = createWeakMap();
 		this.noteElementMap = createWeakMap();
-		//this.xRelative = 0;
+		// this.xRelative = 0;
 		this.mouseMode = MouseMode.MOUSEMODE_DRAW;
 		this.isMoveDragMode = false;
 		this.maxScrollX = 10000;
-		this.maxScrollY = (MAX_TOPMOST_VALUE + 1) * NOTE_HEIGHT + NOTE_PADDING_Y - this._height;
+		this.maxScrollY =
+			(MAX_TOPMOST_VALUE + 1) * NOTE_HEIGHT +
+			NOTE_PADDING_Y -
+			this._height;
 		this._evtScrollX = [];
 		this._evtScrollY = [];
 		this._evtResize = [];
@@ -399,7 +442,7 @@ export default class EditorEngine extends Engine {
 			s.left = (0).toString() + 'px';
 			s.top = '0px';
 			s.width = (this._width - 0).toString() + 'px';
-			s.height = (NOTE_PADDING_Y).toString() + 'px';
+			s.height = NOTE_PADDING_Y.toString() + 'px';
 			const p = this.baseElement;
 			let ss: CSSStyleDeclaration;
 			if (window.getComputedStyle) {
@@ -422,8 +465,8 @@ export default class EditorEngine extends Engine {
 			s.backgroundRepeat = 'repeat-y';
 			s.position = 'absolute';
 			s.left = '0px';
-			s.top = (NOTE_PADDING_Y.toString()) + 'px';
-			s.width = (NOTE_PADDING_X.toString()) + 'px';
+			s.top = NOTE_PADDING_Y.toString() + 'px';
+			s.width = NOTE_PADDING_X.toString() + 'px';
 			s.height = (this._height - NOTE_PADDING_Y).toString() + 'px';
 		}
 		this.parentElement.appendChild(this.pianoElement);
@@ -464,17 +507,21 @@ export default class EditorEngine extends Engine {
 		this.linesHorizontal = [];
 		this.linesVertical = [];
 
-		//this.scrollX(0);
-		//this.scrollY(0);
+		// this.scrollX(0);
+		// this.scrollY(0);
 		this.scrollPosX = 0;
-		this.scrollPosY = (this.baseElement.scrollTop = (MAX_TOPMOST_VALUE - this.noteTopmostValue) * NOTE_HEIGHT);
+		this.scrollPosY = this.baseElement.scrollTop =
+			(MAX_TOPMOST_VALUE - this.noteTopmostValue) * NOTE_HEIGHT;
 
 		this.parentElement.addEventListener('mousedown', this.fnMouseDown);
-		//addEventHandler(this.baseElement, "mousemove", this.fnMouseMove);
-		const rt = (document.documentElement);
+		// addEventHandler(this.baseElement, "mousemove", this.fnMouseMove);
+		const rt = document.documentElement;
 		rt.addEventListener('mousemove', this.fnMouseMove);
 		this.parentElement.addEventListener('mouseup', this.fnMouseUp);
-		this.baseElement.addEventListener('scroll', this.onScrollParent.bind(this));
+		this.baseElement.addEventListener(
+			'scroll',
+			this.onScrollParent.bind(this)
+		);
 
 		window.addEventListener('resize', this.onResize.bind(this));
 
@@ -487,24 +534,34 @@ export default class EditorEngine extends Engine {
 		return notePosToX(pos.numerator, pos.denominator);
 	}
 
-	public initializePlayer(workerJs: string, depsJs: string[], workletJs: string[], interval?: number) {
-		return Player.instantiate(this, workerJs, depsJs, true, interval).then((p) => {
-			this.player = p;
-			p.setAudioWorkletScripts(workletJs);
-			return Player.instantiate(this, workerJs, depsJs, true, 15);
-		}).then((p) => {
-			this.playerNote = p;
-			p.setAudioWorkletScripts(workletJs);
-			p.setRenderFrameCount(1024);
-			p.setPlayOptions({
-				prerenderSeconds: 0,
-				maxQueueSeconds: 0.0625
-			});
-		}, (e) => {
-			this.player!.close();
-			this.player = null;
-			return Promise.reject(e);
-		});
+	public initializePlayer(
+		workerJs: string,
+		depsJs: string[],
+		workletJs: string[],
+		interval?: number
+	) {
+		return Player.instantiate(this, workerJs, depsJs, true, interval)
+			.then((p) => {
+				this.player = p;
+				p.setAudioWorkletScripts(workletJs);
+				return Player.instantiate(this, workerJs, depsJs, true, 15);
+			})
+			.then(
+				(p) => {
+					this.playerNote = p;
+					p.setAudioWorkletScripts(workletJs);
+					p.setRenderFrameCount(1024);
+					p.setPlayOptions({
+						prerenderSeconds: 0,
+						maxQueueSeconds: 0.0625,
+					});
+				},
+				(e) => {
+					this.player!.close();
+					this.player = null;
+					return Promise.reject(e);
+				}
+			);
 	}
 
 	public getPlayer() {
@@ -516,17 +573,21 @@ export default class EditorEngine extends Engine {
 	}
 
 	public loadSoundfont(bin: ArrayBuffer) {
-		return this.player!.loadSoundfont(bin).then(
-			() => this.playerNote!.loadSoundfont(bin)
+		return this.player!.loadSoundfont(bin).then(() =>
+			this.playerNote!.loadSoundfont(bin)
 		);
 	}
 
 	public loadSoundfontFromFile(fileElemId: string | HTMLInputElement) {
-		return loadBinaryFromFile(fileElemId).then((bin) => this.loadSoundfont(bin));
+		return loadBinaryFromFile(fileElemId).then((bin) =>
+			this.loadSoundfont(bin)
+		);
 	}
 
 	public unloadSoundfont() {
-		return this.player!.unloadSoundfont().then(() => this.playerNote!.unloadSoundfont());
+		return this.player!.unloadSoundfont().then(() =>
+			this.playerNote!.unloadSoundfont()
+		);
 	}
 
 	public isSoundfontLoaded() {
@@ -544,7 +605,9 @@ export default class EditorEngine extends Engine {
 	}
 
 	public addSoundfontForMapFromFile(fileElemId: string | HTMLInputElement) {
-		return loadBinaryFromFile(fileElemId).then((bin) => this.addSoundfontForMap(bin));
+		return loadBinaryFromFile(fileElemId).then((bin) =>
+			this.addSoundfontForMap(bin)
+		);
 	}
 
 	public addPresetMapWithSoundfont(
@@ -557,10 +620,18 @@ export default class EditorEngine extends Engine {
 		for (const m of this.sfontMapData) {
 			if (m[0] === sfont) {
 				this.player!.addPresetMapWithSoundfont(
-					m[1], targetBank, targetPreset, bank, preset
+					m[1],
+					targetBank,
+					targetPreset,
+					bank,
+					preset
 				);
 				this.playerNote!.addPresetMapWithSoundfont(
-					m[2], targetBank, targetPreset, bank, preset
+					m[2],
+					targetBank,
+					targetPreset,
+					bank,
+					preset
 				);
 				break;
 			}
@@ -585,12 +656,24 @@ export default class EditorEngine extends Engine {
 		}
 	}
 
-	public removeProgramMap(sfont: number, targetBank?: number, targetPreset?: number) {
+	public removeProgramMap(
+		sfont: number,
+		targetBank?: number,
+		targetPreset?: number
+	) {
 		for (let i = 0, len = this.sfontMapData.length; i < len; ++i) {
 			const m = this.sfontMapData[i];
 			if (m[0] === sfont) {
-				const b1 = this.player!.removeProgramMap(m[1], targetBank, targetPreset);
-				const b2 = this.playerNote!.removeProgramMap(m[2], targetBank, targetPreset);
+				const b1 = this.player!.removeProgramMap(
+					m[1],
+					targetBank,
+					targetPreset
+				);
+				const b2 = this.playerNote!.removeProgramMap(
+					m[2],
+					targetBank,
+					targetPreset
+				);
 				if (!b1 && !b2) {
 					this.sfontMapData.splice(i, 1);
 					return false;
@@ -613,7 +696,10 @@ export default class EditorEngine extends Engine {
 		this.backgroundEndPos = null;
 	}
 
-	public setBackgroundChords(chords: BackgroundChord[], endPos: IPositionObject) {
+	public setBackgroundChords(
+		chords: BackgroundChord[],
+		endPos: IPositionObject
+	) {
 		this.backgroundChords = chords;
 		this.backgroundEndPos = endPos;
 	}
@@ -687,17 +773,20 @@ export default class EditorEngine extends Engine {
 	private _initHorizontalLines() {
 		const lines = this.linesHorizontal;
 
-		//let n = this.noteTopmostValue % 12;
-		let actualValue = MAX_TOPMOST_VALUE - Math.floor((this.baseElement.scrollTop) / NOTE_HEIGHT);
+		// let n = this.noteTopmostValue % 12;
+		let actualValue =
+			MAX_TOPMOST_VALUE -
+			Math.floor(this.baseElement.scrollTop / NOTE_HEIGHT);
 		let n = actualValue % 12;
-		const iMax = Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) + 1;
+		const iMax =
+			Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) + 1;
 		let iElement = 0;
 		for (let i = 0; i <= iMax; i++) {
 			let bgColor = '#ffffff';
 			// 黒鍵部分は色を変える
 			if (n === 1 || n === 3 || n === 6 || n === 8 || n === 10) {
-				//	drawFillRect(ctx, "#c0c0c0", 0, i * NOTE_HEIGHT + NOTE_PADDING_Y,
-				//		this._width, (i + 1) * NOTE_HEIGHT + NOTE_PADDING_Y);
+				// drawFillRect(ctx, "#c0c0c0", 0, i * NOTE_HEIGHT + NOTE_PADDING_Y,
+				// 	this._width, (i + 1) * NOTE_HEIGHT + NOTE_PADDING_Y);
 				bgColor = '#c0c0c0';
 			}
 			if (--n < 0) {
@@ -711,7 +800,7 @@ export default class EditorEngine extends Engine {
 				s.display = 'block';
 				s.position = 'absolute';
 				s.width = (this._width - NOTE_PADDING_X).toString() + 'px';
-				s.height = (NOTE_HEIGHT + 1) + 'px';
+				s.height = NOTE_HEIGHT + 1 + 'px';
 				s.boxSizing = s.webkitBoxSizing = 'border-box';
 				s.borderTopStyle = 'solid';
 				s.borderTopWidth = '1px';
@@ -721,12 +810,19 @@ export default class EditorEngine extends Engine {
 			}
 
 			s.left = (NOTE_PADDING_X + this.scrollPosX).toString() + 'px';
-			s.top = ((MAX_TOPMOST_VALUE - actualValue) * NOTE_HEIGHT + NOTE_PADDING_Y).toString() + 'px';
+			s.top =
+				(
+					(MAX_TOPMOST_VALUE - actualValue) * NOTE_HEIGHT +
+					NOTE_PADDING_Y
+				).toString() + 'px';
 			s.borderColor = '#808080';
 			s.backgroundColor = bgColor;
 			if (!elem.parentNode) {
-				//this.parentElement.insertBefore(elem, this.controlParentElement);
-				this.parentElement.insertBefore(elem, this.markerBeforeCPElement);
+				// this.parentElement.insertBefore(elem, this.controlParentElement);
+				this.parentElement.insertBefore(
+					elem,
+					this.markerBeforeCPElement
+				);
 			}
 			++iElement;
 			--actualValue;
@@ -745,18 +841,29 @@ export default class EditorEngine extends Engine {
 		let x = NOTE_PADDING_X - this.scrollPosX;
 		let i = 0;
 		let iCPos = 0;
-		const ctrls = (this.masterControls ? this.masterControls : null);
+		const ctrls = this.masterControls ? this.masterControls : null;
 		let iElement = 0;
 		while (true) {
 			if (x > this._width) {
 				break;
 			}
-			if (ctrls && nextPosNumerator >= 0 && bc.posNumerator * nextPosDenominator >= nextPosNumerator * bc.posDenominator) {
+			if (
+				ctrls &&
+				nextPosNumerator >= 0 &&
+				bc.posNumerator * nextPosDenominator >=
+					nextPosNumerator * bc.posDenominator
+			) {
 				while (iCPos < ctrls.length) {
 					const c = ctrls[iCPos];
 					if (c instanceof TimeSignatureControl) {
-						if (bc.posNumerator * c.notePosDenominator >= c.notePosNumerator * bc.posDenominator) {
-							bc.changeTimeSignature(c.beatsNumerator, c.beatsDenominator);
+						if (
+							bc.posNumerator * c.notePosDenominator >=
+							c.notePosNumerator * bc.posDenominator
+						) {
+							bc.changeTimeSignature(
+								c.beatsNumerator,
+								c.beatsDenominator
+							);
 							i = 0;
 							iCPos++;
 							if (iCPos === ctrls.length) {
@@ -774,7 +881,7 @@ export default class EditorEngine extends Engine {
 				}
 			}
 			if (x >= NOTE_PADDING_X - 3) {
-				const isFirstBeat = ((i % bc.beatsNumerator) === 0);
+				const isFirstBeat = i % bc.beatsNumerator === 0;
 
 				let elem = lines[iElement];
 				if (!elem) {
@@ -782,26 +889,30 @@ export default class EditorEngine extends Engine {
 					elem.style.display = 'block';
 					elem.style.position = 'absolute';
 					elem.style.width = '1px';
-					//elem.style.height = (MAX_TOPMOST_VALUE * NOTE_HEIGHT + NOTE_PADDING_Y).toString() + "px";
-					elem.style.height = (this.baseElement.offsetHeight).toString() + 'px';
+					// elem.style.height = (MAX_TOPMOST_VALUE * NOTE_HEIGHT + NOTE_PADDING_Y).toString() + "px";
+					elem.style.height =
+						this.baseElement.offsetHeight.toString() + 'px';
 					elem.style.borderLeftStyle = 'solid';
 					elem.style.borderLeftWidth = '1px';
 					elem.style.overflow = 'hidden';
 				}
 
-				elem.style.top = (this.scrollPosY).toString() + 'px';
+				elem.style.top = this.scrollPosY.toString() + 'px';
 				elem.style.left = (x + this.scrollPosX).toString() + 'px';
 				elem.style.borderColor = isFirstBeat ? '#0000ff' : '#404040';
 				if (!elem.parentNode) {
 					this.parentElement.insertBefore(elem, this.pianoElement);
 				}
-				//this.parentElement.appendChild(elem);
+				// this.parentElement.appendChild(elem);
 				++iElement;
 			}
-			//x += NOTE_WIDTH * 4 / bc.beatsFraction;
+			// x += NOTE_WIDTH * 4 / bc.beatsFraction;
 			bc.incrementPosition(1);
 			++i;
-			x = NOTE_PADDING_X - this.scrollPosX + NOTE_WIDTH * 4 * bc.posNumerator / bc.posDenominator;
+			x =
+				NOTE_PADDING_X -
+				this.scrollPosX +
+				(NOTE_WIDTH * 4 * bc.posNumerator) / bc.posDenominator;
 		}
 		for (; iElement < lines.length; ++iElement) {
 			if (lines[iElement].parentNode) {
@@ -821,7 +932,12 @@ export default class EditorEngine extends Engine {
 		const y = getOffsetY(this.baseElement, e);
 		const sx = x + this.scrollPosX;
 		const sy = y + this.scrollPosY;
-		if (x >= NOTE_PADDING_X && x < this._width && y >= NOTE_PADDING_Y && y < this._height) {
+		if (
+			x >= NOTE_PADDING_X &&
+			x < this._width &&
+			y >= NOTE_PADDING_Y &&
+			y < this._height
+		) {
 			const a = calcNotePos(this, sx, sy);
 			const t = e.target || e.srcElement;
 			let n: NoteObject | null | undefined;
@@ -834,20 +950,34 @@ export default class EditorEngine extends Engine {
 					}
 				}
 			} else {
-				//let noteValue = this.noteTopmostValue - Math.floor((a.y - NOTE_PADDING_Y) / NOTE_HEIGHT);
-				const noteValue = Math.floor(MAX_TOPMOST_VALUE - ((a.y - NOTE_PADDING_Y) / NOTE_HEIGHT));
+				// let noteValue = this.noteTopmostValue - Math.floor((a.y - NOTE_PADDING_Y) / NOTE_HEIGHT);
+				const noteValue = Math.floor(
+					MAX_TOPMOST_VALUE - (a.y - NOTE_PADDING_Y) / NOTE_HEIGHT
+				);
 				n = t && getWeakMap(this.noteElementMap, t);
 				if (n) {
-					//this.xRelative = (sx) - n.x;
+					// this.xRelative = (sx) - n.x;
 				} else {
 					const _curPart = this.curPart!;
-					const pos = noteXToNearestPos(a.x - NOTE_PADDING_X, this.notePosDenominator);
-					n = new NoteObject(pos, this.notePosDenominator, 1, this.noteLengthDenominator, noteValue, _curPart.channel);
+					const pos = noteXToNearestPos(
+						a.x - NOTE_PADDING_X,
+						this.notePosDenominator
+					);
+					n = new NoteObject(
+						pos,
+						this.notePosDenominator,
+						1,
+						this.noteLengthDenominator,
+						noteValue,
+						_curPart.channel
+					);
 					n.attachEngine(this);
 					_curPart.notes.push(n);
-					//this.xRelative = 0;
+					// this.xRelative = 0;
 				}
-				this.isMoveDragMode = ((this.mouseMode === MouseMode.MOUSEMODE_MOVE) === (!e.shiftKey));
+				this.isMoveDragMode =
+					(this.mouseMode === MouseMode.MOUSEMODE_MOVE) ===
+					!e.shiftKey;
 				this.noteDragging = n;
 				if (this.playerNote) {
 					this.playerNote.playNote(n);
@@ -870,12 +1000,12 @@ export default class EditorEngine extends Engine {
 			// スクロール
 			if (this.scrollPosX > 0) {
 				x = NOTE_PADDING_X;
-				this.scrollX(-(NOTE_WIDTH * 4 / this.notePosDenominator));
+				this.scrollX(-((NOTE_WIDTH * 4) / this.notePosDenominator));
 			}
 		} else if (x >= this._width) {
 			// スクロール
 			x = this._width - 1;
-			this.scrollX(NOTE_WIDTH * 4 / this.notePosDenominator);
+			this.scrollX((NOTE_WIDTH * 4) / this.notePosDenominator);
 		}
 		if (y < NOTE_PADDING_Y) {
 			// スクロール
@@ -890,20 +1020,30 @@ export default class EditorEngine extends Engine {
 				this.scrollY(NOTE_HEIGHT);
 			}
 		}
-		if (x >= NOTE_PADDING_X && x < this._width && y >= NOTE_PADDING_Y && y < this._height) {
+		if (
+			x >= NOTE_PADDING_X &&
+			x < this._width &&
+			y >= NOTE_PADDING_Y &&
+			y < this._height
+		) {
 			const n = this.noteDragging;
 			const a = calcNotePos(this, sx, sy);
 			if (a.x !== n.x || a.y !== n.y) {
 				if (a.y !== n.y) {
-					//let noteValue = this.noteTopmostValue - Math.floor((a.y - NOTE_PADDING_Y) / NOTE_HEIGHT);
-					const noteValue = Math.floor(MAX_TOPMOST_VALUE - ((a.y - NOTE_PADDING_Y) / NOTE_HEIGHT));
+					// let noteValue = this.noteTopmostValue - Math.floor((a.y - NOTE_PADDING_Y) / NOTE_HEIGHT);
+					const noteValue = Math.floor(
+						MAX_TOPMOST_VALUE - (a.y - NOTE_PADDING_Y) / NOTE_HEIGHT
+					);
 					n.setNoteValue(noteValue);
 					if (this.playerNote) {
 						this.playerNote.playNote(n);
 					}
 				}
 
-				const pos = noteXToNearestPos(a.x - NOTE_PADDING_X, this.notePosDenominator);
+				const pos = noteXToNearestPos(
+					a.x - NOTE_PADDING_X,
+					this.notePosDenominator
+				);
 				n.setPosition(pos, this.notePosDenominator);
 				updateNoteObjectPosition(n);
 			}
@@ -923,12 +1063,16 @@ export default class EditorEngine extends Engine {
 		const n = this.noteDragging;
 		const a = calcNoteLength(this, sx, sy);
 		// 音符の長さを描画の幅から計算
-		let len = (a.x - n.x) * this.noteLengthDenominator / (4 * NOTE_WIDTH) + 1;
+		let len =
+			((a.x - n.x) * this.noteLengthDenominator) / (4 * NOTE_WIDTH) + 1;
 		// 設定可能な長さより小さくなったら最小値にする
 		if (len < 1) {
 			len = 1;
 		}
-		if (n.noteLengthNumerator / n.noteLengthDenominator !== len / this.noteLengthDenominator) {
+		if (
+			n.noteLengthNumerator / n.noteLengthDenominator !==
+			len / this.noteLengthDenominator
+		) {
 			const b = normalizeDenominator(len, this.noteLengthDenominator);
 			n.setLength(b.value, b.denominator);
 			updateNoteObjectLength(n);
@@ -937,7 +1081,10 @@ export default class EditorEngine extends Engine {
 	}
 
 	private onMouseMove(e: MouseEvent) {
-		if (this.isMoveDragMode !== ((this.mouseMode === MouseMode.MOUSEMODE_MOVE) === (!e.shiftKey))) {
+		if (
+			this.isMoveDragMode !==
+			((this.mouseMode === MouseMode.MOUSEMODE_MOVE) === !e.shiftKey)
+		) {
 			e.preventDefault();
 			return;
 		}
@@ -962,12 +1109,17 @@ export default class EditorEngine extends Engine {
 	private onDblClick(e: MouseEvent) {
 		const x = getOffsetX(this.baseElement, e);
 		const y = getOffsetY(this.baseElement, e);
-		//let sx = x + this.scrollX;
-		//let sy = y + this.scrollY;
-		if (x >= NOTE_PADDING_X && x < this._width && y >= NOTE_PADDING_Y && y < this._height) {
-			//let a = calcNotePos(this, sx, y);
+		// let sx = x + this.scrollX;
+		// let sy = y + this.scrollY;
+		if (
+			x >= NOTE_PADDING_X &&
+			x < this._width &&
+			y >= NOTE_PADDING_Y &&
+			y < this._height
+		) {
+			// let a = calcNotePos(this, sx, y);
 			const t = e.target || e.srcElement;
-			const n = t && getWeakMap(this.noteElementMap, t) as NoteObject;
+			const n = t && (getWeakMap(this.noteElementMap, t) as NoteObject);
 			if (n) {
 				n.detachEngine();
 				removeItemFromArray(this.curPart!.notes, n);
@@ -977,12 +1129,13 @@ export default class EditorEngine extends Engine {
 	}
 
 	private updateScrollStatusX() {
-		this.controlParentElement.style.left = (this.scrollPosX).toString() + 'px';
-		this.pianoElement.style.left = (this.scrollPosX).toString() + 'px';
+		this.controlParentElement.style.left =
+			this.scrollPosX.toString() + 'px';
+		this.pianoElement.style.left = this.scrollPosX.toString() + 'px';
 
 		let x = -this.scrollPosX + 2;
 		let measure = 0;
-		const ctrls = (this.masterControls ? this.masterControls : null);
+		const ctrls = this.masterControls ? this.masterControls : null;
 		let iCPos = 0;
 		let labelPos = 0;
 		const bc = new BeatsCalculator();
@@ -990,12 +1143,22 @@ export default class EditorEngine extends Engine {
 		let nextPosFraction = 4;
 		let iPos = 0;
 		while (true) {
-			if (ctrls && nextPos >= 0 && bc.posNumerator * nextPosFraction >= nextPos * bc.posDenominator) {
+			if (
+				ctrls &&
+				nextPos >= 0 &&
+				bc.posNumerator * nextPosFraction >= nextPos * bc.posDenominator
+			) {
 				while (iCPos < ctrls.length) {
 					const c = ctrls[iCPos];
 					if (c instanceof TimeSignatureControl) {
-						if (bc.posNumerator * c.notePosDenominator >= c.notePosNumerator * bc.posDenominator) {
-							bc.changeTimeSignature(c.beatsNumerator, c.beatsDenominator);
+						if (
+							bc.posNumerator * c.notePosDenominator >=
+							c.notePosNumerator * bc.posDenominator
+						) {
+							bc.changeTimeSignature(
+								c.beatsNumerator,
+								c.beatsDenominator
+							);
 							iCPos++;
 							if (iPos !== 0) {
 								// 小節の途中で拍子が変わった場合はリセットして小節数を増やさない
@@ -1020,8 +1183,10 @@ export default class EditorEngine extends Engine {
 				const sx = x;
 				if (x >= -20) {
 					const b = this.beatPositionLabels[labelPos];
-					b.style.left = Math.floor(sx + NOTE_PADDING_X).toString() + 'px';
-					b.style.display = (x < -20 || x + 20 >= this._width) ? 'none' : '';
+					b.style.left =
+						Math.floor(sx + NOTE_PADDING_X).toString() + 'px';
+					b.style.display =
+						x < -20 || x + 20 >= this._width ? 'none' : '';
 					b.childNodes[0].nodeValue = measure.toString();
 					labelPos++;
 					if (labelPos >= this.beatPositionLabels.length) {
@@ -1035,7 +1200,10 @@ export default class EditorEngine extends Engine {
 			}
 			// x += NOTE_WIDTH * bc.beatsNumerator * 4 / bc.beatsDenominator;
 			bc.incrementPosition(1);
-			x = 2 - this.scrollPosX + NOTE_WIDTH * 4 * bc.posNumerator / bc.posDenominator;
+			x =
+				2 -
+				this.scrollPosX +
+				(NOTE_WIDTH * 4 * bc.posNumerator) / bc.posDenominator;
 		}
 
 		const _sx = this.scrollPosX;
@@ -1045,16 +1213,22 @@ export default class EditorEngine extends Engine {
 	}
 
 	private updateScrollStatusY() {
-		this.controlParentElement.style.top = (this.scrollPosY).toString() + 'px';
+		this.controlParentElement.style.top = this.scrollPosY.toString() + 'px';
 
-		const noteTopmostValue = MAX_TOPMOST_VALUE - (this.scrollPosY / NOTE_HEIGHT);
+		const noteTopmostValue =
+			MAX_TOPMOST_VALUE - this.scrollPosY / NOTE_HEIGHT;
 		this.noteTopmostValue = noteTopmostValue;
-		this.pianoElement.style.backgroundPosition = '0px ' + (calcBackgroundPositionY(noteTopmostValue)).toString() + 'px';
-		//this.pianoElement.style.backgroundPosition = "0px " + (this.scrollY).toString() + "px";
-		this.pianoElement.style.top = (this.scrollPosY + NOTE_PADDING_Y).toString() + 'px';
+		this.pianoElement.style.backgroundPosition =
+			'0px ' +
+			calcBackgroundPositionY(noteTopmostValue).toString() +
+			'px';
+		// this.pianoElement.style.backgroundPosition = "0px " + (this.scrollY).toString() + "px";
+		this.pianoElement.style.top =
+			(this.scrollPosY + NOTE_PADDING_Y).toString() + 'px';
 		for (let i = 0; i < this.keyPositionLabels.length; ++i) {
-			const t = (calcLabelPositionY(i, noteTopmostValue));
-			const vis = (t >= NOTE_PADDING_Y && t <= this._height - (NOTE_HEIGHT - 1));
+			const t = calcLabelPositionY(i, noteTopmostValue);
+			const vis =
+				t >= NOTE_PADDING_Y && t <= this._height - (NOTE_HEIGHT - 1);
 			{
 				const s = this.keyPositionLabels[i].style;
 				s.display = vis ? '' : 'none';
@@ -1120,22 +1294,36 @@ export default class EditorEngine extends Engine {
 		this.baseElement.scrollTop += delta;
 	}
 
-	public getEditWidth(): number { return this._width; }
-	public getEditHeight(): number { return this._height; }
-	public getNotePaddingX(): number { return NOTE_PADDING_X; }
+	public getEditWidth(): number {
+		return this._width;
+	}
+	public getEditHeight(): number {
+		return this._height;
+	}
+	public getNotePaddingX(): number {
+		return NOTE_PADDING_X;
+	}
 	public getXFromPosition(posNum: number, posDen: number): number;
 	public getXFromPosition(pos: PositionObject): number;
-	public getXFromPosition(posNum: number | PositionObject, posDen?: number): number {
+	public getXFromPosition(
+		posNum: number | PositionObject,
+		posDen?: number
+	): number {
 		if (posNum instanceof PositionObject) {
 			posDen = posNum.denominator;
 			posNum = posNum.numerator;
 		}
-		return NOTE_WIDTH * 4 * posNum / posDen!;
+		return (NOTE_WIDTH * 4 * posNum) / posDen!;
 	}
 
-	public getMouseMode(): MouseMode { return this.mouseMode; }
+	public getMouseMode(): MouseMode {
+		return this.mouseMode;
+	}
 	public setMouseMode(val: MouseMode) {
-		if (val >= MouseMode.MOUSEMODE_DRAW && val <= MouseMode.MOUSEMODE_DELETE)
+		if (
+			val >= MouseMode.MOUSEMODE_DRAW &&
+			val <= MouseMode.MOUSEMODE_DELETE
+		)
 			this.mouseMode = val;
 	}
 
@@ -1169,11 +1357,13 @@ export default class EditorEngine extends Engine {
 		}
 		this._width = this.baseElement.offsetWidth;
 		this._height = this.baseElement.offsetHeight;
-		MIN_TOPMOST_VALUE = Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) - 1;
+		MIN_TOPMOST_VALUE =
+			Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) - 1;
 		if (MIN_TOPMOST_VALUE < 0) {
 			MIN_TOPMOST_VALUE = 0;
 		}
-		this.controlParentElement.style.width = (this._width - NOTE_PADDING_X).toString() + 'px';
+		this.controlParentElement.style.width =
+			(this._width - NOTE_PADDING_X).toString() + 'px';
 
 		this.calcLastScrollXWithSortedNotes();
 		this.scrollX(0);
@@ -1271,8 +1461,11 @@ export default class EditorEngine extends Engine {
 			posDen = this.notePosDenominator;
 		} else {
 			const q = gcd(note.notePosDenominator, note.noteLengthDenominator);
-			posNum = (note.notePosNumerator * note.noteLengthDenominator + note.noteLengthNumerator * note.notePosDenominator) / q;
-			posDen = note.notePosDenominator * note.noteLengthDenominator / q;
+			posNum =
+				(note.notePosNumerator * note.noteLengthDenominator +
+					note.noteLengthNumerator * note.notePosDenominator) /
+				q;
+			posDen = (note.notePosDenominator * note.noteLengthDenominator) / q;
 		}
 		const e = new MaxChangedEventObject(this, val, posNum, posDen);
 		for (const fn of this._evtMaxChanged) {
@@ -1284,35 +1477,63 @@ export default class EditorEngine extends Engine {
 		return !e.isDefaultPrevented();
 	}
 
-	public addEventHandler<T extends keyof EngineEventObjectMap>(name: T, fn: (e: EngineEventObjectMap[T]) => void): void;
-	public addEventHandler<T extends keyof EditorEventObjectMap>(name: T, fn: (e: EditorEventObjectMap[T]) => void): void;
+	public addEventHandler<T extends keyof EngineEventObjectMap>(
+		name: T,
+		fn: (e: EngineEventObjectMap[T]) => void
+	): void;
+	public addEventHandler<T extends keyof EditorEventObjectMap>(
+		name: T,
+		fn: (e: EditorEventObjectMap[T]) => void
+	): void;
 	public addEventHandler(name: string, fn: (e: EventObjectBase) => void) {
 		let arr: any[] | null = null;
 		switch (name.toLowerCase()) {
-			case 'scrollx': arr = this._evtScrollX; break;
-			case 'scrolly': arr = this._evtScrollY; break;
-			case 'resize': arr = this._evtResize; break;
-			case 'maxchanged': arr = this._evtMaxChanged; break;
+			case 'scrollx':
+				arr = this._evtScrollX;
+				break;
+			case 'scrolly':
+				arr = this._evtScrollY;
+				break;
+			case 'resize':
+				arr = this._evtResize;
+				break;
+			case 'maxchanged':
+				arr = this._evtMaxChanged;
+				break;
 		}
 		if (!arr) {
-			super.addEventHandler(name as (keyof EngineEventObjectMap), fn);
+			super.addEventHandler(name as keyof EngineEventObjectMap, fn);
 			return;
 		}
 		arr.push(fn);
 	}
 
-	public removeEventHandler<T extends keyof EngineEventObjectMap>(name: T, fn: (e: EngineEventObjectMap[T]) => void): void;
-	public removeEventHandler<T extends keyof EditorEventObjectMap>(name: T, fn: (e: EditorEventObjectMap[T]) => void): void;
+	public removeEventHandler<T extends keyof EngineEventObjectMap>(
+		name: T,
+		fn: (e: EngineEventObjectMap[T]) => void
+	): void;
+	public removeEventHandler<T extends keyof EditorEventObjectMap>(
+		name: T,
+		fn: (e: EditorEventObjectMap[T]) => void
+	): void;
 	public removeEventHandler(name: string, fn: (e: EventObjectBase) => void) {
 		let arr: any[] | null = null;
 		switch (name.toLowerCase()) {
-			case 'scrollx': arr = this._evtScrollX; break;
-			case 'scrolly': arr = this._evtScrollY; break;
-			case 'resize': arr = this._evtResize; break;
-			case 'maxchanged': arr = this._evtMaxChanged; break;
+			case 'scrollx':
+				arr = this._evtScrollX;
+				break;
+			case 'scrolly':
+				arr = this._evtScrollY;
+				break;
+			case 'resize':
+				arr = this._evtResize;
+				break;
+			case 'maxchanged':
+				arr = this._evtMaxChanged;
+				break;
 		}
 		if (!arr) {
-			super.removeEventHandler(name as (keyof EngineEventObjectMap), fn);
+			super.removeEventHandler(name as keyof EngineEventObjectMap, fn);
 			return;
 		}
 		for (let i = arr.length - 1; i >= 0; --i) {
@@ -1331,19 +1552,34 @@ export default class EditorEngine extends Engine {
 		if (!player) {
 			return;
 		}
-		player.playSequenceRange(from, to, void 0, this.backgroundChords, this.backgroundEndPos);
+		player.playSequenceRange(
+			from,
+			to,
+			void 0,
+			this.backgroundChords,
+			this.backgroundEndPos
+		);
 	}
 
 	public playSequence() {
 		this.playSequenceRange(null, null);
 	}
 
-	public playCurrentPartRange(from?: IPositionObject | null, to?: IPositionObject | null) {
+	public playCurrentPartRange(
+		from?: IPositionObject | null,
+		to?: IPositionObject | null
+	) {
 		const player = this.player;
 		if (!player || !this.curPart) {
 			return;
 		}
-		player.playPartRange(this.curPart, from, to, this.backgroundChords, this.backgroundEndPos);
+		player.playPartRange(
+			this.curPart,
+			from,
+			to,
+			this.backgroundChords,
+			this.backgroundEndPos
+		);
 	}
 
 	public playCurrentPart() {

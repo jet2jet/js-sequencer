@@ -1,4 +1,3 @@
-
 import { isUndefined } from '../functions';
 
 export default class BackgroundChord {
@@ -19,12 +18,10 @@ export default class BackgroundChord {
 	public fromJSONObject(obj: any) {
 		if (!isUndefined(obj.posNumerator))
 			this.posNumerator = obj.posNumerator;
-		else
-			this.posNumerator = obj.position;
+		else this.posNumerator = obj.position;
 		if (!isUndefined(obj.posDenominator))
 			this.posDenominator = obj.posDenominator;
-		else
-			this.posDenominator = obj.positionFraction;
+		else this.posDenominator = obj.positionFraction;
 		this.posDenominator = obj.posDenominator;
 		this.rootNote = obj.rootNote;
 		this.notes = obj.notes;

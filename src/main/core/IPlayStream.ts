@@ -1,4 +1,3 @@
-
 import Options from './playing/Options';
 
 export default interface IPlayStream {
@@ -6,5 +5,10 @@ export default interface IPlayStream {
 	pauseStreaming?(isPaused: boolean): void;
 	stopStreaming?(): void;
 	releaseStream?(): void;
-	renderFrames(sampleRate: number, framesLeft: ArrayBuffer, framesRight: ArrayBuffer, isPaused: boolean): void;
+	renderFrames(
+		sampleRate: number,
+		framesLeft: ArrayBuffer,
+		framesRight: ArrayBuffer,
+		isPaused: boolean
+	): void;
 }

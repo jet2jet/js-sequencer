@@ -1,4 +1,3 @@
-
 import ISequencerObject from '../objects/ISequencerObject';
 
 export default interface NoteObjectBase extends ISequencerObject {

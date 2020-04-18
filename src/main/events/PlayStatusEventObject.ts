@@ -1,4 +1,3 @@
-
 import EventObjectBase from './EventObjectBase';
 
 import PlayerBase from '../core/PlayerBase';

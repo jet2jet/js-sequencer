@@ -1,6 +1,4 @@
-
 export default class FrameQueue {
-
 	private frames: Array<[ArrayBuffer, ArrayBuffer] | string> = [];
 	private curFrames: [Float32Array, Float32Array] | string | undefined;
 	private offset: number = 0;
@@ -8,7 +6,10 @@ export default class FrameQueue {
 
 	public pushFrames(rawFrames: [ArrayBuffer, ArrayBuffer]) {
 		if (typeof this.curFrames === 'undefined') {
-			this.curFrames = [new Float32Array(rawFrames[0]), new Float32Array(rawFrames[1])];
+			this.curFrames = [
+				new Float32Array(rawFrames[0]),
+				new Float32Array(rawFrames[1]),
+			];
 		} else {
 			this.frames.push(rawFrames);
 		}
@@ -78,11 +79,14 @@ export default class FrameQueue {
 		this.offset = 0;
 		const newF = this.frames.shift();
 		if (typeof newF === 'undefined') {
-			return (this.curFrames = void (0));
+			return (this.curFrames = void 0);
 		}
 		if (typeof newF === 'string') {
 			return (this.curFrames = newF);
 		}
-		return (this.curFrames = [new Float32Array(newF[0]), new Float32Array(newF[1])]);
+		return (this.curFrames = [
+			new Float32Array(newF[0]),
+			new Float32Array(newF[1]),
+		]);
 	}
 }

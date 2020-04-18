@@ -1,4 +1,3 @@
-
 import PlayEndNoteEventObject from './PlayEndNoteEventObject';
 import PlayLoopedEventObject from './PlayLoopedEventObject';
 import PlayQueueEventObject from './PlayQueueEventObject';

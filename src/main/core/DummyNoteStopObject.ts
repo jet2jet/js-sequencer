@@ -1,4 +1,3 @@
-
 import NoteObjectBase from './NoteObjectBase';
 
 /** @internal */
@@ -11,7 +10,12 @@ export default class DummyNoteStopObject implements NoteObjectBase {
 	public channel: number;
 	public idData: number;
 
-	constructor(posNumerator: number, posDenominator: number, channel: number, noteValue: number) {
+	constructor(
+		posNumerator: number,
+		posDenominator: number,
+		channel: number,
+		noteValue: number
+	) {
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 		this.noteLengthNumerator = 0;

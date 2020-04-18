@@ -1,7 +1,11 @@
 import { TimeRationalValue } from '../types';
 
 function gcd(m: number, n: number) {
-	if (m < n) { const x = m; m = n; n = x; }
+	if (m < n) {
+		const x = m;
+		m = n;
+		n = x;
+	}
 	while (n) {
 		const r = m % n;
 		m = n;
@@ -14,43 +18,58 @@ export function clone(val: Readonly<TimeRationalValue>): TimeRationalValue {
 	return { num: val.num, den: val.den };
 }
 
-export function add(a: TimeRationalValue, b: Readonly<TimeRationalValue>): TimeRationalValue {
+export function add(
+	a: TimeRationalValue,
+	b: Readonly<TimeRationalValue>
+): TimeRationalValue {
 	if (!b.num) {
 		return a;
 	}
 	const g = gcd(a.den, b.den);
 	return {
 		num: (a.num * b.den + b.num * a.den) / g,
-		den: a.den * b.den / g
+		den: (a.den * b.den) / g,
 	};
 }
 
-export function sub(a: TimeRationalValue, b: Readonly<TimeRationalValue>): TimeRationalValue {
+export function sub(
+	a: TimeRationalValue,
+	b: Readonly<TimeRationalValue>
+): TimeRationalValue {
 	if (!b.num) {
 		return a;
 	}
 	const g = gcd(a.den, b.den);
 	return {
 		num: (a.num * b.den - b.num * a.den) / g,
-		den: a.den * b.den / g
+		den: (a.den * b.den) / g,
 	};
 }
 
-export function mul(a: TimeRationalValue, b: Readonly<TimeRationalValue>): TimeRationalValue {
+export function mul(
+	a: TimeRationalValue,
+	b: Readonly<TimeRationalValue>
+): TimeRationalValue {
 	return normalize({
 		num: a.num * b.num,
-		den: a.den * b.den
+		den: a.den * b.den,
 	});
 }
 
-export function div(a: TimeRationalValue, b: Readonly<TimeRationalValue>): TimeRationalValue {
+export function div(
+	a: TimeRationalValue,
+	b: Readonly<TimeRationalValue>
+): TimeRationalValue {
 	return normalize({
 		num: a.num * b.den,
-		den: a.den * b.num
+		den: a.den * b.num,
 	});
 }
 
-export function compare(a: Readonly<TimeRationalValue>, b: Readonly<TimeRationalValue>): number {
+export function compare(
+	a: Readonly<TimeRationalValue>,
+	b: Readonly<TimeRationalValue>
+): number {
 	return a.num * b.den - b.num * a.den;
 }
 
@@ -91,7 +110,10 @@ export function fromNumber(val: number): TimeRationalValue {
 		r = { num: val, den: 1 };
 	} else {
 		const denominatorDigits = s.length - i;
-		r = { num: Number(s.substring(0, i) + s.substring(i + 1)), den: Math.pow(10, denominatorDigits) };
+		r = {
+			num: Number(s.substring(0, i) + s.substring(i + 1)),
+			den: Math.pow(10, denominatorDigits),
+		};
 	}
 	if (eVal > 0) {
 		r.num *= Math.pow(10, eVal);

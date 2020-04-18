@@ -1,4 +1,3 @@
-
 export default interface Channel {
 	bank: number | null;
 	preset: number | null;
@@ -15,7 +14,7 @@ export default interface Channel {
 
 export function makeChannel(isDrum: boolean) {
 	return {
-		bank: (isDrum ? 128 : 0),
+		bank: isDrum ? 128 : 0,
 		preset: 0,
 		volume: 100,
 		nrpnMsb: null,
@@ -25,6 +24,6 @@ export function makeChannel(isDrum: boolean) {
 		rpnValue: null, // for RPN: 0～0x3FFF, for NRPN: 0x4000～0x7FFF
 		isHolding: false,
 		pitchRange: 2,
-		pitchMIDIValue: 8192
+		pitchMIDIValue: 8192,
 	};
 }

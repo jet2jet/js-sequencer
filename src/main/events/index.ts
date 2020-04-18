@@ -1,4 +1,3 @@
-
 import EditorEventObjectMap from './EditorEventObjectMap';
 import EngineEventObjectMap from './EngineEventObjectMap';
 import EventObjectBase from './EventObjectBase';
@@ -26,5 +25,5 @@ export {
 	PlayerEventObjectMap,
 	ResizeEventObject,
 	ScrollEventObject,
-	SimpleEventObject
+	SimpleEventObject,
 };
