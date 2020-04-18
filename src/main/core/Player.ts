@@ -29,6 +29,7 @@ import PlayQueueEventObject from '../events/PlayQueueEventObject';
 import PlayStatusEventObject from '../events/PlayStatusEventObject';
 import PlayUserEventObject from '../events/PlayUserEventObject';
 import PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
+import SimpleEventObject from '../events/SimpleEventObject';
 
 import { isAudioAvailable } from '../functions';
 
@@ -252,7 +253,9 @@ export default class Player extends PlayerBase {
 			default:
 				return super.addEventHandler(
 					name as keyof PlayerBaseEventObjectMap,
-					fn
+					fn as (
+						e: PlayerBaseEventObjectMap[keyof PlayerBaseEventObjectMap]
+					) => void
 				);
 		}
 		arr.push(fn);
@@ -274,7 +277,9 @@ export default class Player extends PlayerBase {
 			default:
 				return super.removeEventHandler(
 					name as keyof PlayerBaseEventObjectMap,
-					fn
+					fn as (
+						e: PlayerBaseEventObjectMap[keyof PlayerBaseEventObjectMap]
+					) => void
 				);
 		}
 		for (let i = arr.length - 1; i >= 0; --i) {
