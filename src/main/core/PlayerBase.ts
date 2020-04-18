@@ -552,7 +552,11 @@ export default class PlayerBase {
 	}
 
 	private onStopPlayer() {
-		// console.log('[PlayerBase] onStopPlayer', this.isWaitingForStop, this._isPlayerRunning);
+		// console.log(
+		// 	'[PlayerBase] onStopPlayer',
+		// 	this.isWaitingForStop,
+		// 	this._isPlayerRunning
+		// );
 		if (!this.isWaitingForStop && this._isPlayerRunning) {
 			this.isWaitingForStop = true;
 			this.proxy.waitForFinish().then(() => {
@@ -1190,10 +1194,10 @@ export default class PlayerBase {
 			this.proxy.stop();
 		}
 		this._isPlayerRunning = false;
-		if (this.playingNode) {
-			this.playingNode.disconnect();
-			this.isNodeConnected = false;
-		}
+		// if (this.playingNode) {
+		// 	this.playingNode.disconnect();
+		// 	this.isNodeConnected = false;
+		// }
 		this.setReleaseTimer();
 		this.isWaitingForStop = false;
 		this.raiseEventSimple('stopped');
