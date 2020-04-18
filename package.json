@@ -1,15 +1,4 @@
 {
-  "betterScripts": {
-    "build:lib:dev": {
-      "command": "webpack --config ./build/webpack.config.js"
-    },
-    "build:lib:minified": {
-      "command": "webpack --config ./build/webpack.config.js",
-      "env": {
-        "NODE_ENV": "minified"
-      }
-    }
-  },
   "engines": {
     "node": "12",
     "npm": ">=6"
@@ -18,8 +7,8 @@
   "version": "4.2.0",
   "scripts": {
     "build": "npm run build:ts && npm run build:lib:dev",
-    "build:lib:dev": "better-npm-run build:lib:dev",
-    "build:lib:minified": "better-npm-run build:lib:minified",
+    "build:lib:dev": "webpack --config ./build/webpack.config.js",
+    "build:lib:minified": "webpack --config ./build/webpack.config.js --env.minified",
     "build:minified": "npm run build:ts && npm run build:lib:minified",
     "build:ts": "npm run build:ts:common && npm run build:ts:main && npm run build:ts:worker && npm run build:ts:worklet",
     "build:ts:common": "tsc -p src/common/tsconfig.json",
@@ -31,7 +20,6 @@
   "author": "jet",
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "better-npm-run": "^0.1.1",
     "js-synthesizer": "~1.5.2",
     "ts-loader": "^6.2.1",
     "tslint": "^5.12.0",
