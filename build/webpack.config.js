@@ -98,6 +98,9 @@ module.exports = (env) => {
 				banner: preparedHeaderText,
 				raw: true,
 			}),
+			new webpack.DefinePlugin({
+				LIBRARY_VERSION: JSON.stringify(LIBRARY_VERSION),
+			}),
 			new webpack.NormalModuleReplacementPlugin(/^\./, (resource) => {
 				// if module is not found in the project directory, search commonRootPath
 				const inputPath = path.resolve(

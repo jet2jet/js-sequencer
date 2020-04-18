@@ -5,4 +5,11 @@ import * as Types from './types';
 
 import * as TimeRational from './functions/timeRational';
 
-export { Core, Events, Objects, TimeRational, Types };
+declare global {
+	// eslint-disable-next-line no-var
+	var LIBRARY_VERSION: string;
+}
+
+const version = LIBRARY_VERSION;
+
+export { Core, Events, Objects, TimeRational, Types, version };
