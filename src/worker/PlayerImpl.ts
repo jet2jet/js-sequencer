@@ -1,4 +1,3 @@
-import { GeneratorTypes } from 'js-synthesizer/Constants';
 import ISequencer from 'js-synthesizer/ISequencer';
 import ISequencerEventData from 'js-synthesizer/ISequencerEventData';
 import SequencerEvent, {
@@ -99,6 +98,7 @@ export default class PlayerImpl {
 	private promiseWaitingForStop: Promise<void> | undefined;
 	private allRendered: boolean;
 	private finishTimer: ReturnType<typeof setTimeout> | null = null;
+	private stopTimerOnFinish: ReturnType<typeof setTimeout> | null = null;
 
 	private midiChannelCount: number;
 	private sampleRate: number;
@@ -300,6 +300,16 @@ export default class PlayerImpl {
 		this.postMessage({ type: 'stop', data: this.playingId! });
 	}
 
+	private sendUserMarkerImpl(marker: string) {
+		if (this.renderPort) {
+			const sendData: RenderMessage.UserMarkerSend = {
+				type: 'user-marker-send',
+				data: marker,
+			};
+			this.renderPort.postMessage(sendData);
+		}
+	}
+
 	private onSequencerCallback(
 		_time: number,
 		eventType: SequencerEventTypes,
@@ -311,12 +321,7 @@ export default class PlayerImpl {
 			const id = event.getData();
 			if (id === -1) {
 				// console.log(`[onSequencerCallback] finished marker reached`);
-				this.hasFinished = true;
-				this.synth.midiAllSoundsOff();
-				this.finishTimer = setTimeout(
-					this.onStopForFinish.bind(this),
-					2000
-				);
+				this.prepareForStopForFinish();
 			} else {
 				const data = this.userMsgMap[id];
 				if (data) {
@@ -331,13 +336,7 @@ export default class PlayerImpl {
 							data: data.userEvent!,
 						});
 					} else if ('userMarker' in data) {
-						if (this.renderPort) {
-							const sendData: RenderMessage.UserMarkerSend = {
-								type: 'user-marker-send',
-								data: data.userMarker!,
-							};
-							this.renderPort.postMessage(sendData);
-						}
+						this.sendUserMarkerImpl(data.userMarker!);
 					}
 				}
 			}
@@ -388,11 +387,43 @@ export default class PlayerImpl {
 		o.prev = newVal;
 	}
 
-	private onStopForFinish() {
+	private prepareForStopForFinish() {
+		this.hasFinished = true;
+		this.synth.midiAllSoundsOff();
+		setTimeout(() => {
+			// send user-marker 'stop' to render process to detect that the render process has finished
+			// console.log(
+			// 	'[PlayerImpl] prepareForStopForFinish: send stop marker'
+			// );
+			this.sendUserMarkerImpl('stop');
+		}, 0);
+	}
+
+	/** Handle when received 'stop' user-marker */
+	private onStopForFinish(delay: number) {
+		this.stopTimerOnFinish = setTimeout(() => {
+			this.stopTimerOnFinish = null;
+			if (this.finishTimer !== null) {
+				clearTimeout(this.finishTimer);
+			}
+			if (!this.allRendered) {
+				this.allRendered = true;
+			}
+			this.onStop();
+		}, delay);
+	}
+
+	/** Timeout callback for waiting 'stop' user-marker */
+	private onStopForFinishTimeout() {
 		this.finishTimer = null;
+		if (this.stopTimerOnFinish !== null) {
+			clearTimeout(this.stopTimerOnFinish);
+			this.stopTimerOnFinish = null;
+		}
 		if (!this.allRendered) {
 			this.allRendered = true;
 		}
+		this.onStop();
 	}
 
 	private onRender() {
@@ -417,6 +448,7 @@ export default class PlayerImpl {
 		this.renderPort!.postMessage(data, buffers);
 
 		if (!this.synth.isPlaying() && this.hasFinished) {
+			// console.log('[PlayerImpl] onRender: allRendered');
 			this.allRendered = true;
 		}
 	}
@@ -586,6 +618,10 @@ export default class PlayerImpl {
 	private async onStop() {
 		const isWaitingFinish = this.hasFinished;
 		// console.log('[PlayerImpl] onStop():', isWaitingFinish);
+		if (this.stopTimerOnFinish !== null) {
+			clearTimeout(this.stopTimerOnFinish);
+			this.stopTimerOnFinish = null;
+		}
 		if (this.finishTimer !== null) {
 			clearTimeout(this.finishTimer);
 			this.finishTimer = null;
@@ -786,8 +822,9 @@ export default class PlayerImpl {
 		if (!this.sequencer) {
 			return;
 		}
+
 		const id = this.userMsgMapId++;
-		this.userMsgMap[id] = { userMarker: data.marker };
+		this.userMsgMap[id] = { userMarker: `um-${data.marker}` };
 
 		if (data.time === null) {
 			this.sequencer.sendEventToClientAt(
@@ -826,8 +863,13 @@ export default class PlayerImpl {
 			case 'status':
 				this.port.postMessage(data);
 				if (data.data.isQueueEmpty && this.allRendered) {
+					// Start timeout for waiting for 'stop' user-marker
+					// (This might not be necessary if 'finish' marker is processed correctly)
 					if (this.timerId !== null) {
-						this.onStop();
+						this.finishTimer = setTimeout(
+							this.onStopForFinishTimeout.bind(this),
+							3000
+						);
 					}
 				}
 				break;
@@ -842,7 +884,31 @@ export default class PlayerImpl {
 				});
 				break;
 			case 'user-marker-resp':
-				this.port.postMessage(data);
+				if (/^um-/.test(data.data.marker)) {
+					const newData: typeof data = {
+						type: 'user-marker-resp',
+						data: {
+							marker: data.data.marker.substring(3),
+							framesBeforeMarker: data.data.framesBeforeMarker,
+							sampleRate: data.data.sampleRate,
+						},
+					};
+					this.port.postMessage(newData);
+				} else {
+					switch (data.data.marker) {
+						case 'stop':
+							// console.log(`[PlayerImpl] stop marker`);
+							if (this.hasFinished) {
+								this.onStopForFinish(
+									Math.floor(
+										data.data.framesBeforeMarker /
+											data.data.sampleRate
+									)
+								);
+							}
+							break;
+					}
+				}
 				break;
 		}
 	}
