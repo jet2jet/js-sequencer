@@ -24,9 +24,11 @@ import TimeSignatureControl from './controls/TimeSignatureControl';
 import PlayEndNoteEventObject from '../events/PlayEndNoteEventObject';
 import PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
 import PlayerEventObjectMap from '../events/PlayerEventObjectMap';
+import PlayLoopedEventObject from '../events/PlayLoopedEventObject';
 import PlayQueueEventObject from '../events/PlayQueueEventObject';
 import PlayStatusEventObject from '../events/PlayStatusEventObject';
 import PlayUserEventObject from '../events/PlayUserEventObject';
+import PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
 
 import { isAudioAvailable } from '../functions';
 
@@ -168,6 +170,7 @@ export default class Player extends PlayerBase {
 	private _evtPlayQueue: Array<(e: PlayQueueEventObject) => void> = [];
 	private _evtPlayEndNote: Array<(e: PlayEndNoteEventObject) => void> = [];
 	private _evtPlayAllQueued: Array<(e: PlayQueueEventObject) => void> = [];
+	private _evtPlayLooped: Array<(e: PlayLoopedEventObject) => void> = [];
 
 	private playingNote: NoteObject | null = null;
 
@@ -191,6 +194,7 @@ export default class Player extends PlayerBase {
 
 		this.addEventHandler('playuserevent', (e) => this.onPlayUserEvent(e));
 		this.addEventHandler('playstatus', (e) => this.onPlayStatusEvent(e));
+		this.addEventHandler('playusermarkerevent', (e) => this.onPlayUserMarkerEvent(e));
 	}
 
 	public static isSupported() {
@@ -244,6 +248,7 @@ export default class Player extends PlayerBase {
 			case 'playqueue': arr = this._evtPlayQueue; break;
 			case 'playendnote': arr = this._evtPlayEndNote; break;
 			case 'playallqueued': arr = this._evtPlayAllQueued; break;
+			case 'playlooped': arr = this._evtPlayLooped; break;
 			default:
 				return super.addEventHandler(
 					name as keyof PlayerBaseEventObjectMap,
@@ -265,6 +270,7 @@ export default class Player extends PlayerBase {
 			case 'playqueue': arr = this._evtPlayQueue; break;
 			case 'playendnote': arr = this._evtPlayEndNote; break;
 			case 'playallqueued': arr = this._evtPlayAllQueued; break;
+			case 'playlooped': arr = this._evtPlayLooped; break;
 			default:
 				return super.removeEventHandler(
 					name as keyof PlayerBaseEventObjectMap,
@@ -300,6 +306,22 @@ export default class Player extends PlayerBase {
 	private raiseEventPlayAllQueued(total: number, playing: number, played: number) {
 		const e = new PlayQueueEventObject(this, total, total, playing, played);
 		for (const fn of this._evtPlayAllQueued) {
+			fn(e);
+			if (e.isPropagationStopped())
+				break;
+		}
+		return !e.isDefaultPrevented();
+	}
+	private raiseEventPlayLooped(loopStatus: LoopStatus, currentFrame: number, sampleRate: number) {
+		const e = new PlayLoopedEventObject(
+			this,
+			loopStatus.start,
+			loopStatus.end || null,
+			loopStatus.loopIndex,
+			currentFrame,
+			sampleRate
+		);
+		for (const fn of this._evtPlayLooped) {
 			fn(e);
 			if (e.isPropagationStopped())
 				break;
@@ -664,6 +686,7 @@ export default class Player extends PlayerBase {
 							// console.log('[Player] send enable-loop event');
 							this.sendUserEvent('enable-loop', this.queuedNotesTime);
 						}
+						this.sendUserMarker('looped:' + JSON.stringify(loopStatus), this.queuedNotesTime);
 					}
 				}
 			}
@@ -737,6 +760,17 @@ export default class Player extends PlayerBase {
 
 	private onPlayStatusEvent(e: PlayStatusEventObject) {
 		this.playedTime = e.currentFrame / e.sampleRate;
+	}
+
+	private onPlayUserMarkerEvent(e: PlayUserMarkerEventObject) {
+		if (/^looped\:/.test(e.marker)) {
+			try {
+				const loopStatus: LoopStatus = JSON.parse(e.marker.substring(7));
+				this.raiseEventPlayLooped(loopStatus, e.currentFrame, e.sampleRate);
+			} catch {
+				// do nothing
+			}
+		}
 	}
 
 	/** Load all objects and send appropriate MIDI events except for note-on. */

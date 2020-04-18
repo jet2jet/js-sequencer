@@ -139,7 +139,17 @@ export interface FinishMarker extends Base {
 }
 
 /** @internal */
+export interface UserMarker extends Base {
+	id?: never;
+	type: 'user-marker';
+	/** in milliseconds, or null for send immediately */
+	time: number | null;
+	/** any marker name */
+	marker: string;
+}
+
+/** @internal */
 export type AllTypes = Initialize | Close | Configure | LoadSoundfont | UnloadSoundfont |
-	Start | Pause | Stop | Release | Event | SysEx | Generator | UserEvent | FinishMarker;
+	Start | Pause | Stop | Release | Event | SysEx | Generator | UserEvent | FinishMarker | UserMarker;
 /** @internal */
 export default AllTypes;

@@ -7,6 +7,13 @@ export interface StatusData {
 }
 
 /** @internal */
+export interface UserMarkerData {
+	marker: string;
+	framesBeforeMarker: number;
+	sampleRate: number;
+}
+
+/** @internal */
 export interface Base {
 	type: string;
 	data?: any;
@@ -60,8 +67,20 @@ export interface Release extends Base {
 }
 
 /** @internal */
+export interface UserMarkerSend extends Base {
+	type: 'user-marker-send';
+	data: string;
+}
+
+/** @internal */
+export interface UserMarkerResponse extends Base {
+	type: 'user-marker-resp';
+	data: UserMarkerData;
+}
+
+/** @internal */
 export type AllTypes = Render | RenderedResponse | Status | QueueControl |
-	Pause | Stop | Release;
+	Pause | Stop | Release | UserMarkerSend | UserMarkerResponse;
 
 /** @internal */
 export default AllTypes;

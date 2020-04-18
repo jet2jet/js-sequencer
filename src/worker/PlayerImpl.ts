@@ -121,6 +121,7 @@ export default class PlayerImpl {
 			sysEx?: Uint8Array;
 			genEvent?: GenEvent;
 			userEvent?: string;
+			userMarker?: string;
 		};
 	} = {};
 	private userMsgMapId: number = 0;
@@ -303,6 +304,14 @@ export default class PlayerImpl {
 							type: 'user-event',
 							data: data.userEvent!
 						});
+					} else if ('userMarker' in data) {
+						if (this.renderPort) {
+							const sendData: RenderMessage.UserMarkerSend = {
+								type: 'user-marker-send',
+								data: data.userMarker!
+							};
+							this.renderPort.postMessage(sendData);
+						}
 					}
 				}
 			}
@@ -418,6 +427,9 @@ export default class PlayerImpl {
 				break;
 			case 'finish':
 				this.onFinishMarker(data);
+				break;
+			case 'user-marker':
+				this.onUserMarker(data);
 				break;
 		}
 	}
@@ -700,6 +712,31 @@ export default class PlayerImpl {
 		}
 	}
 
+	private onUserMarker(data: Message.UserMarker) {
+		if (!this.sequencer) {
+			return;
+		}
+		const id = this.userMsgMapId++;
+		this.userMsgMap[id] = { userMarker: data.marker };
+
+		if (data.time === null) {
+			this.sequencer.sendEventToClientAt(this.myClient, {
+				type: SequencerEventTypes.Timer,
+				data: id
+			}, 0, false);
+		} else {
+			const tick = this.startTime + data.time;
+			this.eventQueue.push({
+				client: this.myClient,
+				data: {
+					type: SequencerEventTypes.Timer,
+					data: id
+				},
+				tick: tick
+			});
+		}
+	}
+
 	private onRenderMessage(e: MessageEvent) {
 		const data: RenderMessage.AllTypes = e.data;
 		if (!data) {
@@ -728,6 +765,9 @@ export default class PlayerImpl {
 					id: data.data.id,
 					data: data.data.paused
 				});
+				break;
+			case 'user-marker-resp':
+				this.port.postMessage(data);
 				break;
 		}
 	}

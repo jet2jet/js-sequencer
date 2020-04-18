@@ -32,7 +32,19 @@ class Processor extends AudioWorkletProcessor {
 		}
 
 		const queue = this.queue;
-		const frames = queue.outputFrames(outputs[0] as [Float32Array, Float32Array]);
+		const frames = queue.outputFrames(
+			outputs[0] as [Float32Array, Float32Array],
+			(marker, framesBeforeMarker) => {
+				this.port.postMessage({
+					type: 'user-marker-resp',
+					data: {
+						marker,
+						framesBeforeMarker,
+						sampleRate: sampleRate
+					}
+				} as RenderMessage.UserMarkerResponse);
+			}
+		);
 
 		if (!this.isRendering) {
 			if (queue.getFrameCountInQueue() <= this.halfMaxQueueFrames) {
@@ -109,6 +121,9 @@ class Processor extends AudioWorkletProcessor {
 				break;
 			case 'release':
 				this.port.close();
+				break;
+			case 'user-marker-send':
+				this.queue.pushMarker(data.data);
 				break;
 		}
 	}

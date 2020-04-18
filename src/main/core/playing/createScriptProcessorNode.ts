@@ -97,6 +97,9 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 				port1.removeEventListener('message', listener);
 				port1.close();
 				break;
+			case 'user-marker-send':
+				queue.pushMarker(data.data);
+				break;
 		}
 	};
 
@@ -112,7 +115,19 @@ export default function createScriptProcessorNode(ctx: BaseAudioContext, renderF
 			return;
 		}
 
-		const frames = queue.outputFrames(frameBuffers);
+		const frames = queue.outputFrames(
+			frameBuffers,
+			(marker, framesBeforeMarker) => {
+				port1.postMessage({
+					type: 'user-marker-resp',
+					data: {
+						marker,
+						framesBeforeMarker,
+						sampleRate: rate
+					}
+				} as RenderMessage.UserMarkerResponse);
+			}
+		);
 
 		if (!isRendering) {
 			if (queue.getFrameCountInQueue() <= halfMaxQueueFrames) {

@@ -56,6 +56,7 @@ export default class PlayerProxy {
 	public onStop: null | (() => void);
 	public onReset: null | (() => void);
 	public onUserData: null | ((data: any) => void);
+	public onUserMarker: null | ((data: RenderMessage.UserMarkerData) => void);
 
 	private playingId: number = 0;
 	private stopPromise: Promise<void>;
@@ -86,6 +87,7 @@ export default class PlayerProxy {
 		this.onStop = null;
 		this.onReset = null;
 		this.onUserData = null;
+		this.onUserMarker = null;
 		port.addEventListener('message', this.onMessage.bind(this));
 		port.start();
 	}
@@ -340,6 +342,15 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
+	public sendUserMarker(time: number, marker: string) {
+		const data: Message.UserMarker = {
+			type: 'user-marker',
+			time: time,
+			marker: marker
+		};
+		this.port.postMessage(data);
+	}
+
 	private initPlayingId(): number {
 		return ++this.playingId;
 	}
@@ -387,6 +398,11 @@ export default class PlayerProxy {
 				break;
 			case 'user-event':
 				this.handleUserEvent(data.data);
+				break;
+			case 'user-marker-resp':
+				if (this.onUserMarker) {
+					this.onUserMarker(data.data);
+				}
 				break;
 			default:
 				if (typeof data.id === 'number') {

@@ -6,6 +6,7 @@ import { TimeValue } from '../types';
 import PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
 import PlayStatusEventObject from '../events/PlayStatusEventObject';
 import PlayUserEventObject from '../events/PlayUserEventObject';
+import PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
 import SimpleEventObject from '../events/SimpleEventObject';
 
 import { isAudioAvailable, loadBinaryFromFile } from '../functions';
@@ -35,6 +36,13 @@ export interface StatusData {
 	outFrames: number;
 	sampleRate: number;
 	isQueueEmpty: boolean;
+}
+
+// same as << import { UserMarkerData } from 'types/RenderMessageData'; >>
+export interface UserMarkerData {
+	marker: string;
+	framesBeforeMarker: number;
+	sampleRate: number;
 }
 
 export interface SFontMap {
@@ -88,6 +96,7 @@ function normalizeMapName<T extends keyof PlayerBaseEventObjectMap>(name: string
 		case 'stopped': return 'stopped' as T;
 		case 'playstatus': return 'playstatus' as T;
 		case 'playuserevent': return 'playuserevent' as T;
+		case 'playusermarkerevent': return 'playusermarkerevent' as T;
 		default: return void 0;
 	}
 }
@@ -146,6 +155,7 @@ export default class PlayerBase {
 		proxy.onStop = this.onStopPlayer.bind(this);
 		proxy.onReset = this.onResetPlayer.bind(this);
 		proxy.onUserData = this.onUserDataPlayer.bind(this);
+		proxy.onUserMarker = this.onUserMarkerPlayer.bind(this);
 	}
 
 	public static isSupported() {
@@ -473,6 +483,13 @@ export default class PlayerBase {
 		this.raiseEventPlayStatus(this.playedFrames, s.sampleRate);
 	}
 
+	private onUserMarkerPlayer(data: UserMarkerData) {
+		const framePos = this.playedFrames + data.framesBeforeMarker;
+		// console.log('onStatusPlayer:', this.playedFrames / s.sampleRate, this.playedFrames);
+
+		this.raiseEventPlayUserMarkerEvent(framePos, data.sampleRate, data.marker);
+	}
+
 	private onStopPlayer() {
 		// console.log('[PlayerBase] onStopPlayer', this.isWaitingForStop, this._isPlayerRunning);
 		if (!this.isWaitingForStop && this._isPlayerRunning) {
@@ -523,6 +540,19 @@ export default class PlayerBase {
 			if (e.isPropagationStopped()) {
 				break;
 			}
+		}
+		return !e.isDefaultPrevented();
+	}
+	private raiseEventPlayUserMarkerEvent(current: number, sampleRate: number, marker: string) {
+		const m = this._evtMap.playusermarkerevent;
+		if (!m) {
+			return false;
+		}
+		const e = new PlayUserMarkerEventObject(this, current, sampleRate, marker);
+		for (const fn of m) {
+			fn(e);
+			if (e.isPropagationStopped())
+				break;
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -773,6 +803,14 @@ export default class PlayerBase {
 	 */
 	public sendFinish(time: TimeValue) {
 		this.proxy.sendFinishMarker(time * 1000);
+	}
+
+	/**
+	 * Send a user-defined marker, which is queued to audio buffer (frames).
+	 * During render process, when the marker is read, 'playusermarkerevent' will be raised.
+	 */
+	public sendUserMarker(marker: string, time: TimeValue) {
+		this.proxy.sendUserMarker(time * 1000, marker);
 	}
 
 	/**
