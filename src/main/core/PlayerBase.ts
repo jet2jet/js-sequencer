@@ -1345,6 +1345,14 @@ export default class PlayerBase {
 	}
 
 	/**
+	 * Resets the player internal time (tick).
+	 * After reset, the base time value for sendEvent() or other send methods will be the tick of reset.
+	 */
+	public resetPlayerTime() {
+		this.proxy.resetTime();
+	}
+
+	/**
 	 * Set the user-defined output stream.
 	 * If the stream is set, the render process will use it instead of Web Audio.
 	 * When the render process is running, the stream will not be used until

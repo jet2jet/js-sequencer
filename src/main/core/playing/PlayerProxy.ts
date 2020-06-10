@@ -230,6 +230,10 @@ export default class PlayerProxy {
 		this.port.postMessage({ type: 'stop' } as Message.Stop);
 	}
 
+	public resetTime() {
+		this.port.postMessage({ type: 'reset-time' } as Message.ResetTime);
+	}
+
 	public releasePlayer(resetSynth?: boolean) {
 		this.port.postMessage({
 			type: 'release',

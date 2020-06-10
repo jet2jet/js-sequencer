@@ -151,6 +151,12 @@ export interface UserMarker extends Base {
 }
 
 /** @internal */
+export interface ResetTime extends Base {
+	id?: never;
+	type: 'reset-time';
+}
+
+/** @internal */
 export type AllTypes =
 	| Initialize
 	| Close
@@ -166,6 +172,7 @@ export type AllTypes =
 	| Generator
 	| UserEvent
 	| FinishMarker
-	| UserMarker;
+	| UserMarker
+	| ResetTime;
 /** @internal */
 export default AllTypes;

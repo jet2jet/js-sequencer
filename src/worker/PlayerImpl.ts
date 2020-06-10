@@ -99,6 +99,7 @@ export default class PlayerImpl {
 	private allRendered: boolean;
 	private finishTimer: ReturnType<typeof setTimeout> | null = null;
 	private stopTimerOnFinish: ReturnType<typeof setTimeout> | null = null;
+	private promiseResetTime: Promise<void> | undefined;
 
 	private midiChannelCount: number;
 	private sampleRate: number;
@@ -453,7 +454,9 @@ export default class PlayerImpl {
 		}
 	}
 
-	private onMessage(e: MessageEvent) {
+	private async onMessage(e: MessageEvent) {
+		await this.promiseResetTime;
+
 		const data: Message.AllTypes = e.data;
 		switch (data.type) {
 			case 'close':
@@ -497,6 +500,12 @@ export default class PlayerImpl {
 				break;
 			case 'user-marker':
 				this.onUserMarker(data);
+				break;
+			case 'reset-time':
+				this.promiseResetTime = this.onResetTime(data);
+				// ignore unhandled promise rejection here
+				// eslint-disable-next-line @typescript-eslint/no-empty-function
+				this.promiseResetTime.catch(() => {});
 				break;
 		}
 	}
@@ -847,6 +856,14 @@ export default class PlayerImpl {
 				tick: tick,
 			});
 		}
+	}
+
+	private async onResetTime(_e: Message.ResetTime) {
+		if (!this.sequencer) {
+			return;
+		}
+		const tick = await this.sequencer.getTick();
+		this.startTime = tick;
 	}
 
 	private onRenderMessage(e: MessageEvent) {
