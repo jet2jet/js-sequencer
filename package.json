@@ -1,6 +1,6 @@
 {
   "engines": {
-    "node": "12",
+    "node": ">=12",
     "npm": ">=6"
   },
   "name": "sequencer",
