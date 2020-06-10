@@ -486,6 +486,9 @@ export default class PlayerImpl {
 			case 'event':
 				this.onEvent(data);
 				break;
+			case 'events':
+				this.onEvents(data);
+				break;
 			case 'sysex':
 				this.onSysEx(data);
 				break;
@@ -703,6 +706,24 @@ export default class PlayerImpl {
 				data: data.data,
 				tick: tick,
 			});
+		}
+	}
+
+	private onEvents(data: Message.Events) {
+		if (!this.sequencer) {
+			return;
+		}
+		for (const [e, time] of data.data) {
+			if (time === null) {
+				this.sequencer.sendEventToClientAt(-1, e, 0, false);
+			} else {
+				const tick = this.startTime + time;
+				this.eventQueue.push({
+					client: -1,
+					data: e,
+					tick: tick,
+				});
+			}
 		}
 	}
 

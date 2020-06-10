@@ -149,6 +149,10 @@ export default class PlayerBase {
 	private releasePlayerTimer: number | null = null;
 	private outputStream: IPlayStream | null = null;
 	private audioWorkletScripts: string[] = [];
+	private debounceEventTimer: number | null = null;
+	private debouncedEvents: Array<
+		[JSSynth.SequencerEvent, number | null]
+	> | null = null;
 
 	private _evtMap: {
 		[P in keyof PlayerBaseEventObjectMap]?: Array<
@@ -1071,12 +1075,37 @@ export default class PlayerBase {
 			return false;
 		}
 
+		let d: [JSSynth.SequencerEvent, number | null] | undefined;
 		if (typeof time === 'undefined' || time === null) {
 			this.proxy.sendEventNow(ev);
 		} else {
-			this.proxy.sendEvent(ev, time * 1000);
+			if (time > 0) {
+				d = [ev, time * 1000];
+			} else {
+				this.proxy.sendEvent(ev, time * 1000);
+			}
+		}
+		if (d) {
+			if (this.debounceEventTimer === null) {
+				this.debouncedEvents = [];
+				this.debounceEventTimer = setTimeout(
+					this.sendDebouncedEvents.bind(this),
+					1
+				);
+			}
+			this.debouncedEvents!.push(d);
 		}
 		return true;
+	}
+
+	private sendDebouncedEvents() {
+		const events = this.debouncedEvents;
+		if (!events || !events.length) {
+			return;
+		}
+		this.debounceEventTimer = null;
+		this.debouncedEvents = null;
+		this.proxy.sendEvents(events);
 	}
 
 	private doChangeProgram(

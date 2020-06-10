@@ -272,6 +272,14 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
+	public sendEvents(events: Array<[JSSynth.SequencerEvent, number | null]>) {
+		const data: Message.Events = {
+			type: 'events',
+			data: events,
+		};
+		this.port.postMessage(data);
+	}
+
 	public sendSysEx(bin: Uint8Array, time: number) {
 		const data: Message.SysEx = {
 			type: 'sysex',

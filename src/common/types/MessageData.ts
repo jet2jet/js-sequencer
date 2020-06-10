@@ -100,6 +100,14 @@ export interface Event extends Base {
 }
 
 /** @internal */
+export interface Events extends Base {
+	id?: never;
+	type: 'events';
+	/** an array of [event, time] tuple (time is in milliseconds, or null for send immediately) */
+	data: Array<[JSSynth.SequencerEvent, number | null]>;
+}
+
+/** @internal */
 export interface SysEx extends Base {
 	id?: never;
 	type: 'sysex';
@@ -168,6 +176,7 @@ export type AllTypes =
 	| Stop
 	| Release
 	| Event
+	| Events
 	| SysEx
 	| Generator
 	| UserEvent
