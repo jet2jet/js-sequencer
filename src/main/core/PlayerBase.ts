@@ -1315,10 +1315,18 @@ export default class PlayerBase {
 			return;
 		}
 
-		this.audioWorkletScripts = audioWorkletScripts
+		const newAudioWorkletScripts = audioWorkletScripts
 			? audioWorkletScripts.slice(0)
 			: [];
-		this.isWorkletLoaded = false;
+		if (
+			this.audioWorkletScripts.length !== newAudioWorkletScripts.length ||
+			newAudioWorkletScripts.some(
+				(s) => this.audioWorkletScripts.indexOf(s) < 0
+			)
+		) {
+			this.audioWorkletScripts = newAudioWorkletScripts;
+			this.isWorkletLoaded = false;
+		}
 	}
 
 	/**
