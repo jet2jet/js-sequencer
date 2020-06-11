@@ -262,6 +262,7 @@ export default class Player extends PlayerBase {
 	}
 
 	protected onQueuedPlayer(s: StatusData) {
+		super.onQueuedPlayer(s);
 		this.renderedFrames += s.outFrames;
 		this.renderedTime = this.renderedFrames / s.sampleRate;
 		// console.log('onQueuedPlayer:', this.renderedTime, this.renderedFrames);

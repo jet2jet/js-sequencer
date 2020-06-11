@@ -110,6 +110,8 @@ function normalizeMapName<T extends keyof PlayerBaseEventObjectMap>(
 			return 'reset' as T;
 		case 'stopped':
 			return 'stopped' as T;
+		case 'playqueued':
+			return 'playqueued' as T;
 		case 'playstatus':
 			return 'playstatus' as T;
 		case 'playuserevent':
@@ -171,6 +173,7 @@ export default class PlayerBase {
 	private isNodeConnected = false;
 	private isWorkletLoaded = false;
 
+	private queuedFrames: number = 0;
 	private playedFrames: number = 0;
 	private isWaitingForStop: boolean = false;
 
@@ -533,8 +536,11 @@ export default class PlayerBase {
 		}
 	}
 
-	protected onQueuedPlayer(_s: StatusData) {
+	protected onQueuedPlayer(s: StatusData) {
+		this.queuedFrames += s.outFrames;
 		// console.log('onQueuedPlayer:', this.renderedTime, this.renderedFrames);
+
+		this.raiseEventPlayQueued(this.queuedFrames, s.sampleRate);
 	}
 
 	private onStatusPlayer(s: StatusData) {
@@ -585,6 +591,18 @@ export default class PlayerBase {
 		this.raiseEventPlayUserEvent(e.type, e.data);
 	}
 
+	private raiseEventPlayQueued(current: number, sampleRate: number) {
+		const m = this._evtMap.playqueued;
+		if (!m) {
+			return false;
+		}
+		const e = new PlayStatusEventObject(this, current, sampleRate);
+		for (const fn of m) {
+			fn(e);
+			if (e.isPropagationStopped()) break;
+		}
+		return !e.isDefaultPrevented();
+	}
 	private raiseEventPlayStatus(current: number, sampleRate: number) {
 		const m = this._evtMap.playstatus;
 		if (!m) {
@@ -817,6 +835,7 @@ export default class PlayerBase {
 		this.isPlayerPreparing = false;
 		this._isPlayerRunning = true;
 
+		this.queuedFrames = 0;
 		this.playedFrames = 0;
 		this.isWaitingForStop = false;
 

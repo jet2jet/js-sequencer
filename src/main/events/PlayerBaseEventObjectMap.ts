@@ -10,6 +10,7 @@ export default interface PlayerBaseEventObjectMap {
 	start: SimpleEventObject<PlayerBase>;
 	reset: SimpleEventObject<PlayerBase>;
 	stopped: SimpleEventObject<PlayerBase>;
+	playqueued: PlayStatusEventObject;
 	playstatus: PlayStatusEventObject;
 	playuserevent: PlayUserEventObject;
 	/**
