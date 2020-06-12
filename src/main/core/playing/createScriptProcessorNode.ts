@@ -3,6 +3,8 @@ import * as RenderMessage from '../../types/RenderMessageData';
 import FrameQueue from './FrameQueue';
 import Options, { Defaults } from './Options';
 
+import makeDelayProcess from '../makeDelayProcess';
+
 /** @internal */
 export default function createScriptProcessorNode(
 	ctx: BaseAudioContext,
@@ -51,6 +53,36 @@ export default function createScriptProcessorNode(
 	let isRendering = true;
 	let isPaused = false;
 
+	let renderedFrames = 0;
+	const [delaySendRender, cancelDelaySendRender] = makeDelayProcess(() => {
+		const s: RenderMessage.RenderedResponse = {
+			type: 'rendered',
+			data: {
+				outFrames: renderedFrames,
+				sampleRate: rate,
+				isQueueEmpty: false,
+			},
+		};
+		renderedFrames = 0;
+		try {
+			port1.postMessage(s);
+		} catch {}
+	});
+	const [delaySendStatus, cancelDelaySendStatus] = makeDelayProcess(() => {
+		const s: RenderMessage.Status = {
+			type: 'status',
+			data: {
+				outFrames: proceededFrames,
+				sampleRate: rate,
+				isQueueEmpty: queue.isEmpty(),
+			},
+		};
+		proceededFrames = 0;
+		try {
+			port1.postMessage(s);
+		} catch {}
+	});
+
 	const listener = (e: MessageEvent) => {
 		const data: RenderMessage.AllTypes = e.data;
 		if (!data) {
@@ -58,32 +90,26 @@ export default function createScriptProcessorNode(
 		}
 		switch (data.type) {
 			case 'render':
-				{
-					queue.pushFrames(data.data);
-					if (isPrerendering) {
-						if (queue.getFrameCountInQueue() >= prerenderFrames) {
-							// console.log('Prerender finished', queue.getFrameCountInQueue());
-							isPrerendering = false;
-						}
+				queue.pushFrames(data.data);
+				if (isPrerendering) {
+					if (queue.getFrameCountInQueue() >= prerenderFrames) {
+						// console.log('Prerender finished', queue.getFrameCountInQueue());
+						isPrerendering = false;
 					}
+				}
 
-					const s: RenderMessage.RenderedResponse = {
-						type: 'rendered',
-						data: {
-							outFrames: data.data[0].byteLength / 4,
-							sampleRate: rate,
-							isQueueEmpty: false,
-						},
-					};
-					port1.postMessage(s);
+				renderedFrames += data.data[0].byteLength / 4;
+				delaySendRender(250);
 
-					if (queue.getFrameCountInQueue() >= maxQueueFrames) {
-						isRendering = false;
-						port1.postMessage({
-							type: 'queue',
-							data: { pause: true },
-						} as RenderMessage.QueueControl);
-					}
+				if (
+					isRendering &&
+					queue.getFrameCountInQueue() >= maxQueueFrames
+				) {
+					isRendering = false;
+					port1.postMessage({
+						type: 'queue',
+						data: { pause: true },
+					} as RenderMessage.QueueControl);
 				}
 				break;
 			case 'pause':
@@ -103,6 +129,8 @@ export default function createScriptProcessorNode(
 				isPaused = false;
 				break;
 			case 'release':
+				cancelDelaySendRender();
+				cancelDelaySendStatus();
 				port1.removeEventListener('message', listener);
 				port1.close();
 				break;
@@ -114,6 +142,8 @@ export default function createScriptProcessorNode(
 
 	port1.addEventListener('message', listener);
 	port1.start();
+
+	let proceededFrames = 0;
 
 	node.onaudioprocess = (e) => {
 		if (isPrerendering || isPaused) {
@@ -167,15 +197,8 @@ export default function createScriptProcessorNode(
 			e.outputBuffer.copyToChannel(frameBuffers[1], 1);
 		}
 
-		const s: RenderMessage.Status = {
-			type: 'status',
-			data: {
-				outFrames: frames,
-				sampleRate: rate,
-				isQueueEmpty: queue.isEmpty(),
-			},
-		};
-		port1.postMessage(s);
+		proceededFrames += frames;
+		delaySendStatus(250);
 	};
 
 	return {

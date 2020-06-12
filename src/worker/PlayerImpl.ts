@@ -429,11 +429,16 @@ export default class PlayerImpl {
 
 	private onRender() {
 		this.timerId = setTimeout(this.onRender.bind(this), this.timerInterval);
-		if (this.pauseRender || this.allRendered) {
+
+		if (this.allRendered) {
 			return;
 		}
 
 		this.doSendEvents();
+
+		if (this.pauseRender) {
+			return;
+		}
 
 		const size = this.framesCount;
 		const buffers: [ArrayBuffer, ArrayBuffer] = [
