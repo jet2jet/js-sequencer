@@ -913,13 +913,6 @@ export default class Player extends PlayerBase {
 			++renderedCount;
 		}
 
-		// if (renderedCount >= Constants.MaxEventCountPerRender) {
-		// 	console.log(`[doRenderNotes] renderedCount is reached to max (${renderedCount})`);
-		// }
-
-		// console.log('doRenderNotes: next index =', index,
-		// 	', queuedNotesTime =', this.queuedNotesTime,
-		// 	', toTime =', toTime);
 		this._nextPlayTimerId = setTimeout(
 			this.doRenderNotes.bind(
 				this,
