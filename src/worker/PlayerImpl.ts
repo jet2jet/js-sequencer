@@ -122,6 +122,7 @@ export default class PlayerImpl {
 		data: SequencerEvent;
 		tick: number;
 	}> = [];
+	private sorted: boolean = true;
 	private queuedFrames: number = 0;
 	private queuedTime: number = 0;
 
@@ -223,6 +224,10 @@ export default class PlayerImpl {
 
 	private doSendEvents() {
 		const q = this.eventQueue;
+		if (!this.sorted) {
+			q.sort((a, b) => a.tick - b.tick);
+			this.sorted = true;
+		}
 		const toTime = (this.queuedTime + 5) * 1000 + this.startTime;
 		// console.log(`[doSendEvents] q.length = ${q.length}, toTime = ${toTime}`);
 		while (q.length) {
@@ -593,6 +598,7 @@ export default class PlayerImpl {
 		this.hasFinished = false;
 		this.allRendered = false;
 		this.eventQueue = [];
+		this.sorted = true;
 		this.queuedFrames = 0;
 		this.queuedTime = 0;
 		this.userMsgMap = {};
@@ -711,6 +717,7 @@ export default class PlayerImpl {
 				data: data.data,
 				tick: tick,
 			});
+			this.sorted = false;
 		}
 	}
 
@@ -728,6 +735,7 @@ export default class PlayerImpl {
 					data: e,
 					tick: tick,
 				});
+				this.sorted = false;
 			}
 		}
 	}
@@ -760,6 +768,7 @@ export default class PlayerImpl {
 				},
 				tick: tick,
 			});
+			this.sorted = false;
 		}
 	}
 
@@ -792,6 +801,7 @@ export default class PlayerImpl {
 				},
 				tick: tick,
 			});
+			this.sorted = false;
 		}
 	}
 
@@ -822,6 +832,7 @@ export default class PlayerImpl {
 				},
 				tick: tick,
 			});
+			this.sorted = false;
 		}
 	}
 
@@ -850,6 +861,7 @@ export default class PlayerImpl {
 				},
 				tick: tick,
 			});
+			this.sorted = false;
 		}
 	}
 
@@ -881,6 +893,7 @@ export default class PlayerImpl {
 				},
 				tick: tick,
 			});
+			this.sorted = false;
 		}
 	}
 
