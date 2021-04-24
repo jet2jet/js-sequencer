@@ -268,6 +268,7 @@ export default class PlayerImpl {
 	}
 
 	private resetSynth() {
+		this.doStopTimer();
 		if (this.renderPort) {
 			this.renderPort.postMessage({
 				type: 'release',
