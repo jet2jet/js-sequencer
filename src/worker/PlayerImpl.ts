@@ -259,6 +259,12 @@ export default class PlayerImpl {
 					);
 				} catch (_e) {
 					// voice will not stopped, so re-initialize to reset
+					const c = console;
+					// const syn = this.synth.getRawSynthesizer();
+					c.warn(
+						'[js-sequencer] player did not stop in 5 seconds; reset synthesizer...'
+						// _module._fluid_synth_get_active_voice_count(syn)
+					);
 					this.resetSynth();
 				}
 				// console.log('  done. (waitForVoicesStopped)');
