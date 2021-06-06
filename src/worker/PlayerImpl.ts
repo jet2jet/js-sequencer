@@ -25,30 +25,11 @@ declare var JSSynth: typeof import('js-synthesizer');
 // eslint-disable-next-line no-var
 declare var Module: any;
 
-let promiseWasmInitialized: Promise<void>;
 let _module: any;
 
-function waitForWasmInitialized() {
-	if (!promiseWasmInitialized) {
-		_module = Module;
-		promiseWasmInitialized = Promise.resolve().then(
-			() =>
-				new Promise<void>((resolve) => {
-					if (_module.calledRun) {
-						resolve();
-					} else {
-						const fn = _module.onRuntimeInitialized;
-						_module.onRuntimeInitialized = () => {
-							resolve();
-							if (fn) {
-								fn();
-							}
-						};
-					}
-				})
-		);
-	}
-	return promiseWasmInitialized;
+async function waitForWasmInitialized() {
+	await JSSynth.Synthesizer.waitForWasmInitialized();
+	_module = Module;
 }
 
 function promiseWithTimeout<T>(
@@ -89,7 +70,7 @@ export default class PlayerImpl {
 	private sequencer: ISequencer | undefined;
 	private myClient!: number;
 	/** timer id for onRender method; also used for check 'playing' (non-null indicates 'playing') */
-	private timerId: ReturnType<typeof setTimeout> | null = null;
+	private timerId: ReturnType<typeof setInterval> | null = null;
 	private playingId: number | undefined;
 	private starting: boolean;
 	private pauseRender: boolean;
@@ -212,12 +193,15 @@ export default class PlayerImpl {
 
 	private doStartTimer() {
 		this.doStopTimer();
-		this.timerId = setTimeout(this.onRender.bind(this), this.timerInterval);
+		this.timerId = setInterval(
+			this.onRender.bind(this),
+			this.timerInterval
+		);
 	}
 
 	private doStopTimer() {
 		if (this.timerId !== null) {
-			clearTimeout(this.timerId);
+			clearInterval(this.timerId);
 			this.timerId = null;
 		}
 	}
@@ -440,8 +424,6 @@ export default class PlayerImpl {
 	}
 
 	private onRender() {
-		this.timerId = setTimeout(this.onRender.bind(this), this.timerInterval);
-
 		if (this.allRendered) {
 			return;
 		}
