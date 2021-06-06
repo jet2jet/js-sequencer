@@ -816,21 +816,8 @@ export default class PlayerBase {
 			}
 		}
 
-		// Reset program.
-		// This is necessary because the default soundfont of synthesizer is
-		// always the last loaded soundfont and cannot be changed
-		for (let channel = 0; channel < Constants.ChannelChordNote; ++channel) {
-			const isDrum =
-				channel === 9 || (this.channel16IsDrums && channel === 15);
-			const bank = isDrum ? 128 : 0;
-			this.proxy.sendEventNow({
-				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
-				channel: channel,
-				sfontId: this.sfontDefault!,
-				bank: bank,
-				preset: 0,
-			});
-		}
+		// Resetting program is removed because
+		// the resetting program must be done manually.
 
 		this.isPlayerPreparing = false;
 		this._isPlayerRunning = true;
