@@ -174,27 +174,37 @@ export default class PlayerProxy {
 
 	public startWithScriptProcessorNode(
 		ctx: BaseAudioContext,
+		sfontDefault: number,
 		options: Options
 	) {
 		const r = createScriptProcessorNode(ctx, this.framesCount, options);
-		this.startImpl(r.port);
+		this.startImpl(r.port, sfontDefault);
 		return r.node;
 	}
 
-	public startWithAudioWorkletNode(ctx: BaseAudioContext, options: Options) {
+	public startWithAudioWorkletNode(
+		ctx: BaseAudioContext,
+		sfontDefault: number,
+		options: Options
+	) {
 		const r = createAudioWorkletNode(ctx, options);
-		this.startImpl(r.port);
+		this.startImpl(r.port, sfontDefault);
 		return r.node;
 	}
 
-	public startForStream(stream: IPlayStream, options: Options) {
+	public startForStream(
+		stream: IPlayStream,
+		sfontDefault: number,
+		options: Options
+	) {
 		const port = createPortWithStream(stream, this.sampleRate, options);
-		this.startImpl(port);
+		this.startImpl(port, sfontDefault);
 	}
 
-	public startWithExistingConnection() {
+	public startWithExistingConnection(sfontDefault: number) {
 		const data: Message.Start = {
 			type: 'start',
+			sfontDefault: sfontDefault,
 			playingId: this.initPlayingId(),
 		};
 		this.port.postMessage(data);
@@ -203,10 +213,11 @@ export default class PlayerProxy {
 		});
 	}
 
-	private startImpl(renderPort: MessagePort) {
+	private startImpl(renderPort: MessagePort, sfontDefault: number) {
 		const data: Message.Start = {
 			type: 'start',
 			playingId: this.initPlayingId(),
+			sfontDefault: sfontDefault,
 			renderPort: renderPort,
 		};
 		this.port.postMessage(data, [renderPort]);

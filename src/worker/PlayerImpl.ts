@@ -605,6 +605,15 @@ export default class PlayerImpl {
 
 		this.synth.midiSystemReset();
 		this.synth.setChannelType(15, this.channel16IsDrums);
+		for (let i = 0; i < 16; ++i) {
+			const isDrum = i === 9 || (this.channel16IsDrums && i === 15);
+			this.synth.midiProgramSelect(
+				i,
+				data.sfontDefault,
+				isDrum ? 128 : 0,
+				0
+			);
+		}
 
 		this.doStartTimer();
 	}

@@ -67,6 +67,7 @@ export interface Start extends Base {
 	id?: never;
 	type: 'start';
 	playingId: number;
+	sfontDefault: number;
 	renderPort?: MessagePort;
 }
 

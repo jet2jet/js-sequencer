@@ -772,12 +772,16 @@ export default class PlayerBase {
 				this.playingStream &&
 				this.playingStream === this.outputStream
 			) {
-				this.proxy.startWithExistingConnection();
+				this.proxy.startWithExistingConnection(this.sfontDefault!);
 			} else {
 				if (this.playingStream) {
 					this.proxy.releasePlayer();
 				}
-				this.proxy.startForStream(this.outputStream, this.playOptions);
+				this.proxy.startForStream(
+					this.outputStream,
+					this.sfontDefault!,
+					this.playOptions
+				);
 				this.playingStream = this.outputStream;
 			}
 		} else {
@@ -795,16 +799,18 @@ export default class PlayerBase {
 			}
 			let node = this.playingNode;
 			if (node) {
-				this.proxy.startWithExistingConnection();
+				this.proxy.startWithExistingConnection(this.sfontDefault!);
 			} else {
 				const useAudioWorklet = this.audioWorkletScripts.length > 0;
 				node = useAudioWorklet
 					? this.proxy.startWithAudioWorkletNode(
 							actx,
+							this.sfontDefault!,
 							this.playOptions
 					  )
 					: this.proxy.startWithScriptProcessorNode(
 							actx,
+							this.sfontDefault!,
 							this.playOptions
 					  );
 				this.playingNode = node;
