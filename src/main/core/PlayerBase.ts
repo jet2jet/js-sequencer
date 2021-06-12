@@ -869,6 +869,19 @@ export default class PlayerBase {
 					);
 				}
 				break; // use default processing
+			case JSSynth.EventType.NoteOn:
+				if (ev.vel === 0) {
+					// Use note-off instead of note-on
+					return this.doSendEvent(
+						{
+							type: JSSynth.EventType.NoteOff,
+							channel: ev.channel,
+							key: ev.key,
+						},
+						time
+					);
+				}
+				break;
 		}
 		return this.doSendEvent({ ...ev }, time);
 	}
