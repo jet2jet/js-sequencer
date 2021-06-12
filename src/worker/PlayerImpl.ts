@@ -2,6 +2,11 @@ import ISequencer from 'js-synthesizer/ISequencer';
 import ISequencerEventData from 'js-synthesizer/ISequencerEventData';
 import SequencerEvent, {
 	EventType as SequencerEventTypes,
+	ControlChangeEvent,
+	VolumeEvent,
+	NoteEvent,
+	NoteOnEvent,
+	NoteOffEvent,
 } from 'js-synthesizer/SequencerEvent';
 import Synthesizer from 'js-synthesizer/Synthesizer';
 import SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
@@ -61,6 +66,104 @@ function promiseWithTimeout<T>(
 			}
 		);
 	});
+}
+
+function isControlChange(e: SequencerEvent): e is ControlChangeEvent {
+	return (
+		e.type === SequencerEventTypes.ControlChange ||
+		e.type === 'controlchange' ||
+		e.type === 'control-change'
+	);
+}
+
+function isNoteEvent(
+	e: SequencerEvent
+): e is NoteEvent | NoteOnEvent | NoteOffEvent {
+	return (
+		e.type === SequencerEventTypes.Note ||
+		e.type === 'note' ||
+		e.type === SequencerEventTypes.NoteOn ||
+		e.type === 'noteon' ||
+		e.type === 'note-on' ||
+		e.type === SequencerEventTypes.NoteOff ||
+		e.type === 'noteoff' ||
+		e.type === 'note-off'
+	);
+}
+
+/**
+ * This function drops 'duplicated' events (excluding note events), to avoid undefined order of events on FluidSynth
+ * (refs. https://www.fluidsynth.org/api/group__sequencer.html#ga83314f4ad773979841afe50cc2efd83f)
+ */
+function dropDuplicatedEvents(
+	q: Array<{
+		client: number;
+		data: SequencerEvent;
+		tick: number;
+	}>
+): boolean {
+	let lastTick = -1;
+	let lastIndex = -1;
+	let tickChanged = false;
+	for (let i = 0; i < q.length; ) {
+		let removed = false;
+		const o = q[i];
+		if (o.tick !== lastTick) {
+			lastIndex = -1;
+			lastTick = o.tick;
+		}
+		if ('channel' in o.data && !isNoteEvent(o.data)) {
+			if (lastIndex < 0) {
+				lastIndex = i;
+			} else {
+				for (let j = lastIndex; j < i; ++j) {
+					const x = q[j];
+					if (
+						x.data.type === o.data.type &&
+						'channel' in x.data &&
+						x.data.channel === o.data.channel
+					) {
+						let drop = true;
+						if (
+							isControlChange(x.data) &&
+							isControlChange(o.data)
+						) {
+							if (x.data.control === o.data.control) {
+								// check if the control is 'Switch' (e.g. Hold)
+								if (
+									x.data.control >= 64 &&
+									x.data.control < 96 &&
+									x.data.value >= 64 !== o.data.value >= 64 &&
+									// if tick > 0, this control would be meaningful
+									x.tick > 0
+								) {
+									// adjust tick '-1' to avoid 'undefined' order of FluidSynth
+									--x.tick;
+									tickChanged = true;
+									drop = false;
+								}
+							} else {
+								continue;
+							}
+						}
+						if (drop) {
+							console.log(
+								'[dropDuplicatedEvents] remove event:',
+								x.data
+							);
+							q.splice(j, 1);
+							removed = true;
+						}
+						break;
+					}
+				}
+			}
+		}
+		if (!removed) {
+			++i;
+		}
+	}
+	return tickChanged;
 }
 
 export default class PlayerImpl {
@@ -210,6 +313,9 @@ export default class PlayerImpl {
 		const q = this.eventQueue;
 		if (!this.sorted) {
 			q.sort((a, b) => a.tick - b.tick);
+			if (dropDuplicatedEvents(q)) {
+				q.sort((a, b) => a.tick - b.tick);
+			}
 			this.sorted = true;
 		}
 		const toTime = (this.queuedTime + 5) * 1000 + this.startTime;
