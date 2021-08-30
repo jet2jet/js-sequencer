@@ -173,7 +173,8 @@ export default class PlayerImpl {
 	private sequencer: ISequencer | undefined;
 	private myClient!: number;
 	/** timer id for onRender method; also used for check 'playing' (non-null indicates 'playing') */
-	private timerId: ReturnType<typeof setInterval> | null = null;
+	private timerId: ReturnType<typeof setTimeout> | null = null;
+	private readonly onTimerBind: () => void;
 	private playingId: number | undefined;
 	private starting: boolean;
 	private pauseRender: boolean;
@@ -238,6 +239,7 @@ export default class PlayerImpl {
 		this.gain = Defaults.Gain;
 		this.channel16IsDrums = false;
 
+		this.onTimerBind = this.onTimer.bind(this);
 		this.onRenderMessageBind = this.onRenderMessage.bind(this);
 
 		this.doInitialize(data).catch((e) => {
@@ -296,15 +298,12 @@ export default class PlayerImpl {
 
 	private doStartTimer() {
 		this.doStopTimer();
-		this.timerId = setInterval(
-			this.onRender.bind(this),
-			this.timerInterval
-		);
+		this.timerId = setTimeout(this.onTimerBind, this.timerInterval);
 	}
 
 	private doStopTimer() {
 		if (this.timerId !== null) {
-			clearInterval(this.timerId);
+			clearTimeout(this.timerId);
 			this.timerId = null;
 		}
 	}
@@ -527,6 +526,14 @@ export default class PlayerImpl {
 			this.allRendered = true;
 		}
 		this.onStop();
+	}
+
+	private onTimer() {
+		if (this.allRendered) {
+			return;
+		}
+		this.onRender();
+		this.timerId = setTimeout(this.onTimerBind, this.timerInterval);
 	}
 
 	private onRender() {
