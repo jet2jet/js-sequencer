@@ -47,7 +47,7 @@ export function sub(
 }
 
 export function mul(
-	a: TimeRationalValue,
+	a: Readonly<TimeRationalValue>,
 	b: Readonly<TimeRationalValue>
 ): TimeRationalValue {
 	return normalize({
@@ -57,7 +57,7 @@ export function mul(
 }
 
 export function div(
-	a: TimeRationalValue,
+	a: Readonly<TimeRationalValue>,
 	b: Readonly<TimeRationalValue>
 ): TimeRationalValue {
 	return normalize({

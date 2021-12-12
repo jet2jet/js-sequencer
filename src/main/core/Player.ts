@@ -2,7 +2,7 @@ import * as JSSynth from 'js-synthesizer';
 
 import PlayerBase, { StatusData } from './PlayerBase';
 
-import { FadeoutData, LoopData, TimeValue } from '../types';
+import { FadeoutData, LoopData, TimeValue, TimeRationalValue } from '../types';
 
 import BackgroundChord from '../objects/BackgroundChord';
 import IPositionObject from '../objects/IPositionObject';
@@ -28,14 +28,16 @@ import PlayQueueEventObject from '../events/PlayQueueEventObject';
 import PlayStatusEventObject from '../events/PlayStatusEventObject';
 import PlayUserEventObject from '../events/PlayUserEventObject';
 import PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
-import SimpleEventObject from '../events/SimpleEventObject';
 
 import { isAudioAvailable } from '../functions';
+import * as TimeRational from '../functions/timeRational';
 
 import Engine, {
 	calcTimeExFromSMFTempo,
 	calculatePositionFromSeconds,
+	calculateSecondsFromPosition2,
 	sortNotesAndControls,
+	calculatePositionFromSeconds2,
 } from './Engine';
 import NoteObject from './NoteObject';
 import Part from './Part';
@@ -201,6 +203,8 @@ export default class Player extends PlayerBase {
 	private queuedNotesBaseTime: TimeValue = 0;
 	/** True if 'enable loop' event has been occurred */
 	private loopEnabled: boolean = false;
+	private loopDuration: TimeRationalValue | null = null;
+	private loopIndexCurrent: number = 0;
 	private fadeout: FadeoutStatus | null = null;
 	private renderedTime: TimeValue = 0;
 	private renderedFrames: number = 0;
@@ -591,11 +595,24 @@ export default class Player extends PlayerBase {
 	}
 
 	private prepareLoop(
-		_notesAndControls: ISequencerObject[],
-		_loopStatus: LoopStatus
+		notesAndControls: ISequencerObject[],
+		loopStatus: LoopStatus
 	) {
+		const r = calculateSecondsFromPosition2(
+			notesAndControls,
+			60000000 / this.engine.tempo,
+			loopStatus.start,
+			loopStatus.end || null,
+			true
+		)!;
+		if (r === null) {
+			return;
+		}
+
 		// enabled at first; disabled on loop
 		this.loopEnabled = true;
+		this.loopIndexCurrent = 0;
+		this.loopDuration = TimeRational.sub(r.timeTo, r.timeFrom);
 	}
 
 	private doSetupFadeout(fadeout: FadeoutStatus) {
@@ -941,6 +958,7 @@ export default class Player extends PlayerBase {
 				const loopStatus: LoopStatus = JSON.parse(
 					e.marker.substring(7)
 				);
+				this.loopIndexCurrent = loopStatus.loopIndex;
 				this.raiseEventPlayLooped(
 					loopStatus,
 					e.currentFrame,
@@ -1494,5 +1512,87 @@ export default class Player extends PlayerBase {
 		this.engine.reset();
 		this.engine.updateMasterControls();
 		this.engine.raiseEventFileLoaded();
+	}
+
+	public getCurrentTimeWithLooped(
+		timeCurrent: TimeRationalValue
+	): TimeRationalValue {
+		const d = this.loopDuration;
+		let r = timeCurrent;
+		if (d !== null) {
+			let loopIndex = this.loopIndexCurrent;
+			while (loopIndex--) {
+				r = TimeRational.add(r, d);
+			}
+		}
+		return r;
+	}
+
+	public calculateDurationWithLooped(
+		loopData?: LoopData,
+		fadeout?: FadeoutData | boolean
+	): TimeRationalValue {
+		let arr: ISequencerObject[] = [];
+		this.engine.parts.forEach((p) => {
+			arr = arr.concat(p.notes);
+			arr = arr.concat(p.controls);
+		});
+		arr = arr.concat(this.engine.masterControls);
+		sortNotesAndControls(arr);
+
+		const r = calculatePositionFromSeconds2(
+			arr,
+			60000000 / this.engine.tempo,
+			{ num: 0, den: 1 },
+			null,
+			true
+		);
+		if (r === null) {
+			return { num: 0, den: 1 };
+		}
+		if (!loopData || typeof loopData.loopCount !== 'number') {
+			return r.duration;
+		}
+		const r2 = calculateSecondsFromPosition2(
+			arr,
+			60000000 / this.engine.tempo,
+			loopData?.start || { numerator: 0, denominator: 1 },
+			loopData?.end || null,
+			true
+		);
+		if (r2 === null) {
+			return r.duration;
+		}
+		const baseDuration = r.duration;
+		let loopDuration = TimeRational.sub(r2.timeTo, r2.timeFrom);
+		loopDuration = {
+			num: loopDuration.num * loopData.loopCount,
+			den: loopDuration.den,
+		};
+		r.duration = TimeRational.add(r.duration, loopDuration);
+		if (fadeout) {
+			if (typeof fadeout === 'boolean') {
+				fadeout = { enabled: true };
+			}
+			if (fadeout.enabled) {
+				const startTimeFromLoop =
+					typeof fadeout.startTimeFromLoop === 'number'
+						? fadeout.startTimeFromLoop
+						: Constants.DefaultFadeoutStartTime;
+				const fadeoutTime =
+					typeof fadeout.fadeoutTime === 'number'
+						? fadeout.fadeoutTime
+						: Constants.DefaultFadeoutTime;
+				// duration - (baseDuration - loopEnd) + startTimeFromLoop + fadeoutTime
+				r.duration = TimeRational.add(
+					TimeRational.sub(
+						r.duration,
+						TimeRational.sub(baseDuration, r2.timeTo)
+					),
+					{ num: startTimeFromLoop + fadeoutTime, den: 1 }
+				);
+			}
+		}
+		return r.duration;
 	}
 }

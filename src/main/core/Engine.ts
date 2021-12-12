@@ -561,7 +561,7 @@ export function calculatePositionFromSeconds(
 	);
 }
 
-function calculateSecondsFromPosition2(
+export function calculateSecondsFromPosition2(
 	notesAndControls: ISequencerObject[],
 	smfTempoFirst: number,
 	posFrom: IPositionObject,
