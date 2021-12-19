@@ -24,6 +24,7 @@ rules:
   no-undef: off
   # using @typescript-eslint/no-useless-constructor instead
   no-useless-constructor: off
+  no-use-before-define: off
   # using @typescript-eslint/semi instead
   semi: off
   space-before-function-paren:

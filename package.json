@@ -1,6 +1,6 @@
 {
   "engines": {
-    "node": ">=14",
+    "node": ">=14.18",
     "npm": ">=6"
   },
   "name": "sequencer",
@@ -26,23 +26,23 @@
   "author": "jet",
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^2.28.0",
-    "@typescript-eslint/parser": "^2.28.0",
-    "eslint": "^6.8.0",
+    "@typescript-eslint/eslint-plugin": "^5.7.0",
+    "@typescript-eslint/parser": "^5.7.0",
+    "eslint": "^8.5.0",
     "eslint-config-prettier": "^6.10.1",
     "eslint-config-semistandard": "^15.0.0",
     "eslint-config-standard": "^13.0.1",
-    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.1.3",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "js-synthesizer": "~1.8.3",
     "prettier": "^2.0.4",
-    "ts-loader": "^7.0.0",
-    "typescript": "3.7.5",
-    "webpack": "^4.42.1",
-    "webpack-cli": "^3.3.11"
+    "ts-loader": "^9.2.6",
+    "typescript": "~4.5.4",
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1"
   },
   "dependencies": {}
 }

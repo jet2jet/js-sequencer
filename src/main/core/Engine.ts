@@ -1140,19 +1140,12 @@ function copyUint8ArrayToDataView(
 	offsetOut: number,
 	arr: Uint8Array
 ) {
-	if (arr.set) {
-		new Uint8Array(
-			dvOut.buffer,
-			dvOut.byteOffset + offsetOut,
-			arr.byteLength
-		).set(arr);
-		return offsetOut + arr.byteLength;
-	}
-	arr.forEach((u) => {
-		dvOut.setUint8(offsetOut, u);
-		offsetOut++;
-	});
-	return offsetOut;
+	new Uint8Array(
+		dvOut.buffer,
+		dvOut.byteOffset + offsetOut,
+		arr.byteLength
+	).set(arr);
+	return offsetOut + arr.byteLength;
 }
 
 function divideNoteObjects(notes: NoteObject[]) {

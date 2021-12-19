@@ -91,7 +91,6 @@ module.exports = (env) => {
 		},
 		optimization: {
 			concatenateModules: true,
-			namedModules: false,
 		},
 		plugins: [
 			new webpack.BannerPlugin({
@@ -121,10 +120,9 @@ module.exports = (env) => {
 							relPathFromProject
 						);
 						if (existsModule(commonPath, moduleExtensions)) {
-							resource.request = path.relative(
-								resource.context,
-								commonPath
-							);
+							resource.request = path
+								.relative(resource.context, commonPath)
+								.replace(/\\/g, '/');
 						}
 					}
 				}
