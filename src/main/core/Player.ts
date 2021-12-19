@@ -1,8 +1,7 @@
-import * as JSSynth from 'js-synthesizer';
-
 import PlayerBase, { StatusData } from './PlayerBase';
 
 import { FadeoutData, LoopData, TimeValue, TimeRationalValue } from '../types';
+import { SynthEvent } from '../types/SynthEvents';
 
 import BackgroundChord from '../objects/BackgroundChord';
 import IPositionObject from '../objects/IPositionObject';
@@ -138,30 +137,30 @@ function convertBkChordsToNotes(
 	return arr;
 }
 
-function makeEventData(object: ISequencerObject): JSSynth.SequencerEvent {
+function makeEventData(object: ISequencerObject): SynthEvent {
 	if (object instanceof AftertouchControl) {
 		return {
-			type: JSSynth.SequencerEventTypes.EventType.KeyPressure,
+			type: 'aftertouch',
 			channel: object.channel,
 			key: object.noteValue,
 			value: object.value,
 		};
 	} else if (object instanceof ControllerControl) {
 		return {
-			type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+			type: 'control',
 			channel: object.channel,
 			control: object.value1,
 			value: object.value2,
 		};
 	} else if (object instanceof PitchWheelControl) {
 		return {
-			type: JSSynth.SequencerEventTypes.EventType.PitchBend,
+			type: 'pitch',
 			channel: object.channel,
 			value: object.value,
 		};
 	} else if (object instanceof PressureControl) {
 		return {
-			type: JSSynth.SequencerEventTypes.EventType.ChannelPressure,
+			type: 'pressure',
 			channel: object.channel,
 			value: object.value,
 		};
@@ -415,11 +414,11 @@ export default class Player extends PlayerBase {
 
 		const doPlay = () => {
 			this.sendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+				type: 'noteon',
 				channel:
 					n.channel >= 0 ? n.channel : Constants.ChannelSingleNote,
 				key: n.noteValue,
-				vel: n.velocity,
+				velocity: n.velocity,
 			});
 
 			this.playingNote = n;
@@ -440,7 +439,7 @@ export default class Player extends PlayerBase {
 		const n = this.playingNote;
 		if (n) {
 			this.sendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.NoteOff,
+				type: 'noteoff',
 				channel: n.channel >= 0 ? n.channel : 0,
 				key: n.noteValue,
 			});
@@ -465,13 +464,13 @@ export default class Player extends PlayerBase {
 		const doPlay = () => {
 			arr.forEach((n) => {
 				this.sendEvent({
-					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+					type: 'noteon',
 					channel:
 						n.channel >= 0
 							? n.channel
 							: Constants.ChannelSingleNote,
 					key: n.noteValue,
-					vel: n.velocity,
+					velocity: n.velocity,
 				});
 			});
 		};
@@ -494,7 +493,7 @@ export default class Player extends PlayerBase {
 		const arr = notes instanceof Array ? notes : [notes];
 		arr.forEach((n) => {
 			this.sendEvent({
-				type: JSSynth.SequencerEventTypes.EventType.NoteOff,
+				type: 'noteoff',
 				channel: n.channel >= 0 ? n.channel : 0,
 				key: n.noteValue,
 			});
@@ -638,10 +637,7 @@ export default class Player extends PlayerBase {
 		return true;
 	}
 
-	protected preSendEvent(
-		ev: JSSynth.SequencerEvent,
-		time: TimeValue | null | undefined
-	) {
+	protected preSendEvent(ev: SynthEvent, time: TimeValue | null | undefined) {
 		if (typeof time === 'undefined' || time === null) {
 			return true;
 		}
@@ -649,7 +645,7 @@ export default class Player extends PlayerBase {
 			return false;
 		}
 		if (
-			ev.type === JSSynth.SequencerEventTypes.EventType.ControlChange &&
+			ev.type === 'control' &&
 			(ev.control === 0x07 || ev.control === 0x27)
 		) {
 			const fadeout = this.fadeout;
@@ -672,8 +668,7 @@ export default class Player extends PlayerBase {
 				// console.log(`[Player] inject volume for fadeout (actual = ${actualValue}, new = ${newValue})`);
 				this.doSendEvent(
 					{
-						type:
-							JSSynth.SequencerEventTypes.EventType.ControlChange,
+						type: 'control',
 						channel: channel,
 						control: 0x07,
 						value: Math.floor(newValue / 0x80),
@@ -716,7 +711,7 @@ export default class Player extends PlayerBase {
 			);
 			this.doSendEvent(
 				{
-					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					type: 'control',
 					channel: channel,
 					control: 0x07,
 					value: Math.floor(vol / 0x80),
@@ -726,7 +721,7 @@ export default class Player extends PlayerBase {
 			);
 			this.doSendEvent(
 				{
-					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					type: 'control',
 					channel: channel,
 					control: 0x27,
 					value: vol & 0x7f,
@@ -1066,7 +1061,7 @@ export default class Player extends PlayerBase {
 			}
 			return this.doSendEvent(
 				{
-					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+					type: 'control',
 					channel: o.channel,
 					control: o.value1,
 					value: o.value2,
@@ -1081,10 +1076,10 @@ export default class Player extends PlayerBase {
 			}
 			const cont = this.sendEvent(
 				{
-					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+					type: 'noteon',
 					channel: o.channel,
 					key: o.noteValue,
-					vel: o.velocity,
+					velocity: o.velocity,
 				},
 				time
 			);
@@ -1166,10 +1161,10 @@ export default class Player extends PlayerBase {
 					));
 				this.sendEvent(
 					{
-						type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+						type: 'noteon',
 						channel: n.channel,
 						key: n.noteValue,
-						vel: 0,
+						velocity: 0,
 					},
 					time2
 				);
@@ -1188,10 +1183,10 @@ export default class Player extends PlayerBase {
 		this._playingNotes.splice(0).forEach((n) => {
 			this.sendEvent(
 				{
-					type: JSSynth.SequencerEventTypes.EventType.NoteOn,
+					type: 'noteon',
 					channel: n.channel,
 					key: n.noteValue,
-					vel: 0,
+					velocity: 0,
 				},
 				timeToOff
 			);
@@ -1230,9 +1225,7 @@ export default class Player extends PlayerBase {
 					if (typeof ch.bank === 'number') {
 						this.sendEvent(
 							{
-								type:
-									JSSynth.SequencerEventTypes.EventType
-										.ControlChange,
+								type: 'control',
 								channel: i,
 								control: 0, // Bank MSB
 								value: Math.floor(ch.bank / 0x80),
@@ -1242,9 +1235,7 @@ export default class Player extends PlayerBase {
 						if ((ch.bank & 0x7f) !== 0) {
 							this.sendEvent(
 								{
-									type:
-										JSSynth.SequencerEventTypes.EventType
-											.ControlChange,
+									type: 'control',
 									channel: i,
 									control: 32, // Bank LSB
 									value: ch.bank & 0x7f,
