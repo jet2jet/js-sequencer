@@ -2,9 +2,7 @@ import SimpleEventObject from './SimpleEventObject';
 
 import EditorEngine from '../core/EditorEngine';
 
-export default class MaxChangedEventObject extends SimpleEventObject<
-	EditorEngine
-> {
+export default class MaxChangedEventObject extends SimpleEventObject<EditorEngine> {
 	public readonly max: number;
 	public readonly posNumerator: number;
 	public readonly posDenominator: number;

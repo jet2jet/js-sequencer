@@ -531,9 +531,8 @@ export default class PlayerImpl {
 			const diff = newVal - o.prev;
 			const syn = this.synth.getRawSynthesizer();
 			// prot: int fluid_synth_get_active_voice_count(fluid_synth_t*)
-			const voiceCount: number = _module._fluid_synth_get_active_voice_count(
-				syn
-			);
+			const voiceCount: number =
+				_module._fluid_synth_get_active_voice_count(syn);
 			// fluid_voice_t* voiceList = malloc(sizeof(fluid_voice_t*) * voiceCount)
 			const voiceList: number = _module._malloc(voiceCount * 4);
 			// prot: void fluid_synth_get_voicelist(fluid_synth_t*, fluid_voice_t*, int, int)

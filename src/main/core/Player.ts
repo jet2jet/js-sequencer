@@ -787,8 +787,8 @@ export default class Player extends PlayerBase {
 							break;
 						}
 						// --- do loop ---
-						const basePos2: IPositionObject = this
-							.queuedNotesBasePos!;
+						const basePos2: IPositionObject =
+							this.queuedNotesBasePos!;
 						let timeCurrent: number;
 						if (nextPos) {
 							// (in this case loopStatus.end is not null)

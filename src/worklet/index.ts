@@ -76,7 +76,8 @@ class Processor extends AudioWorkletProcessor {
 		const timer = new TimerContainer(() => Date.now());
 		this.timer = timer;
 
-		this.prerenderFrames = options.processorOptions!.options.prerenderFrames;
+		this.prerenderFrames =
+			options.processorOptions!.options.prerenderFrames;
 		this.maxQueueFrames = options.processorOptions!.options.maxQueueFrames;
 		this.halfMaxQueueFrames = Math.floor((this.maxQueueFrames * 3) / 2);
 

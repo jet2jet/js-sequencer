@@ -14,9 +14,8 @@ type ResponseDataTypeBase<
 	TType extends Response.AllTypes['type'],
 	TResponseType extends Response.AllTypes
 > = TResponseType extends { type: TType } ? TResponseType['data'] : never;
-type ResponseDataType<
-	TType extends Response.AllTypes['type']
-> = ResponseDataTypeBase<TType, Response.AllTypes>;
+type ResponseDataType<TType extends Response.AllTypes['type']> =
+	ResponseDataTypeBase<TType, Response.AllTypes>;
 
 let _workerShared: Worker | undefined;
 

@@ -4,10 +4,9 @@ type Flatten<T> = { [P in keyof T]: T[P] };
 type PartialRequired<T, TKeys extends keyof T> = Flatten<
 	{
 		[P in keyof T]: T[P];
-	} &
-		{
-			[P in TKeys]-?: T[P];
-		}
+	} & {
+		[P in TKeys]-?: T[P];
+	}
 >;
 
 /** @internal */
