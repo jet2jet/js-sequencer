@@ -28,7 +28,10 @@ export default class TimeSignatureControl extends ControlObject {
 	) {
 		super();
 
+		// zero is not allowed (use default values)
+		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		this.beatsNumerator = beatsNumerator || 4;
+		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		this.beatsDenominator = beatsDenominator || 4;
 		if (isUndefined(cl)) cl = 24;
 		if (isUndefined(num)) num = 8;
@@ -63,7 +66,7 @@ export default class TimeSignatureControl extends ControlObject {
 		this.num32ndInQuater = obj.num32ndInQuater;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof TimeSignatureControl)) return false;
+		if (!(obj instanceof TimeSignatureControl)) return false;
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 				this.notePosDenominator * obj.notePosNumerator &&

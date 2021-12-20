@@ -19,14 +19,14 @@ export default class ControllerControl extends ControlObject {
 	constructor(
 		posNumerator?: number,
 		posDenominator?: number,
-		channel?: number,
-		value1?: number,
-		value2?: number
+		channel: number = 0,
+		value1: number = 0,
+		value2: number = 0
 	) {
 		super();
-		this.channel = channel || 0;
-		this.value1 = value1 || 0;
-		this.value2 = value2 || 0;
+		this.channel = channel;
+		this.value1 = value1;
+		this.value2 = value2;
 		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
@@ -48,7 +48,7 @@ export default class ControllerControl extends ControlObject {
 		this.value2 = obj.value2;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof ControllerControl)) return false;
+		if (!(obj instanceof ControllerControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator
@@ -67,7 +67,7 @@ export default class ControllerControl extends ControlObject {
 		return this.equals(obj);
 	}
 	public compareTo(obj: any): number {
-		if (!obj || !(obj instanceof ControllerControl)) return -1;
+		if (!(obj instanceof ControllerControl)) return -1;
 		if (this.channel !== obj.channel) return this.channel - obj.channel;
 		// DATA MSB/LSB must follow another controls (for sorting)
 		if (this.value1 === 6 || this.value1 === 38)

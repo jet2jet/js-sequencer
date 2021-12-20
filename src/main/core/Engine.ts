@@ -63,7 +63,7 @@ export function sortNotesAndControls(arr: ISequencerObject[]) {
 		const pos1 = a.notePosNumerator * b.notePosDenominator;
 		const pos2 = b.notePosNumerator * a.notePosDenominator;
 		if (pos1 === pos2) {
-			if (a.isEqualType && a.isEqualType(b)) {
+			if (a.isEqualType?.(b)) {
 				if (a.compareTo) return a.compareTo(b);
 			}
 			if (a instanceof ControlObject) {
@@ -226,7 +226,6 @@ function calculatePositionImpl2(
 	let retTo: IPositionObject | null = null;
 	let isPosSeconds: boolean;
 	if ('numerator' in posFrom || (posTo && 'numerator' in posTo)) {
-		if (!posFrom) return null;
 		retFrom = posFrom as IPositionObject;
 		retTo = posTo as IPositionObject;
 		isPosSeconds = false;
@@ -243,7 +242,7 @@ function calculatePositionImpl2(
 	let curTempo = smfTempoFirst;
 	let time: TimeRationalValue = { num: 0, den: 1 };
 	let timeFinish: TimeRationalValue | null = tTo;
-	const chTempData: Channel[] = [];
+	const chTempData: Array<Channel | undefined> = [];
 	chTempData.length = 16;
 	for (let i = 0; i < chTempData.length; ++i) {
 		chTempData[i] = {
@@ -417,7 +416,7 @@ function calculatePositionImpl2(
 			const tm = calcHoldTime2(
 				note,
 				curTempo,
-				ch && ch.isHolding,
+				ch?.isHolding || false,
 				notesAndControls,
 				i,
 				disableHold
@@ -451,7 +450,7 @@ function calculatePositionImpl2(
 		duration = TimeRational.sub(time, tFrom!);
 	}
 	return {
-		from: retFrom!,
+		from: retFrom,
 		to: retTo!,
 		timeFrom: tFrom!,
 		timeTo: tTo!,
@@ -575,10 +574,9 @@ export function calculateSecondsFromPosition2(
 	duration: TimeRationalValue;
 } | null {
 	if (
-		!posFrom ||
-		(posTo &&
-			posFrom.numerator * posTo.denominator >=
-				posFrom.denominator * posTo.numerator)
+		posTo &&
+		posFrom.numerator * posTo.denominator >=
+			posFrom.denominator * posTo.numerator
 	) {
 		return null;
 	}
@@ -1549,7 +1547,9 @@ export default class Engine {
 
 	public parts: Part[] = [];
 
-	private _evtFileLoaded: Array<(e: SimpleEventObject<Engine>) => void> = [];
+	private readonly _evtFileLoaded: Array<
+		(e: SimpleEventObject<Engine>) => void
+	> = [];
 
 	constructor() {
 		this.reset();
@@ -1557,7 +1557,6 @@ export default class Engine {
 
 	public getTimeSignature(indexLast: number): TimeSignatureControl | null {
 		const ctrls = this.masterControls;
-		if (!ctrls) return null;
 		for (const c of ctrls) {
 			if (c instanceof TimeSignatureControl) {
 				if (!indexLast) return c;
@@ -1569,7 +1568,6 @@ export default class Engine {
 
 	public getKeySignature(indexLast: number): KeySignatureControl | null {
 		const ctrls = this.masterControls;
-		if (!ctrls) return null;
 		for (const c of ctrls) {
 			if (c instanceof KeySignatureControl) {
 				if (!indexLast) return c;
@@ -1595,7 +1593,7 @@ export default class Engine {
 			numerator = numerator.numerator;
 		}
 		let measure = -1;
-		const ctrls = this.masterControls ? this.masterControls : null;
+		const ctrls = this.masterControls;
 		let iCPos = 0;
 		// let labelPos = 0;
 		const bc = new BeatsCalculator();
@@ -1604,7 +1602,6 @@ export default class Engine {
 		let iPos = 0;
 		while (true) {
 			if (
-				ctrls &&
 				iCPos < ctrls.length &&
 				nextPosNum >= 0 &&
 				bc.posNumerator * nextPosDen >= nextPosNum * bc.posDenominator
@@ -1659,7 +1656,7 @@ export default class Engine {
 	}
 
 	public getPositionFromMeasure(measure: number): IPositionObject {
-		const ctrls = this.masterControls ? this.masterControls : null;
+		const ctrls = this.masterControls;
 		let iCPos = 0;
 		// let labelPos = 0;
 		const bc = new BeatsCalculator();
@@ -1668,7 +1665,6 @@ export default class Engine {
 		let iPos = 0;
 		while (true) {
 			if (
-				ctrls &&
 				iCPos < ctrls.length &&
 				nextPosNum >= 0 &&
 				bc.posNumerator * nextPosDen >= nextPosNum * bc.posDenominator
@@ -1776,9 +1772,7 @@ export default class Engine {
 	}
 
 	public reset() {
-		if (this.masterControls) {
-			for (const c of this.masterControls) c.detachEngine();
-		}
+		for (const c of this.masterControls) c.detachEngine();
 		this.smfDivision = 0x120;
 		this.tempo = 120;
 		this.masterControls = [];
@@ -1812,10 +1806,10 @@ export default class Engine {
 	}
 
 	private getFirstMsgData(partIndex: number, msgType: number) {
-		const part = this.parts[partIndex];
-		if (!part) {
+		if (!(partIndex in this.parts)) {
 			return null;
 		}
+		const part = this.parts[partIndex];
 		for (const c of part.controls) {
 			if (c instanceof SysMsgControl) {
 				if (c.msgType === msgType) {
@@ -1972,7 +1966,7 @@ export default class Engine {
 		// 	console.log("To: " + r.to.numerator + "/" + r.to.denominator);
 		// 	console.log("  Duration: " + r.duration);
 		// }
-		return (r && r.duration) || { num: 0, den: 1 };
+		return r?.duration || { num: 0, den: 1 };
 	}
 
 	public startLoadSMFData(
@@ -2042,11 +2036,9 @@ export default class Engine {
 			lenRemain -= len;
 		}
 
-		if (this.masterControls) {
-			this.masterControls.forEach((c) => {
-				c.detachEngine();
-			});
-		}
+		this.masterControls.forEach((c) => {
+			c.detachEngine();
+		});
 		this.parts = parts;
 		parts[0].attachEngine(this);
 		updateControlArray(mcontrols);
@@ -2061,6 +2053,8 @@ export default class Engine {
 	}
 
 	public getErrorFromLoadSMFData(ctx: ILoadSMFContext | null): any {
+		// ctx?.smfBuffer !== null is not correct
+		// eslint-disable-next-line @typescript-eslint/prefer-optional-chain
 		return ctx && ctx.smfBuffer !== null
 			? ctx.error
 			: new Error('Invalid context');
@@ -2078,8 +2072,10 @@ export default class Engine {
 		ctx: ILoadSMFContext | null,
 		callback: (err?: any) => void
 	) {
+		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		if (!ctx || ctx.error) {
-			callback((ctx && ctx.error) || new Error('Invalid data'));
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+			callback(ctx?.error || new Error('Invalid data'));
 			return;
 		}
 		window.setTimeout(() => {
@@ -2096,6 +2092,7 @@ export default class Engine {
 	private loadContextAsyncImpl(ctx: ILoadSMFContext | null) {
 		return new Promise<void>((resolve, reject) => {
 			this.loadContextCallbackImpl(ctx, (err) => {
+				// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 				if (err) {
 					reject(err);
 				} else {
@@ -2126,23 +2123,24 @@ export default class Engine {
 		fileElemId: string | HTMLInputElement,
 		callback?: (error?: any) => void
 	) {
-		const f: HTMLInputElement =
-			fileElemId && (fileElemId as HTMLInputElement).files
-				? (fileElemId as HTMLInputElement)
-				: (document.getElementById(
-						fileElemId as string
-				  ) as HTMLInputElement);
+		const f: HTMLInputElement | null =
+			typeof fileElemId === 'string'
+				? (document.getElementById(
+						fileElemId
+				  ) as HTMLInputElement | null)
+				: fileElemId;
 		if (!f || !f.files || !f.files.length) {
 			return;
 		}
 
 		startLoadFromSMFFileImpl(f.files[0], (ctx) => {
 			this.loadContextCallbackImpl(ctx, (err) => {
+				// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 				if (err) {
 					if (callback) {
 						callback(err);
 					} else {
-						alert(`${err}`);
+						alert(String(err));
 					}
 				} else {
 					if (callback) {
@@ -2156,12 +2154,12 @@ export default class Engine {
 
 	public loadFromFilePromise(fileElemId: string | HTMLInputElement) {
 		return new Promise<void>((resolve, reject) => {
-			const f: HTMLInputElement =
-				fileElemId && (fileElemId as HTMLInputElement).files
-					? (fileElemId as HTMLInputElement)
-					: (document.getElementById(
-							fileElemId as string
-					  ) as HTMLInputElement);
+			const f: HTMLInputElement | null =
+				typeof fileElemId === 'string'
+					? (document.getElementById(
+							fileElemId
+					  ) as HTMLInputElement | null)
+					: fileElemId;
 			if (!f || !f.files || !f.files.length) {
 				reject(new Error('Invalid file element'));
 				return;
@@ -2188,13 +2186,12 @@ export default class Engine {
 		if (!this.isSaveAvailable()) return null;
 
 		const ab = this.exportSMFToArrayBuffer();
-		if (!ab) return null;
 		return createURLForData(ab, 'audio/midi');
 	}
 
 	public saveAsMIDI(baseElement: HTMLElement) {
 		const url = this.makeSMFBlobURL();
-		if (!url) return false;
+		if (url === null) return false;
 		const frm = document.createElement('iframe');
 		frm.src = url;
 		baseElement.appendChild(frm);
@@ -2204,10 +2201,13 @@ export default class Engine {
 	public loadFromJSON(text: string): boolean {
 		const obj = _fromJSON(text);
 		if (
-			!obj ||
+			obj === null ||
+			obj === undefined ||
 			!(obj.parts instanceof Array) ||
 			!(obj.masterControls instanceof Array) ||
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			!(!obj.backgroundChords || obj.backgroundChords instanceof Array) ||
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			!(!obj.backgroundEndPos || obj.backgroundEndPos instanceof Array)
 		) {
 			return false;

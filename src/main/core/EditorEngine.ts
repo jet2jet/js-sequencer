@@ -73,6 +73,7 @@ function getScrollTop(): number {
 		return window.scrollTop;
 	} else if (!isUndefined(document.body.scrollTop)) {
 		if (
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			document.documentElement &&
 			!isUndefined(document.documentElement.scrollTop)
 		) {
@@ -180,8 +181,8 @@ function moveControlObject(c: ControlObject, x: number, y: number) {
 	}
 	const l = NOTE_PADDING_X;
 	const t = 0;
-	c.element.style.left = x + l + 'px';
-	c.element.style.top = y + t + 'px';
+	c.element.style.left = `${x + l}px`;
+	c.element.style.top = `${y + t}px`;
 	// if (!this.txtNode) { this.txtNode = document.createTextNode(""); this.element.appendChild(this.txtNode); }
 	// this.txtNode.nodeValue = l + ", " + t;
 	c.element.style.display =
@@ -237,8 +238,8 @@ function initNoteObjectElement(
 		const s = n.element.style;
 		s.display = 'block';
 		s.position = 'absolute';
-		s.width = wd + 'px';
-		s.height = NOTE_HEIGHT + 'px';
+		s.width = `${wd}px`;
+		s.height = `${NOTE_HEIGHT}px`;
 		s.backgroundColor = '#ff00ff';
 		s.borderColor = '#000000';
 		s.borderStyle = 'solid';
@@ -258,8 +259,8 @@ function moveNoteObject(n: NoteObject, x: number, y: number) {
 	const l = 0;
 	const t = 1;
 	// let wd = (n.noteLengthNumerator * 4 / n.noteLengthDenominator) * NOTE_WIDTH;
-	n.element.style.left = x + l + 'px';
-	n.element.style.top = y + t + 'px';
+	n.element.style.left = `${x + l}px`;
+	n.element.style.top = `${y + t}px`;
 	// if (!this.txtNode) { this.txtNode = document.createTextNode(""); n.element.appendChild(this.txtNode); }
 	// n.txtNode.nodeValue = l + ", " + t;
 	// n.element.style.display = (x + wd < 0 || x >= this.sequencer._width ||
@@ -282,7 +283,7 @@ function updateNoteObjectLength(n: NoteObject) {
 
 	const wd =
 		((n.noteLengthNumerator * 4) / n.noteLengthDenominator) * NOTE_WIDTH;
-	n.element.style.width = wd + 'px';
+	n.element.style.width = `${wd}px`;
 }
 
 // valが極力1になるように値を調整する
@@ -335,39 +336,39 @@ export default class EditorEngine extends Engine {
 
 	private player: Player | null;
 	private playerNote: Player | null;
-	private sfontMapData: Array<[number, number, number]> = [];
+	private readonly sfontMapData: Array<[number, number, number]> = [];
 	private sfontMapDataId: number = 1;
 	private curPart: Part | null = null;
-	private baseElement: HTMLElement;
-	private parentElement: HTMLElement;
-	private markerBeforeCPElement: HTMLElement;
-	private controlParentElement: HTMLElement;
-	private pianoElement: HTMLElement;
-	private beatPositionLabels: HTMLElement[];
-	private keyPositionLabels: HTMLElement[];
-	private linesHorizontal: HTMLElement[];
-	private linesVertical: HTMLElement[];
+	private readonly baseElement: HTMLElement | null;
+	private readonly parentElement: HTMLElement;
+	private readonly markerBeforeCPElement: HTMLElement;
+	private readonly controlParentElement: HTMLElement;
+	private readonly pianoElement: HTMLElement;
+	private readonly beatPositionLabels: HTMLElement[];
+	private readonly keyPositionLabels: HTMLElement[];
+	private readonly linesHorizontal: HTMLElement[];
+	private readonly linesVertical: HTMLElement[];
 	private listElement: HTMLSelectElement | null;
 	private _width: number;
 	private _height: number;
 	private noteTopmostValue: number; // 画面で一番上に来る音符の値
 	private noteDragging: NoteObject | null; // マウスのボタンが押された瞬間に選択している音符
-	private controlElementMap: MyWeakMap<HTMLElement, ControlObject>; // ControlObjectとHTMLElementのWeakMap
-	private noteElementMap: MyWeakMap<HTMLElement, NoteObject>; // NoteObjectとHTMLElementのWeakMap
+	private readonly controlElementMap: MyWeakMap<HTMLElement, ControlObject>; // ControlObjectとHTMLElementのWeakMap
+	private readonly noteElementMap: MyWeakMap<HTMLElement, NoteObject>; // NoteObjectとHTMLElementのWeakMap
 	// private xRelative: number;          // マウスのボタンが押された瞬間に選択した音符からのマウスの相対x座標
 	private mouseMode: MouseMode; // マウスによる編集モード
 	private isMoveDragMode: boolean; // 音符をドラッグして移動するモードかどうか
 	private maxScrollX: number;
-	private maxScrollY: number;
-	private _evtScrollX: Array<(e: ScrollEventObject) => void>;
-	private _evtScrollY: Array<(e: ScrollEventObject) => void>;
-	private _evtResize: Array<(e: ResizeEventObject) => void>;
-	private _evtMaxChanged: Array<(e: MaxChangedEventObject) => void>;
+	private readonly maxScrollY: number;
+	private readonly _evtScrollX: Array<(e: ScrollEventObject) => void>;
+	private readonly _evtScrollY: Array<(e: ScrollEventObject) => void>;
+	private readonly _evtResize: Array<(e: ResizeEventObject) => void>;
+	private readonly _evtMaxChanged: Array<(e: MaxChangedEventObject) => void>;
 
-	private fnMouseDown: (e: MouseEvent) => void;
-	private fnMouseUp: (e: MouseEvent) => void;
-	private fnMouseMove: (e: MouseEvent) => void;
-	private fnDblClick: (e: MouseEvent) => void;
+	private readonly fnMouseDown: (e: MouseEvent) => void;
+	private readonly fnMouseUp: (e: MouseEvent) => void;
+	private readonly fnMouseMove: (e: MouseEvent) => void;
+	private readonly fnDblClick: (e: MouseEvent) => void;
 
 	constructor(elementId: string) {
 		super();
@@ -444,14 +445,7 @@ export default class EditorEngine extends Engine {
 			s.width = (this._width - 0).toString() + 'px';
 			s.height = NOTE_PADDING_Y.toString() + 'px';
 			const p = this.baseElement;
-			let ss: CSSStyleDeclaration;
-			if (window.getComputedStyle) {
-				ss = window.getComputedStyle(p, null);
-			} else if (p.currentStyle) {
-				ss = p.currentStyle;
-			} else {
-				ss = p.style;
-			}
+			const ss = window.getComputedStyle(p, null);
 			s.backgroundColor = ss.backgroundColor || '#fff';
 		}
 		this.parentElement.appendChild(this.controlParentElement);
@@ -550,7 +544,7 @@ export default class EditorEngine extends Engine {
 				(p) => {
 					this.playerNote = p;
 					p.setAudioWorkletScripts(workletJs);
-					p.setRenderFrameCount(1024);
+					void p.setRenderFrameCount(1024);
 					p.setPlayOptions({
 						prerenderSeconds: 0,
 						maxQueueSeconds: 0.0625,
@@ -726,7 +720,7 @@ export default class EditorEngine extends Engine {
 			this.calcLastScrollXWithSortedNotes();
 			this.scrollX(0);
 			if (this.listElement) {
-				_initPartList(this.listElement, this.parts, this.curPart!);
+				_initPartList(this.listElement, this.parts, this.curPart);
 			}
 		}
 	}
@@ -776,7 +770,7 @@ export default class EditorEngine extends Engine {
 		// let n = this.noteTopmostValue % 12;
 		let actualValue =
 			MAX_TOPMOST_VALUE -
-			Math.floor(this.baseElement.scrollTop / NOTE_HEIGHT);
+			Math.floor(this.baseElement!.scrollTop / NOTE_HEIGHT);
 		let n = actualValue % 12;
 		const iMax =
 			Math.floor((this._height - NOTE_PADDING_Y) / NOTE_HEIGHT) + 1;
@@ -792,15 +786,17 @@ export default class EditorEngine extends Engine {
 			if (--n < 0) {
 				n += 12;
 			}
-			let elem = lines[iElement];
-			let s = elem && elem.style;
-			if (!elem) {
+			let elem = lines[iElement] as HTMLElement | undefined;
+			let s;
+			if (elem) {
+				s = elem.style;
+			} else {
 				lines[iElement] = elem = document.createElement('span');
 				s = elem.style;
 				s.display = 'block';
 				s.position = 'absolute';
 				s.width = (this._width - NOTE_PADDING_X).toString() + 'px';
-				s.height = NOTE_HEIGHT + 1 + 'px';
+				s.height = `${NOTE_HEIGHT + 1}px`;
 				s.boxSizing = s.webkitBoxSizing = 'border-box';
 				s.borderTopStyle = 'solid';
 				s.borderTopWidth = '1px';
@@ -841,14 +837,13 @@ export default class EditorEngine extends Engine {
 		let x = NOTE_PADDING_X - this.scrollPosX;
 		let i = 0;
 		let iCPos = 0;
-		const ctrls = this.masterControls ? this.masterControls : null;
+		const ctrls = this.masterControls;
 		let iElement = 0;
 		while (true) {
 			if (x > this._width) {
 				break;
 			}
 			if (
-				ctrls &&
 				nextPosNumerator >= 0 &&
 				bc.posNumerator * nextPosDenominator >=
 					nextPosNumerator * bc.posDenominator
@@ -883,7 +878,7 @@ export default class EditorEngine extends Engine {
 			if (x >= NOTE_PADDING_X - 3) {
 				const isFirstBeat = i % bc.beatsNumerator === 0;
 
-				let elem = lines[iElement];
+				let elem = lines[iElement] as HTMLElement | undefined;
 				if (!elem) {
 					lines[iElement] = elem = document.createElement('span');
 					elem.style.display = 'block';
@@ -891,7 +886,7 @@ export default class EditorEngine extends Engine {
 					elem.style.width = '1px';
 					// elem.style.height = (MAX_TOPMOST_VALUE * NOTE_HEIGHT + NOTE_PADDING_Y).toString() + "px";
 					elem.style.height =
-						this.baseElement.offsetHeight.toString() + 'px';
+						this.baseElement!.offsetHeight.toString() + 'px';
 					elem.style.borderLeftStyle = 'solid';
 					elem.style.borderLeftWidth = '1px';
 					elem.style.overflow = 'hidden';
@@ -928,8 +923,8 @@ export default class EditorEngine extends Engine {
 
 	// this : Sequencer
 	private onMouseDown(e: MouseEvent) {
-		const x = getOffsetX(this.baseElement, e);
-		const y = getOffsetY(this.baseElement, e);
+		const x = getOffsetX(this.baseElement!, e);
+		const y = getOffsetY(this.baseElement!, e);
 		const sx = x + this.scrollPosX;
 		const sy = y + this.scrollPosY;
 		if (
@@ -992,8 +987,8 @@ export default class EditorEngine extends Engine {
 		if (!this.noteDragging) {
 			return;
 		}
-		let x = getOffsetX(this.baseElement, e);
-		let y = getOffsetY(this.baseElement, e);
+		let x = getOffsetX(this.baseElement!, e);
+		let y = getOffsetY(this.baseElement!, e);
 		const sx = x + this.scrollPosX;
 		const sy = y + this.scrollPosY;
 		if (x < NOTE_PADDING_X) {
@@ -1053,8 +1048,8 @@ export default class EditorEngine extends Engine {
 
 	// クリックアンドドラッグで音符を伸縮させる場合の処理
 	private onMouseMoveForDrawMode(e: MouseEvent) {
-		const x = getOffsetX(this.baseElement, e);
-		const y = getOffsetY(this.baseElement, e);
+		const x = getOffsetX(this.baseElement!, e);
+		const y = getOffsetY(this.baseElement!, e);
 		const sx = x + this.scrollPosX;
 		const sy = y + this.scrollPosY;
 		if (!this.noteDragging) {
@@ -1107,8 +1102,8 @@ export default class EditorEngine extends Engine {
 
 	// this : Sequencer
 	private onDblClick(e: MouseEvent) {
-		const x = getOffsetX(this.baseElement, e);
-		const y = getOffsetY(this.baseElement, e);
+		const x = getOffsetX(this.baseElement!, e);
+		const y = getOffsetY(this.baseElement!, e);
 		// let sx = x + this.scrollX;
 		// let sy = y + this.scrollY;
 		if (
@@ -1135,7 +1130,7 @@ export default class EditorEngine extends Engine {
 
 		let x = -this.scrollPosX + 2;
 		let measure = 0;
-		const ctrls = this.masterControls ? this.masterControls : null;
+		const ctrls = this.masterControls;
 		let iCPos = 0;
 		let labelPos = 0;
 		const bc = new BeatsCalculator();
@@ -1144,7 +1139,6 @@ export default class EditorEngine extends Engine {
 		let iPos = 0;
 		while (true) {
 			if (
-				ctrls &&
 				nextPos >= 0 &&
 				bc.posNumerator * nextPosFraction >= nextPos * bc.posDenominator
 			) {
@@ -1241,7 +1235,7 @@ export default class EditorEngine extends Engine {
 		let needUpdateX = !!force;
 		let needUpdateY = !!force;
 		{
-			const newVal = this.baseElement.scrollLeft;
+			const newVal = this.baseElement!.scrollLeft;
 			if (this.scrollPosX !== newVal) {
 				if (!this.raiseEventScrollX(newVal)) {
 					return;
@@ -1251,7 +1245,7 @@ export default class EditorEngine extends Engine {
 			}
 		}
 		{
-			const newVal = this.baseElement.scrollTop;
+			const newVal = this.baseElement!.scrollTop;
 			if (this.scrollPosY !== newVal) {
 				if (!this.raiseEventScrollY(newVal)) {
 					return;
@@ -1287,11 +1281,15 @@ export default class EditorEngine extends Engine {
 	}
 
 	public scrollX(delta: number) {
-		this.baseElement.scrollLeft += delta;
+		if (this.baseElement) {
+			this.baseElement.scrollLeft += delta;
+		}
 	}
 
 	public scrollY(delta: number) {
-		this.baseElement.scrollTop += delta;
+		if (this.baseElement) {
+			this.baseElement.scrollTop += delta;
+		}
 	}
 
 	public getEditWidth(): number {
@@ -1332,7 +1330,9 @@ export default class EditorEngine extends Engine {
 			return;
 		}
 
-		const lst = document.getElementById(listElementId) as HTMLSelectElement;
+		const lst = document.getElementById(
+			listElementId
+		) as HTMLSelectElement | null;
 		if (!lst) {
 			return;
 		}
@@ -1406,7 +1406,7 @@ export default class EditorEngine extends Engine {
 		let scMax = 0;
 		let maxNote: NoteObject | null = null;
 		this.parts.forEach((p) => {
-			const n = p.notes[p.notes.length - 1];
+			const n = p.notes[p.notes.length - 1] as NoteObject | undefined;
 			if (n) {
 				const sc = notePosToX(n.notePosNumerator, n.notePosDenominator);
 				if (scMax < sc) {

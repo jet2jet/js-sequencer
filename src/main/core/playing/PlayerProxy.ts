@@ -64,18 +64,18 @@ export default class PlayerProxy {
 	private stopResolver: null | (() => void);
 
 	private msgId: number;
-	private defers: Array<{
+	private readonly defers: Array<{
 		id: number;
 		type: Response.AllTypes['type'];
-		resolve: (data?: any) => void;
+		resolve(data?: any): void;
 	}>;
 	private userEventData: {
-		[key: string]: { data: any };
+		[key: string]: { data: any } | undefined;
 	} = {};
 	private userEventId: number = 0;
 
 	private constructor(
-		private port: MessagePort,
+		private readonly port: MessagePort,
 		private framesCount: number,
 		public readonly sampleRate: number
 	) {
@@ -236,18 +236,21 @@ export default class PlayerProxy {
 	}
 
 	public stop() {
-		this.port.postMessage({ type: 'stop' } as Message.Stop);
+		const msg: Message.Stop = { type: 'stop' };
+		this.port.postMessage(msg);
 	}
 
 	public resetTime() {
-		this.port.postMessage({ type: 'reset-time' } as Message.ResetTime);
+		const msg: Message.ResetTime = { type: 'reset-time' };
+		this.port.postMessage(msg);
 	}
 
 	public releasePlayer(resetSynth?: boolean) {
-		this.port.postMessage({
+		const msg: Message.Release = {
 			type: 'release',
 			resetSynth: resetSynth,
-		} as Message.Release);
+		};
+		this.port.postMessage(msg);
 	}
 
 	public waitForFinish(timeoutMilliseconds?: number) {
@@ -401,7 +404,7 @@ export default class PlayerProxy {
 	}
 
 	private onMessage(e: MessageEvent) {
-		const data: Response.AllTypes = e.data;
+		const data: Response.AllTypes | null | undefined = e.data;
 		if (!data) {
 			return;
 		}
@@ -472,6 +475,7 @@ export default class PlayerProxy {
 		if (!d) {
 			return;
 		}
+		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 		delete this.userEventData[data];
 		if (this.onUserData) {
 			this.onUserData(d.data);

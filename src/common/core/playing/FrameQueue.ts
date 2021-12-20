@@ -1,5 +1,5 @@
 export default class FrameQueue {
-	private frames: Array<[ArrayBuffer, ArrayBuffer] | string> = [];
+	private readonly frames: Array<[ArrayBuffer, ArrayBuffer] | string> = [];
 	private curFrames: [ArrayBuffer, ArrayBuffer] | string | undefined;
 	private offset: number = 0;
 	private queuedFrames = 0;

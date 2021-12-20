@@ -84,7 +84,7 @@ export default function createScriptProcessorNode(
 	});
 
 	const listener = (e: MessageEvent) => {
-		const data: RenderMessage.AllTypes = e.data;
+		const data: RenderMessage.AllTypes | null | undefined = e.data;
 		if (!data) {
 			return;
 		}
@@ -106,21 +106,25 @@ export default function createScriptProcessorNode(
 					queue.getFrameCountInQueue() >= maxQueueFrames
 				) {
 					isRendering = false;
-					port1.postMessage({
+					const msg: RenderMessage.QueueControl = {
 						type: 'queue',
 						data: { pause: true },
-					} as RenderMessage.QueueControl);
+					};
+					port1.postMessage(msg);
 				}
 				break;
 			case 'pause':
-				isPaused = !!data.data.paused;
-				port1.postMessage({
-					type: 'pause',
-					data: {
-						id: data.data.id,
-						paused: isPaused,
-					},
-				} as RenderMessage.Pause);
+				{
+					isPaused = !!data.data.paused;
+					const msg: RenderMessage.Pause = {
+						type: 'pause',
+						data: {
+							id: data.data.id,
+							paused: isPaused,
+						},
+					};
+					port1.postMessage(msg);
+				}
 				break;
 			case 'stop':
 				queue.clear();
@@ -157,24 +161,26 @@ export default function createScriptProcessorNode(
 		const frames = queue.outputFrames(
 			frameBuffers,
 			(marker, framesBeforeMarker) => {
-				port1.postMessage({
+				const msg: RenderMessage.UserMarkerResponse = {
 					type: 'user-marker-resp',
 					data: {
 						marker,
 						framesBeforeMarker,
 						sampleRate: rate,
 					},
-				} as RenderMessage.UserMarkerResponse);
+				};
+				port1.postMessage(msg);
 			}
 		);
 
 		if (!isRendering) {
 			if (queue.getFrameCountInQueue() <= halfMaxQueueFrames) {
 				isRendering = true;
-				port1.postMessage({
+				const msg: RenderMessage.QueueControl = {
 					type: 'queue',
 					data: { pause: false },
-				} as RenderMessage.QueueControl);
+				};
+				port1.postMessage(msg);
 			}
 		}
 

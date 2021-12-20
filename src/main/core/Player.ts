@@ -96,7 +96,6 @@ function convertBkChordsToNotes(
 	endPos: IPositionObject
 ): NoteObject[] {
 	const arr: NoteObject[] = [];
-	if (!bkChords) return arr;
 	for (let i = 0; i < bkChords.length; ++i) {
 		const bc = bkChords[i];
 		const posNum = bc.posNumerator;
@@ -189,10 +188,16 @@ export default class Player extends PlayerBase {
 	private _availablePlayNote: boolean = false;
 	private _playingNotes: NoteObject[] = [];
 	private _allPlayedNoteCount: number = 0;
-	private _evtPlayQueue: Array<(e: PlayQueueEventObject) => void> = [];
-	private _evtPlayEndNote: Array<(e: PlayEndNoteEventObject) => void> = [];
-	private _evtPlayAllQueued: Array<(e: PlayQueueEventObject) => void> = [];
-	private _evtPlayLooped: Array<(e: PlayLoopedEventObject) => void> = [];
+	private readonly _evtPlayQueue: Array<(e: PlayQueueEventObject) => void> =
+		[];
+	private readonly _evtPlayEndNote: Array<
+		(e: PlayEndNoteEventObject) => void
+	> = [];
+	private readonly _evtPlayAllQueued: Array<
+		(e: PlayQueueEventObject) => void
+	> = [];
+	private readonly _evtPlayLooped: Array<(e: PlayLoopedEventObject) => void> =
+		[];
 
 	private playingNote: NoteObject | null = null;
 
@@ -427,7 +432,7 @@ export default class Player extends PlayerBase {
 			doPlay();
 		} else {
 			// this.stopPlayer();
-			this.startPlayer(actx, dest).then(doPlay);
+			void this.startPlayer(actx, dest).then(doPlay);
 		}
 	}
 
@@ -478,7 +483,7 @@ export default class Player extends PlayerBase {
 			doPlay();
 		} else {
 			// this.stopPlayer();
-			this.startPlayer(actx, dest, true).then(doPlay);
+			void this.startPlayer(actx, dest, true).then(doPlay);
 		}
 	}
 
@@ -508,7 +513,7 @@ export default class Player extends PlayerBase {
 		if (!this._isPlayingSequence) {
 			return;
 		}
-		if (this._playingNotes && this._playingNotes.length > 0) {
+		if (this._playingNotes.length > 0) {
 			return;
 		}
 		if (this._availablePlayNote) {
@@ -539,7 +544,7 @@ export default class Player extends PlayerBase {
 	): number {
 		this.queuedNotesPos = null;
 		this.queuedNotesTime = 0;
-		this.queuedNotesBaseTime = timeStartOffset || 0;
+		this.queuedNotesBaseTime = timeStartOffset ?? 0;
 		if (!from) {
 			this.queuedNotesBasePos = { numerator: 0, denominator: 1 };
 			return 0;
@@ -548,9 +553,7 @@ export default class Player extends PlayerBase {
 		if (!this.queuedNotesBasePos) {
 			this.queuedNotesBasePos = { numerator: 0, denominator: 1 };
 		}
-		if (!this.queuedNotesPos) {
-			this.queuedNotesPos = { numerator: 0, denominator: 1 };
-		}
+		this.queuedNotesPos = { numerator: 0, denominator: 1 };
 		this.queuedNotesTime = 0;
 		this.queuedNotesBaseTime = 0;
 		const curPos = this.queuedNotesPos;
@@ -627,7 +630,7 @@ export default class Player extends PlayerBase {
 
 	private doProcessFadeout(time: TimeValue) {
 		const fadeout = this.fadeout;
-		if (fadeout && fadeout.progress) {
+		if (fadeout?.progress) {
 			while (fadeout.nextTime <= time) {
 				if (!this.doSendFadeoutVolume(fadeout)) {
 					return false;
@@ -649,7 +652,7 @@ export default class Player extends PlayerBase {
 			(ev.control === 0x07 || ev.control === 0x27)
 		) {
 			const fadeout = this.fadeout;
-			if (fadeout && fadeout.progress) {
+			if (fadeout?.progress) {
 				const channel = ev.channel;
 				const ch =
 					this.channels[channel] ||
@@ -788,7 +791,7 @@ export default class Player extends PlayerBase {
 						}
 						// --- do loop ---
 						const basePos2: IPositionObject =
-							this.queuedNotesBasePos!;
+							this.queuedNotesBasePos;
 						let timeCurrent: number;
 						if (nextPos) {
 							// (in this case loopStatus.end is not null)
@@ -891,7 +894,7 @@ export default class Player extends PlayerBase {
 
 			curPos.numerator = o.notePosNumerator;
 			curPos.denominator = o.notePosDenominator;
-			const basePos: IPositionObject = this.queuedNotesBasePos!;
+			const basePos: IPositionObject = this.queuedNotesBasePos;
 			const time = (this.queuedNotesTime =
 				this.queuedNotesBaseTime +
 				calcTimeExFromSMFTempo(
@@ -1140,8 +1143,8 @@ export default class Player extends PlayerBase {
 	private processPlayingNotes(nextObject?: ISequencerObject) {
 		const basePos = this.queuedNotesBasePos!;
 		const curPos = this.queuedNotesPos!;
-		const n = this._playingNotes[0];
-		if (n) {
+		if (this._playingNotes.length) {
+			const n = this._playingNotes[0];
 			if (
 				!nextObject ||
 				n.playEndPosNum! * nextObject.notePosDenominator <=
@@ -1204,11 +1207,11 @@ export default class Player extends PlayerBase {
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
 	) {
-		if (this._nextPlayTimerId) {
+		if (this._nextPlayTimerId !== null) {
 			throw new Error('Unexpected');
 		}
 
-		this.startPlayer(actx, dest).then(() => {
+		void this.startPlayer(actx, dest).then(() => {
 			this._allPlayedNoteCount = 0;
 			this._availablePlayNote = true;
 			// this._prepareToPlayNotes(notesAndControls, from, to);
@@ -1250,7 +1253,7 @@ export default class Player extends PlayerBase {
 				}
 			});
 
-			const loopCount = loopData && loopData.loopCount;
+			const loopCount = loopData?.loopCount;
 			let loopStatus: LoopStatus | undefined = loopData && {
 				start: loopData.start || { numerator: 0, denominator: 1 },
 				end: loopData.end,
@@ -1263,9 +1266,11 @@ export default class Player extends PlayerBase {
 						? { enabled: true }
 						: void 0
 					: fadeout;
-			if (fadeoutData && fadeoutData.enabled) {
+			if (fadeoutData?.enabled) {
 				this.fadeout = {
 					progress: false,
+					// zero is not allowed
+					// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 					step: fadeoutData.step || Constants.DefaultFadeoutStep,
 					startTimeFromLoop:
 						typeof fadeoutData.startTimeFromLoop === 'number'
@@ -1279,7 +1284,7 @@ export default class Player extends PlayerBase {
 					startTime: 0,
 					nextTime: 0,
 				};
-				if (!loopStatus && fadeoutData) {
+				if (!loopStatus) {
 					loopStatus = {
 						start: { numerator: 0, denominator: 1 },
 						loopCount: 0,
@@ -1451,9 +1456,9 @@ export default class Player extends PlayerBase {
 
 			this.startPlayData(
 				arr,
-				r && r.from,
-				r && r.to,
-				(r && r.timeStartOffset) || 0,
+				r?.from,
+				r?.to,
+				r?.timeStartOffset ?? 0,
 				actx,
 				dest,
 				loopData,
@@ -1561,6 +1566,8 @@ export default class Player extends PlayerBase {
 			den: loopDuration.den,
 		};
 		r.duration = TimeRational.add(r.duration, loopDuration);
+		// false value == disabled
+		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		if (fadeout) {
 			if (typeof fadeout === 'boolean') {
 				fadeout = { enabled: true };

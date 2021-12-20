@@ -144,9 +144,9 @@ function ampToCentibel(ampPercent: number): number {
  * The instance must be created with PlayerBase.instantiate.
  */
 export default class PlayerBase {
-	protected channels: ChannelStatus[] = [];
+	protected channels: Array<ChannelStatus | undefined> = [];
 
-	private proxy: PlayerProxy;
+	private readonly proxy: PlayerProxy;
 	private sfontDefault: number | null = null;
 	private isSfontDefaultExternal: boolean = false;
 	private sfontMap: SFontMapInternal[] = [];
@@ -255,6 +255,7 @@ export default class PlayerBase {
 			interval,
 			framesCount,
 			sampleRate,
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			channelCount || 16
 		);
 	}
@@ -320,7 +321,7 @@ export default class PlayerBase {
 	 */
 	public useSoundfont(sfontId: number | null | undefined) {
 		if (this.sfontDefault !== null && !this.isSfontDefaultExternal) {
-			this.proxy.unloadSoundfont(this.sfontDefault);
+			void this.proxy.unloadSoundfont(this.sfontDefault);
 		}
 		if (typeof sfontId === 'number') {
 			this.sfontDefault = sfontId;
@@ -385,7 +386,7 @@ export default class PlayerBase {
 		}
 		if (sfont < 0) {
 			sfont = -1;
-		} else if (!this.sfontMap.filter((m) => m.sfontId === sfont)[0]) {
+		} else if (!this.sfontMap.filter((m) => m.sfontId === sfont).shift()) {
 			throw new Error("Invalid 'sfont' value");
 		}
 		let ampValue: number | undefined;
@@ -394,12 +395,14 @@ export default class PlayerBase {
 		} else {
 			ampPercent = void 0;
 		}
-		const a = this.sfontMap.filter(
-			(m) =>
-				m.sfontId === sfont &&
-				m.targetBank === targetBank &&
-				m.targetPreset === targetPreset
-		)[0];
+		const a = this.sfontMap
+			.filter(
+				(m) =>
+					m.sfontId === sfont &&
+					m.targetBank === targetBank &&
+					m.targetPreset === targetPreset
+			)
+			.shift();
 		if (a) {
 			a.bank = bank;
 			a.preset = preset;
@@ -506,10 +509,10 @@ export default class PlayerBase {
 					if (this.isSfontDefaultExternal) {
 						this.isSfontDefaultExternal = false;
 						this.sfontDefault = null;
-						this.proxy.unloadSoundfont(sfont);
+						void this.proxy.unloadSoundfont(sfont);
 					}
 				} else {
-					this.proxy.unloadSoundfont(sfont);
+					void this.proxy.unloadSoundfont(sfont);
 				}
 			}
 			return false;
@@ -529,7 +532,7 @@ export default class PlayerBase {
 			const m = map[i];
 			if (m.targetBank < 0 && m.targetPreset < 0) {
 				if (!keepSfontLoaded && m.sfontId >= 0) {
-					this.proxy.unloadSoundfont(m.sfontId);
+					void this.proxy.unloadSoundfont(m.sfontId);
 					map.splice(i, 1);
 				}
 			} else {
@@ -571,7 +574,7 @@ export default class PlayerBase {
 		// );
 		if (!this.isWaitingForStop && this._isPlayerRunning) {
 			this.isWaitingForStop = true;
-			this.proxy.waitForFinish().then(() => {
+			void this.proxy.waitForFinish().then(() => {
 				// console.log('[PlayerBase] All finished', this._isPlayerRunning);
 				this.stopPlayer();
 			});
@@ -586,7 +589,7 @@ export default class PlayerBase {
 	}
 
 	private onUserDataPlayer(data: any) {
-		const e: UserEventData = data;
+		const e = data as UserEventData | null | undefined;
 		if (!e) {
 			return;
 		}
@@ -685,7 +688,7 @@ export default class PlayerBase {
 		}
 		type TArray = Array<typeof fn>;
 		const arr: TArray =
-			(this._evtMap[actualKeys]! as TArray) ||
+			(this._evtMap[actualKeys] as TArray | undefined) ||
 			(this._evtMap[actualKeys] = []);
 		arr.push(fn);
 	}
@@ -704,7 +707,7 @@ export default class PlayerBase {
 		}
 		type TArray = Array<typeof fn>;
 		const arr: TArray =
-			(this._evtMap[actualKeys]! as TArray) ||
+			(this._evtMap[actualKeys] as TArray | undefined) ||
 			(this._evtMap[actualKeys] = []);
 		for (let i = arr.length - 1; i >= 0; --i) {
 			if (arr[i] === fn) {
@@ -888,7 +891,7 @@ export default class PlayerBase {
 		if (!this.preSendSysEx(data, time)) {
 			return false;
 		}
-		if (!data.rawData || !data.rawData.length) {
+		if (!data.rawData.length) {
 			return true;
 		}
 		if (typeof time === 'undefined' || time === null) {
@@ -935,13 +938,11 @@ export default class PlayerBase {
 	 * @param data any data for the event
 	 */
 	public sendUserEvent(type: string, time: TimeValue, data?: any) {
-		this.proxy.sendUserData(
-			{
-				type: type,
-				data: data,
-			} as UserEventData,
-			time * 1000
-		);
+		const ev: UserEventData = {
+			type: type,
+			data: data,
+		};
+		this.proxy.sendUserData(ev, time * 1000);
 	}
 
 	/**
@@ -1028,6 +1029,7 @@ export default class PlayerBase {
 				control: 0x07,
 				value: Math.floor(arg2 / 0x80),
 			};
+			// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
 			if (!this.doSendEvent(ev, arg3 as TimeValue | null | undefined)) {
 				return false;
 			}
@@ -1037,6 +1039,7 @@ export default class PlayerBase {
 				control: 0x27,
 				value: arg2 & 0x7f,
 			};
+			// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
 			if (!this.doSendEvent(ev, arg3 as TimeValue | null | undefined)) {
 				return false;
 			}
@@ -1426,8 +1429,7 @@ export default class PlayerBase {
 		ch: ChannelStatus | undefined,
 		value: number
 	) {
-		const bank = (ch && ch.bank) || 0;
-		const preset = (ch && ch.preset) || 0;
+		const { bank = 0, preset = 0 } = ch || {};
 		const f = this.sfontMap
 			.filter((m) => m.targetBank === bank && m.targetPreset === preset)
 			.shift();

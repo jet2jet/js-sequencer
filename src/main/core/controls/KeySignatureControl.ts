@@ -50,12 +50,12 @@ export default class KeySignatureControl extends ControlObject {
 	constructor(
 		posNumerator?: number,
 		posDenominator?: number,
-		sharpFlat?: number,
-		isMinor?: boolean
+		sharpFlat: number = 0,
+		isMinor: boolean = false
 	) {
 		super();
-		this.sharpFlat = sharpFlat || 0;
-		this.isMinor = isMinor || false;
+		this.sharpFlat = sharpFlat;
+		this.isMinor = isMinor;
 		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
@@ -75,7 +75,7 @@ export default class KeySignatureControl extends ControlObject {
 		this.isMinor = obj.isMinor;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof KeySignatureControl)) return false;
+		if (!(obj instanceof KeySignatureControl)) return false;
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 				this.notePosDenominator * obj.notePosNumerator &&

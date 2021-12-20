@@ -19,17 +19,17 @@ export default class SysMsgControl extends ControlObject {
 	constructor(
 		posNumerator?: number,
 		posDenominator?: number,
-		type?: number,
+		type: number = 0,
 		arrayBuffer?: ArrayBuffer,
-		offset?: number,
+		offset: number = 0,
 		len?: number
 	) {
 		super();
-		this.msgType = type || 0;
+		this.msgType = type;
 		const dataLen =
 			typeof len === 'number'
 				? len
-				: (arrayBuffer && arrayBuffer.byteLength - (offset || 0)) || 0;
+				: (arrayBuffer && arrayBuffer.byteLength - offset) || 0;
 		this.rawData = new Uint8Array(dataLen);
 		if (dataLen) {
 			this.rawData.set(
@@ -56,7 +56,7 @@ export default class SysMsgControl extends ControlObject {
 		this.rawData.set(obj.rawData);
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof SysMsgControl)) return false;
+		if (!(obj instanceof SysMsgControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator

@@ -33,13 +33,16 @@ export default class SysExControl extends ControlObject {
 			return;
 		}
 		if (arrayBuffer instanceof Uint8Array) {
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			if (offsetOrMove) {
 				this.rawData = arrayBuffer;
 			} else {
 				this.rawData = new Uint8Array(arrayBuffer);
 			}
 		} else {
-			const dataLen = len || (arrayBuffer && arrayBuffer.byteLength) || 0;
+			// zero is not allowed
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+			const dataLen = len || arrayBuffer?.byteLength || 0;
 			this.rawData = new Uint8Array(dataLen);
 			if (dataLen) {
 				this.rawData.set(
@@ -68,7 +71,7 @@ export default class SysExControl extends ControlObject {
 		this.rawData.set(obj.rawData);
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof SysExControl)) {
+		if (!(obj instanceof SysExControl)) {
 			return false;
 		}
 		if (

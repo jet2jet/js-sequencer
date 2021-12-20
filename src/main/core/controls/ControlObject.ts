@@ -3,7 +3,8 @@ import ISequencerObject from '../../objects/ISequencerObject';
 import Engine from '../Engine';
 
 /** @internal */
-export const _objCtors: { [key: string]: typeof ControlObject } = {};
+export const _objCtors: { [key: string]: typeof ControlObject | undefined } =
+	{};
 
 export default class ControlObject implements ISequencerObject {
 	public engine: Engine | null = null;
@@ -54,9 +55,7 @@ export default class ControlObject implements ISequencerObject {
 	public attachEngine(engine: Engine) {
 		this.detachEngine();
 		this.engine = engine;
-		if (engine) {
-			engine._afterAttachEngine(this);
-		}
+		engine._afterAttachEngine(this);
 	}
 
 	public detachEngine() {
@@ -78,7 +77,7 @@ export default class ControlObject implements ISequencerObject {
 		return obj instanceof ControlObject;
 	}
 	public isEqualPosition(obj: any) {
-		if (!obj || !(obj instanceof ControlObject)) {
+		if (!(obj instanceof ControlObject)) {
 			return false;
 		}
 		return (
@@ -96,23 +95,14 @@ export default class ControlObject implements ISequencerObject {
 _objCtors.ControlObject = ControlObject;
 
 export function getControlFromJSONObject(obj: any): ControlObject {
+	// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 	let t: string = obj.objType || 'ControlObject';
 	// for compatibility
 	if (t === 'EOFObject') {
 		t = 'EOTObject';
 	}
 	const ctor = _objCtors[t] || ControlObject;
-	let ret: ControlObject;
-	if (Object.create) {
-		ret = Object.create(ctor.prototype) as ControlObject;
-	} else {
-		const fn: {
-			prototype: any;
-			new (): any;
-		} = function () {} as typeof Object; // eslint-disable-line @typescript-eslint/no-empty-function
-		fn.prototype = ctor.prototype;
-		ret = new fn() as ControlObject; // eslint-disable-line new-cap
-	}
+	const ret: ControlObject = Object.create(ctor.prototype) as ControlObject;
 	ret.fromJSONObject(obj);
 	return ret;
 }

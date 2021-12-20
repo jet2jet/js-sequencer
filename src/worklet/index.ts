@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference types='AudioWorklet' />
 
 import * as RenderMessage from './types/RenderMessageData';
@@ -15,9 +16,9 @@ interface TimerObject {
 }
 
 class TimerContainer {
-	private timers: TimerObject[] = [];
+	private readonly timers: TimerObject[] = [];
 
-	constructor(private getTime: (this: unknown) => number) {}
+	constructor(private readonly getTime: (this: unknown) => number) {}
 
 	public process() {
 		const timers = this.timers;
@@ -52,23 +53,23 @@ class TimerContainer {
 }
 
 class Processor extends AudioWorkletProcessor {
-	private queue = new FrameQueue();
+	private readonly queue = new FrameQueue();
 
-	private timer: TimerContainer;
+	private readonly timer: TimerContainer;
 
 	private isPrerendering = true;
 	private isPaused = false;
 	private isRendering = true;
-	private prerenderFrames: number;
-	private maxQueueFrames: number;
-	private halfMaxQueueFrames: number;
+	private readonly prerenderFrames: number;
+	private readonly maxQueueFrames: number;
+	private readonly halfMaxQueueFrames: number;
 
 	private renderedFrames: number;
 	private statusFrames: number;
-	private delaySendRender: DelayMillisecFunction;
-	private cancelDelaySendRender: CancelDelayMillisecFunction;
-	private delaySendStatus: DelayMillisecFunction;
-	private cancelDelaySendStatus: CancelDelayMillisecFunction;
+	private readonly delaySendRender: DelayMillisecFunction;
+	private readonly cancelDelaySendRender: CancelDelayMillisecFunction;
+	private readonly delaySendStatus: DelayMillisecFunction;
+	private readonly cancelDelaySendStatus: CancelDelayMillisecFunction;
 
 	constructor(options: AudioWorkletNodeOptions) {
 		super(options);
@@ -76,9 +77,8 @@ class Processor extends AudioWorkletProcessor {
 		const timer = new TimerContainer(() => Date.now());
 		this.timer = timer;
 
-		this.prerenderFrames =
-			options.processorOptions!.options.prerenderFrames;
-		this.maxQueueFrames = options.processorOptions!.options.maxQueueFrames;
+		this.prerenderFrames = options.processorOptions.options.prerenderFrames;
+		this.maxQueueFrames = options.processorOptions.options.maxQueueFrames;
 		this.halfMaxQueueFrames = Math.floor((this.maxQueueFrames * 3) / 2);
 
 		const makeDelayProcess = (() => {
@@ -144,24 +144,26 @@ class Processor extends AudioWorkletProcessor {
 		const frames = queue.outputFrames(
 			outputs[0] as [Float32Array, Float32Array],
 			(marker, framesBeforeMarker) => {
-				this.port.postMessage({
+				const msg: RenderMessage.UserMarkerResponse = {
 					type: 'user-marker-resp',
 					data: {
 						marker,
 						framesBeforeMarker,
 						sampleRate: sampleRate,
 					},
-				} as RenderMessage.UserMarkerResponse);
+				};
+				this.port.postMessage(msg);
 			}
 		);
 
 		if (!this.isRendering) {
 			if (queue.getFrameCountInQueue() <= this.halfMaxQueueFrames) {
 				this.isRendering = true;
-				this.port.postMessage({
+				const msg: RenderMessage.QueueControl = {
 					type: 'queue',
 					data: { pause: false },
-				} as RenderMessage.QueueControl);
+				};
+				this.port.postMessage(msg);
 			}
 		}
 
@@ -179,7 +181,7 @@ class Processor extends AudioWorkletProcessor {
 	}
 
 	private onMessage(e: MessageEvent) {
-		const data: RenderMessage.AllTypes = e.data;
+		const data: RenderMessage.AllTypes | null | undefined = e.data;
 		if (!data) {
 			return;
 		}
@@ -205,22 +207,26 @@ class Processor extends AudioWorkletProcessor {
 						queue.getFrameCountInQueue() >= this.maxQueueFrames
 					) {
 						this.isRendering = false;
-						this.port.postMessage({
+						const msg: RenderMessage.QueueControl = {
 							type: 'queue',
 							data: { pause: true },
-						} as RenderMessage.QueueControl);
+						};
+						this.port.postMessage(msg);
 					}
 				}
 				break;
 			case 'pause':
-				this.isPaused = !!data.data.paused;
-				this.port.postMessage({
-					type: 'pause',
-					data: {
-						id: data.data.id,
-						paused: this.isPaused,
-					},
-				} as RenderMessage.Pause);
+				{
+					this.isPaused = !!data.data.paused;
+					const msg: RenderMessage.Pause = {
+						type: 'pause',
+						data: {
+							id: data.data.id,
+							paused: this.isPaused,
+						},
+					};
+					this.port.postMessage(msg);
+				}
 				break;
 			case 'stop':
 				this.queue.clear();

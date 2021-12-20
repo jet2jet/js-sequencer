@@ -4,6 +4,7 @@ plugins:
 extends:
   - standard
   - 'plugin:@typescript-eslint/recommended'
+  - standard-with-typescript
   - prettier
 globals:
   __DEV__: readonly
@@ -11,6 +12,7 @@ globals:
 rules:
   lines-between-class-members: off
   no-dupe-class-members: off
+  no-void: off
   no-undef: off
   # using @typescript-eslint/no-useless-constructor instead
   no-useless-constructor: off
@@ -25,11 +27,11 @@ rules:
     - always
     - markers: ['/']
       exceptions: ['/']
-  standard/computed-property-even-spacing: off
   '@typescript-eslint/adjacent-overload-signatures': error
   '@typescript-eslint/array-type': [error, { default: 'array-simple' }]
   '@typescript-eslint/explicit-function-return-type': off
   '@typescript-eslint/interface-name-prefix': off
+  '@typescript-eslint/lines-between-class-members': off
   '@typescript-eslint/member-delimiter-style': off
   '@typescript-eslint/member-ordering':
     - error
@@ -40,12 +42,15 @@ rules:
         - private-instance-field
         - public-constructor
         - private-constructor
+  '@typescript-eslint/method-signature-style': off
   '@typescript-eslint/no-explicit-any': off
   '@typescript-eslint/no-inferrable-types': off
   '@typescript-eslint/no-non-null-assertion': off
   '@typescript-eslint/no-use-before-define': off
   '@typescript-eslint/no-useless-constructor': error
   '@typescript-eslint/no-unused-vars': off
+  '@typescript-eslint/prefer-nullish-coalescing': off
+  '@typescript-eslint/promise-function-async': off
 overrides:
   - files: ['build/**/*.js']
     env:
@@ -54,6 +59,12 @@ overrides:
       '@typescript-eslint/no-var-requires': off
   - files: ['**/*.ts', '**/*.tsx']
     parser: '@typescript-eslint/parser'
+    parserOptions:
+      project: ./tsconfig.json
+    rules:
+      '@typescript-eslint/strict-boolean-expressions':
+        - error
+        - allowNullableBoolean: true
   - files: ['src/common/**']
     parserOptions:
       project: ./src/common/tsconfig.json

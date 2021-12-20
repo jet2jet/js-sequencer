@@ -17,12 +17,12 @@ export default class ProgramChangeControl extends ControlObject {
 	constructor(
 		posNumerator?: number,
 		posDenominator?: number,
-		channel?: number,
-		value?: number
+		channel: number = 0,
+		value: number = 0
 	) {
 		super();
-		this.channel = channel || 0;
-		this.value = value || 0;
+		this.channel = channel;
+		this.value = value;
 		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
@@ -42,7 +42,7 @@ export default class ProgramChangeControl extends ControlObject {
 		this.value = obj.value;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof ProgramChangeControl)) return false;
+		if (!(obj instanceof ProgramChangeControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator

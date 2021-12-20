@@ -24,7 +24,7 @@ export default class EOTObject extends ControlObject {
 		super.fromJSONObject(obj);
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof EOTObject)) return false;
+		if (!(obj instanceof EOTObject)) return false;
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 			this.notePosDenominator * obj.notePosNumerator

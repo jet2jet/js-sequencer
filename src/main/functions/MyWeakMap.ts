@@ -29,12 +29,13 @@ const _isWeakMapSupported = typeof WeakMap !== typeof void 0;
 let _myWeakMapId = 0;
 
 function isMyWeakMap(map: any): map is MyPolyfillWeakMap {
-	return !!map._hash;
+	return Boolean(map._hash);
 }
 
 function throwIfKeyIsNull(key: any) {
 	if (key == null) {
-		throw new TypeError(key + ' is not a non-null object');
+		// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+		throw new TypeError(`${key} is not a non-null object`);
 	}
 }
 
@@ -92,12 +93,7 @@ export function hasWeakMapKey<K extends object, V>(
 	if (!isMyWeakMap(map)) throw new TypeError('map is not a weak map');
 	throwIfKeyIsNull(key);
 
-	if (Object.prototype.hasOwnProperty)
-		return Object.prototype.hasOwnProperty.call(key, map._hash);
-	for (const k in key as any) {
-		if (k === map._hash) return true;
-	}
-	return false;
+	return Object.prototype.hasOwnProperty.call(key, map._hash);
 }
 
 export function deleteWeakMapKey<K extends object, V>(
@@ -110,5 +106,6 @@ export function deleteWeakMapKey<K extends object, V>(
 	if (!isMyWeakMap(map)) throw new TypeError('map is not a weak map');
 	throwIfKeyIsNull(key);
 
+	// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 	return hasWeakMapKey(map, key) && delete (key as any)[map._hash];
 }

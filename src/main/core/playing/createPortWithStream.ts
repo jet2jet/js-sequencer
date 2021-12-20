@@ -16,7 +16,7 @@ export default function createPortWithStream(
 	let isPaused = false;
 
 	const listener = (e: MessageEvent) => {
-		const data: RenderMessage.AllTypes = e.data;
+		const data: RenderMessage.AllTypes | null | undefined = e.data;
 		if (!data) {
 			return;
 		}
@@ -55,17 +55,20 @@ export default function createPortWithStream(
 				}
 				break;
 			case 'pause':
-				isPaused = !!data.data.paused;
-				if (stream.pauseStreaming) {
-					stream.pauseStreaming(isPaused);
+				{
+					isPaused = !!data.data.paused;
+					if (stream.pauseStreaming) {
+						stream.pauseStreaming(isPaused);
+					}
+					const msg: RenderMessage.Pause = {
+						type: 'pause',
+						data: {
+							id: data.data.id,
+							paused: isPaused,
+						},
+					};
+					port.postMessage(msg);
 				}
-				port.postMessage({
-					type: 'pause',
-					data: {
-						id: data.data.id,
-						paused: isPaused,
-					},
-				} as RenderMessage.Pause);
 				break;
 			case 'stop':
 				if (stream.stopStreaming) {

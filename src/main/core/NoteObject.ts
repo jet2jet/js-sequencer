@@ -40,20 +40,21 @@ export default class NoteObject implements NoteObjectBase {
 	);
 
 	constructor(
-		posNumerator?: number,
-		posDenominator?: number,
-		noteLengthNumerator?: number,
-		noteLengthDenominator?: number,
-		noteValue?: number,
-		channel?: number
+		posNumerator: number = 0,
+		posDenominator: number = 1,
+		noteLengthNumerator: number = 0,
+		noteLengthDenominator: number = 1,
+		noteValue: number = 0,
+		channel: number = 0
 	) {
 		this.engine = null;
-		this.notePosNumerator = posNumerator || 0;
-		this.notePosDenominator = posDenominator || 1;
-		this.noteLengthNumerator = noteLengthNumerator || 0;
-		this.noteLengthDenominator = noteLengthDenominator || 1;
-		this.noteValue = noteValue || 0;
-		this.channel = channel || 0;
+		this.notePosNumerator = posNumerator;
+		this.notePosDenominator = posDenominator !== 0 ? posDenominator : 1;
+		this.noteLengthNumerator = noteLengthNumerator;
+		this.noteLengthDenominator =
+			noteLengthDenominator !== 0 ? noteLengthDenominator : 1;
+		this.noteValue = noteValue;
+		this.channel = channel;
 		this.velocity = 100;
 		this.idData = 0;
 
@@ -63,7 +64,7 @@ export default class NoteObject implements NoteObjectBase {
 	public attachEngine(engine: Engine) {
 		this.detachEngine();
 		this.engine = engine;
-		if (engine) engine._afterAttachEngine(this);
+		engine._afterAttachEngine(this);
 	}
 
 	public detachEngine() {

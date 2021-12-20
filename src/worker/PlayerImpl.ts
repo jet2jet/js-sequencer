@@ -224,7 +224,7 @@ function dropDuplicatedEvents(
 }
 
 export default class PlayerImpl {
-	private port: MessagePort;
+	private readonly port: MessagePort;
 	private renderPort: MessagePort | undefined;
 	private synth!: Synthesizer;
 	private sequencer: ISequencer | undefined;
@@ -243,20 +243,24 @@ export default class PlayerImpl {
 	private stopTimerOnFinish: ReturnType<typeof setTimeout> | null = null;
 	private promiseResetTime: Promise<void> | undefined;
 
-	private midiChannelCount: number;
-	private sampleRate: number;
+	private readonly midiChannelCount: number;
+	private readonly sampleRate: number;
 	private timerInterval: number;
 	private framesCount: number;
 	private gain: number;
 	private channel16IsDrums: boolean;
 
 	private channelGenData: {
-		[channel: number]: {
-			[type: number]: {
-				init: number;
-				prev: number;
-			};
-		};
+		[channel: number]:
+			| {
+					[type: number]:
+						| {
+								init: number;
+								prev: number;
+						  }
+						| undefined;
+			  }
+			| undefined;
 	} = {};
 
 	private eventQueue: Array<{
@@ -269,16 +273,18 @@ export default class PlayerImpl {
 	private queuedTime: number = 0;
 
 	private userMsgMap: {
-		[id: number]: {
-			sysEx?: Uint8Array;
-			genEvent?: GenEvent;
-			userEvent?: string;
-			userMarker?: string;
-		};
+		[id: number]:
+			| {
+					sysEx?: Uint8Array;
+					genEvent?: GenEvent;
+					userEvent?: string;
+					userMarker?: string;
+			  }
+			| undefined;
 	} = {};
 	private userMsgMapId: number = 0;
 
-	private onRenderMessageBind: PlayerImpl['onRenderMessage'];
+	private readonly onRenderMessageBind: PlayerImpl['onRenderMessage'];
 
 	constructor(data: Message.Initialize) {
 		this.port = data.port;
@@ -288,8 +294,12 @@ export default class PlayerImpl {
 		this.hasFinished = false;
 		this.allRendered = false;
 
+		// uses the default value if zero
+		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		this.sampleRate = data.sampleRate || Defaults.SampleRate;
+		// uses the default value if zero
 		this.midiChannelCount =
+			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			Math.ceil(((data.channelCount || 16) + 15) / 16) * 16;
 		this.timerInterval = Defaults.Interval;
 		this.framesCount = Defaults.FramesCount;
@@ -423,9 +433,10 @@ export default class PlayerImpl {
 	private resetSynth() {
 		this.doStopTimer();
 		if (this.renderPort) {
-			this.renderPort.postMessage({
+			const msg: RenderMessage.Release = {
 				type: 'release',
-			} as RenderMessage.Release);
+			};
+			this.renderPort.postMessage(msg);
 			this.renderPort.close();
 			this.renderPort.removeEventListener(
 				'message',
@@ -485,6 +496,7 @@ export default class PlayerImpl {
 			} else {
 				const data = this.userMsgMap[id];
 				if (data) {
+					// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 					delete this.userMsgMap[id];
 					if (data.sysEx) {
 						this.synth.midiSysEx(data.sysEx);
@@ -572,7 +584,7 @@ export default class PlayerImpl {
 			if (!this.allRendered) {
 				this.allRendered = true;
 			}
-			this.onStop();
+			void this.onStop();
 		}, delay);
 	}
 
@@ -586,7 +598,7 @@ export default class PlayerImpl {
 		if (!this.allRendered) {
 			this.allRendered = true;
 		}
-		this.onStop();
+		void this.onStop();
 	}
 
 	private onTimer() {
@@ -627,7 +639,11 @@ export default class PlayerImpl {
 		}
 	}
 
-	private async onMessage(e: MessageEvent) {
+	private onMessage(e: MessageEvent) {
+		void this.onMessageImpl(e);
+	}
+
+	private async onMessageImpl(e: MessageEvent) {
 		await this.promiseResetTime;
 
 		const data: Message.AllTypes = e.data;
@@ -639,22 +655,22 @@ export default class PlayerImpl {
 				this.onConfigure(data);
 				break;
 			case 'load-sfont':
-				this.onLoadSoundfont(data);
+				await this.onLoadSoundfont(data);
 				break;
 			case 'unload-sfont':
 				this.onUnloadSoundfont(data);
 				break;
 			case 'start':
-				this.onStart(data);
+				await this.onStart(data);
 				break;
 			case 'pause':
 				this.onPause(data);
 				break;
 			case 'stop':
-				this.onStop();
+				await this.onStop();
 				break;
 			case 'release':
-				this.onRelease(data);
+				await this.onRelease(data);
 				break;
 			case 'event':
 				this.onEvent(data);
@@ -689,9 +705,10 @@ export default class PlayerImpl {
 	private onClose() {
 		this.doStopTimer();
 		if (this.renderPort) {
-			this.renderPort.postMessage({
+			const msg: RenderMessage.Release = {
 				type: 'release',
-			} as RenderMessage.Release);
+			};
+			this.renderPort.postMessage(msg);
 			this.renderPort.close();
 			this.renderPort = void 0;
 		}
@@ -746,7 +763,7 @@ export default class PlayerImpl {
 			const seq = await JSSynth.Synthesizer.createSequencer();
 			// console.log('  ok.');
 			this.sequencer = seq;
-			seq.registerSynthesizer(this.synth);
+			await seq.registerSynthesizer(this.synth);
 			this.myClient = JSSynth.Synthesizer.registerSequencerClient(
 				seq,
 				'js-sequencer',
@@ -800,13 +817,14 @@ export default class PlayerImpl {
 				data: false,
 			});
 		} else {
-			this.renderPort.postMessage({
+			const msg: RenderMessage.Pause = {
 				type: 'pause',
 				data: {
 					id: data.id,
 					paused: data.paused,
 				},
-			} as RenderMessage.Pause);
+			};
+			this.renderPort.postMessage(msg);
 		}
 	}
 
@@ -824,9 +842,10 @@ export default class PlayerImpl {
 		this.starting = false;
 		if (this.sequencer && this.timerId !== null) {
 			this.doStopTimer();
-			this.renderPort!.postMessage({
+			const msgStop: RenderMessage.Stop = {
 				type: 'stop',
-			} as RenderMessage.Stop);
+			};
+			this.renderPort!.postMessage(msgStop);
 			if (this.synth.isPlaying()) {
 				this.sequencer.removeAllEvents();
 				this.sequencer.sendEventAt(
@@ -856,9 +875,10 @@ export default class PlayerImpl {
 				await this.onStop();
 			}
 			if (this.renderPort) {
-				this.renderPort.postMessage({
+				const msg: RenderMessage.Release = {
 					type: 'release',
-				} as RenderMessage.Release);
+				};
+				this.renderPort.postMessage(msg);
 				this.renderPort.close();
 				this.renderPort.removeEventListener(
 					'message',
@@ -1080,7 +1100,7 @@ export default class PlayerImpl {
 	}
 
 	private onRenderMessage(e: MessageEvent) {
-		const data: RenderMessage.AllTypes = e.data;
+		const data: RenderMessage.AllTypes | null | undefined = e.data;
 		if (!data) {
 			return;
 		}

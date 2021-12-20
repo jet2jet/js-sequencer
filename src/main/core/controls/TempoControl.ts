@@ -15,6 +15,8 @@ export default class TempoControl extends ControlObject {
 		value?: number
 	) {
 		super();
+		// zero is not allowed (use default value)
+		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		this.value = value || 500000;
 		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;
@@ -34,7 +36,7 @@ export default class TempoControl extends ControlObject {
 		this.value = obj.value;
 	}
 	public equals(obj: any) {
-		if (!obj || !(obj instanceof TempoControl)) return false;
+		if (!(obj instanceof TempoControl)) return false;
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 				this.notePosDenominator * obj.notePosNumerator &&

@@ -30,12 +30,10 @@ export function isAudioAvailable() {
 }
 
 export function loadBinaryFromFile(fileElemId: string | HTMLInputElement) {
-	const f: HTMLInputElement =
-		fileElemId && (fileElemId as HTMLInputElement).files
-			? (fileElemId as HTMLInputElement)
-			: (document.getElementById(
-					fileElemId as string
-			  ) as HTMLInputElement);
+	const f: HTMLInputElement | null =
+		typeof fileElemId === 'string'
+			? (document.getElementById(fileElemId) as HTMLInputElement | null)
+			: fileElemId;
 	if (!f || !f.files || !f.files.length) {
 		return Promise.reject(new Error('Invalid argument'));
 	}
