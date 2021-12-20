@@ -8,7 +8,7 @@
   "scripts": {
     "build": "npm run build:ts && npm run build:lib:dev",
     "build:lib:dev": "webpack --config ./build/webpack.config.js",
-    "build:lib:minified": "webpack --config ./build/webpack.config.js --env.minified",
+    "build:lib:minified": "webpack --config ./build/webpack.config.js --env minified",
     "build:minified": "npm run build:ts && npm run build:lib:minified",
     "build:ts": "npm run build:ts:common && npm run build:ts:main && npm run build:ts:worker && npm run build:ts:worklet",
     "build:ts:common": "tsc -p src/common/tsconfig.json",
