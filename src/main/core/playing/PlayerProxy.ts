@@ -1,7 +1,8 @@
+import * as JSSynth from 'js-synthesizer';
+
 import * as Message from '../../types/MessageData';
 import * as RenderMessage from '../../types/RenderMessageData';
 import * as Response from '../../types/ResponseData';
-import { SynthEvent } from '../../types/SynthEvents';
 
 import createAudioWorkletNode from './createAudioWorkletNode';
 import createPortWithStream from './createPortWithStream';
@@ -266,7 +267,7 @@ export default class PlayerProxy {
 		}
 	}
 
-	public sendEvent(eventData: SynthEvent, time: number) {
+	public sendEvent(eventData: JSSynth.SequencerEvent, time: number) {
 		const data: Message.Event = {
 			type: 'event',
 			time: time,
@@ -275,7 +276,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendEventNow(eventData: SynthEvent) {
+	public sendEventNow(eventData: JSSynth.SequencerEvent) {
 		const data: Message.Event = {
 			type: 'event',
 			time: null,
@@ -284,7 +285,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendEvents(events: Array<[SynthEvent, number | null]>) {
+	public sendEvents(events: Array<[JSSynth.SequencerEvent, number | null]>) {
 		const data: Message.Events = {
 			type: 'events',
 			data: events,
@@ -312,7 +313,7 @@ export default class PlayerProxy {
 
 	public sendGeneratorValue(
 		channel: number,
-		type: Message.GeneratorDataType,
+		type: JSSynth.Constants.GeneratorTypes,
 		value: number | null,
 		keepCurrentVoice: boolean | null | undefined,
 		time: number
@@ -332,7 +333,7 @@ export default class PlayerProxy {
 
 	public sendGeneratorValueNow(
 		channel: number,
-		type: Message.GeneratorDataType,
+		type: JSSynth.Constants.GeneratorTypes,
 		value: number | null,
 		keepCurrentVoice: boolean | null | undefined
 	) {

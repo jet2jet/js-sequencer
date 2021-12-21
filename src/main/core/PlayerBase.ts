@@ -1,10 +1,6 @@
+import * as JSSynth from 'js-synthesizer';
+
 import { TimeValue } from '../types';
-import { GeneratorDataType } from '../types/MessageData';
-import type {
-	SynthEvent,
-	SynthEventControl,
-	SynthEventProgramSelect,
-} from '../types/SynthEvents';
 
 import PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
 import PlayStatusEventObject from '../events/PlayStatusEventObject';
@@ -156,7 +152,9 @@ export default class PlayerBase {
 	private outputStream: IPlayStream | null = null;
 	private audioWorkletScripts: string[] = [];
 	private debounceEventTimer: number | null = null;
-	private debouncedEvents: Array<[SynthEvent, number | null]> | null = null;
+	private debouncedEvents: Array<
+		[JSSynth.SequencerEvent, number | null]
+	> | null = null;
 
 	private _evtMap: {
 		[P in keyof PlayerBaseEventObjectMap]?: Array<
@@ -849,9 +847,14 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public sendEvent(ev: SynthEvent, time?: TimeValue | null | undefined) {
+	public sendEvent(
+		ev: JSSynth.SequencerEvent,
+		time?: TimeValue | null | undefined
+	) {
 		switch (ev.type) {
-			case 'program':
+			case JSSynth.EventType.ProgramChange:
+				return this.doChangeProgram(ev.channel, ev.preset, time);
+			case JSSynth.EventType.ProgramSelect:
 				return this.doChangeProgram(
 					ev.channel,
 					ev.preset,
@@ -859,7 +862,7 @@ export default class PlayerBase {
 					ev.bank,
 					ev.sfontId
 				);
-			case 'control':
+			case JSSynth.EventType.ControlChange:
 				if (ev.control === 0x07 || ev.control === 0x27) {
 					return this.changeVolume(
 						ev.channel,
@@ -869,12 +872,12 @@ export default class PlayerBase {
 					);
 				}
 				break; // use default processing
-			case 'noteon':
-				if (ev.velocity === 0) {
+			case JSSynth.EventType.NoteOn:
+				if (ev.vel === 0) {
 					// Use note-off instead of note-on
 					return this.doSendEvent(
 						{
-							type: 'noteoff',
+							type: JSSynth.EventType.NoteOff,
 							channel: ev.channel,
 							key: ev.key,
 						},
@@ -905,7 +908,7 @@ export default class PlayerBase {
 	// used internally
 	protected sendGeneratorValue(
 		channel: number,
-		type: GeneratorDataType,
+		type: JSSynth.Constants.GeneratorTypes,
 		value: number | null,
 		keepCurrentVoice?: boolean | null,
 		time?: TimeValue | null | undefined
@@ -1023,8 +1026,8 @@ export default class PlayerBase {
 			// arg3: time (TimeValue)
 			actualValue = arg2;
 			arg2 = this.calculateVolumeForChannel(ch, arg2);
-			let ev: SynthEventControl = {
-				type: 'control',
+			let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: channel,
 				control: 0x07,
 				value: Math.floor(arg2 / 0x80),
@@ -1034,7 +1037,7 @@ export default class PlayerBase {
 				return false;
 			}
 			ev = {
-				type: 'control',
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 				channel: channel,
 				control: 0x27,
 				value: arg2 & 0x7f,
@@ -1055,8 +1058,8 @@ export default class PlayerBase {
 			}
 			const newValue = this.calculateVolumeForChannel(ch, actualValue);
 			if (newValue !== actualValue) {
-				let ev: SynthEventControl = {
-					type: 'control',
+				let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
 					control: 0x07,
 					value: Math.floor(newValue / 0x80),
@@ -1065,7 +1068,7 @@ export default class PlayerBase {
 					return false;
 				}
 				ev = {
-					type: 'control',
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
 					control: 0x27,
 					value: newValue & 0x7f,
@@ -1074,8 +1077,8 @@ export default class PlayerBase {
 					return false;
 				}
 			} else {
-				const ev: SynthEventControl = {
-					type: 'control',
+				const ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
+					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
 					channel: channel,
 					control: arg2 ? 0x07 : 0x27,
 					value: value,
@@ -1092,7 +1095,7 @@ export default class PlayerBase {
 	}
 
 	protected doSendEvent(
-		ev: SynthEvent,
+		ev: JSSynth.SequencerEvent,
 		time: TimeValue | null | undefined,
 		noHook?: boolean
 	) {
@@ -1100,7 +1103,7 @@ export default class PlayerBase {
 			return false;
 		}
 
-		let d: [SynthEvent, number | null] | undefined;
+		let d: [JSSynth.SequencerEvent, number | null] | undefined;
 		if (typeof time === 'undefined' || time === null) {
 			this.proxy.sendEventNow(ev);
 		} else {
@@ -1151,12 +1154,12 @@ export default class PlayerBase {
 			channel === 9 || (this.channel16IsDrums && channel === 15);
 		const bankCurrent =
 			typeof ch.bank === 'number' ? ch.bank : isDrum ? 128 : 0;
-		let ev: SynthEventProgramSelect | undefined;
+		let ev: JSSynth.SequencerEventTypes.ProgramSelectEvent | undefined;
 		let ampValue: number = 0;
 		for (const m of this.sfontMap) {
 			if (m.targetBank === bankCurrent && m.targetPreset === preset) {
 				ev = {
-					type: 'program',
+					type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
 					channel: channel,
 					sfontId: m.sfontId < 0 ? this.sfontDefault! : m.sfontId,
 					bank: m.bank,
@@ -1170,7 +1173,7 @@ export default class PlayerBase {
 		}
 		if (!ev) {
 			ev = {
-				type: 'program',
+				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
 				channel: channel,
 				sfontId:
 					typeof sfontId === 'number' ? sfontId : this.sfontDefault!,
@@ -1180,7 +1183,7 @@ export default class PlayerBase {
 		}
 		this.sendGeneratorValue(
 			channel,
-			'initial-atenuation',
+			JSSynth.Constants.GeneratorTypes.InitialAttenuation,
 			ampValue,
 			true,
 			time
@@ -1443,7 +1446,7 @@ export default class PlayerBase {
 		// do nothing
 	}
 	protected preSendEvent(
-		_ev: SynthEvent,
+		_ev: JSSynth.SequencerEvent,
 		_time: TimeValue | null | undefined
 	): boolean {
 		// do nothing

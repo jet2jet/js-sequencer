@@ -1,4 +1,4 @@
-import type { SynthEvent } from './SynthEvents';
+import * as JSSynth from 'js-synthesizer';
 
 type Flatten<T> = { [P in keyof T]: T[P] };
 type PartialRequired<T, TKeys extends keyof T> = Flatten<
@@ -94,7 +94,7 @@ export interface Release extends Base {
 export interface Event extends Base {
 	id?: never;
 	type: 'event';
-	data: SynthEvent;
+	data: JSSynth.SequencerEvent;
 	/** in milliseconds, or null for send immediately */
 	time: number | null;
 }
@@ -104,7 +104,7 @@ export interface Events extends Base {
 	id?: never;
 	type: 'events';
 	/** an array of [event, time] tuple (time is in milliseconds, or null for send immediately) */
-	data: Array<[SynthEvent, number | null]>;
+	data: Array<[JSSynth.SequencerEvent, number | null]>;
 }
 
 /** @internal */
@@ -116,14 +116,12 @@ export interface SysEx extends Base {
 	time: number | null;
 }
 
-export type GeneratorDataType = 'initial-atenuation';
-
 export interface Generator extends Base {
 	id?: never;
 	type: 'gen';
 	data: {
 		channel: number;
-		type: GeneratorDataType;
+		type: JSSynth.Constants.GeneratorTypes;
 		/** null for reset to initial value */
 		value: number | null;
 		/** true for keeping effect value of current playing voices */

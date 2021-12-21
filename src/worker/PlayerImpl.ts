@@ -10,16 +10,10 @@ import SequencerEvent, {
 } from 'js-synthesizer/SequencerEvent';
 import Synthesizer from 'js-synthesizer/Synthesizer';
 import SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
-import { GeneratorTypes } from 'js-synthesizer/Constants';
 
 import * as Message from './types/MessageData';
 import * as RenderMessage from './types/RenderMessageData';
 import * as Response from './types/ResponseData';
-import {
-	SynthEvent,
-	SynthEventControl,
-	SynthEventNoteOn,
-} from './types/SynthEvents';
 
 const enum Defaults {
 	SampleRate = 48000,
@@ -74,78 +68,27 @@ function promiseWithTimeout<T>(
 	});
 }
 
-function toSynthesizerEvent(e: SynthEvent): SequencerEvent {
-	switch (e.type) {
-		case 'noteon':
-			return {
-				type: SequencerEventTypes.NoteOn,
-				channel: e.channel,
-				key: e.key,
-				vel: e.velocity,
-			};
-		case 'noteoff':
-			return {
-				type: SequencerEventTypes.NoteOff,
-				channel: e.channel,
-				key: e.key,
-			};
-		case 'control':
-			return {
-				type: SequencerEventTypes.ControlChange,
-				channel: e.channel,
-				control: e.control,
-				value: e.value,
-			};
-		case 'aftertouch':
-			return {
-				type: SequencerEventTypes.KeyPressure,
-				channel: e.channel,
-				key: e.key,
-				value: e.value,
-			};
-		case 'pitch':
-			return {
-				type: SequencerEventTypes.PitchBend,
-				channel: e.channel,
-				value: e.value,
-			};
-		case 'pressure':
-			return {
-				type: SequencerEventTypes.ChannelPressure,
-				channel: e.channel,
-				value: e.value,
-			};
-		case 'program':
-			return {
-				type: SequencerEventTypes.ProgramSelect,
-				channel: e.channel,
-				sfontId: e.sfontId,
-				bank: e.bank,
-				preset: e.preset,
-			};
-		case 'user':
-			return {
-				type: SequencerEventTypes.Timer,
-				data: e.data,
-			};
-	}
+function isControlChange(e: SequencerEvent): e is ControlChangeEvent {
+	return (
+		e.type === SequencerEventTypes.ControlChange ||
+		e.type === 'controlchange' ||
+		e.type === 'control-change'
+	);
 }
 
-function toSynthesizerGeneratorType(
-	genType: Message.GeneratorDataType
-): GeneratorTypes | null {
-	if (genType !== 'initial-atenuation') {
-		return null;
-	}
-	return GeneratorTypes.InitialAttenuation;
-}
-
-function isControlChange(e: SynthEvent): e is SynthEventControl {
-	return e.type === 'control';
-}
-
-function isNoteEvent(e: SynthEvent): e is SynthEventNoteOn {
-	return e.type === 'noteon';
+function isNoteEvent(
+	e: SequencerEvent
+): e is NoteEvent | NoteOnEvent | NoteOffEvent {
+	return (
+		e.type === SequencerEventTypes.Note ||
+		e.type === 'note' ||
+		e.type === SequencerEventTypes.NoteOn ||
+		e.type === 'noteon' ||
+		e.type === 'note-on' ||
+		e.type === SequencerEventTypes.NoteOff ||
+		e.type === 'noteoff' ||
+		e.type === 'note-off'
+	);
 }
 
 /**
@@ -155,7 +98,7 @@ function isNoteEvent(e: SynthEvent): e is SynthEventNoteOn {
 function dropDuplicatedEvents(
 	q: Array<{
 		client: number;
-		data: SynthEvent;
+		data: SequencerEvent;
 		tick: number;
 	}>
 ): boolean {
@@ -265,7 +208,7 @@ export default class PlayerImpl {
 
 	private eventQueue: Array<{
 		client: number;
-		data: SynthEvent;
+		data: SequencerEvent;
 		tick: number;
 	}> = [];
 	private sorted: boolean = true;
@@ -396,8 +339,7 @@ export default class PlayerImpl {
 			// 	console.log(`[doSendEvents] sending timer event`);
 			// }
 			// console.log(`[doSendEvents] e.data.type = ${e.data.type}, e.tick(diff) = ${e.tick - this.startTime}`);
-			const ev = toSynthesizerEvent(e.data);
-			this.sequencer!.sendEventToClientAt(e.client, ev, e.tick, true);
+			this.sequencer!.sendEventToClientAt(e.client, e.data, e.tick, true);
 		}
 	}
 
@@ -521,16 +463,12 @@ export default class PlayerImpl {
 		value,
 		keepCurrentVoice,
 	}: GenEvent) {
-		const genType = toSynthesizerGeneratorType(type);
-		if (genType === null) {
-			return;
-		}
 		const data = this.channelGenData;
 		const chData = data[channel] || (data[channel] = {});
 		const o =
-			chData[genType] ||
-			(chData[genType] = {
-				init: this.synth.getGenerator(channel, genType),
+			chData[type] ||
+			(chData[type] = {
+				init: this.synth.getGenerator(channel, type),
 				prev: 0,
 			});
 		const newVal = value === null ? o.init : value;
@@ -557,7 +495,7 @@ export default class PlayerImpl {
 			}
 			_module._free(voiceList);
 		}
-		this.synth.setGenerator(channel, genType, newVal);
+		this.synth.setGenerator(channel, type, newVal);
 
 		o.prev = newVal;
 	}
@@ -901,8 +839,7 @@ export default class PlayerImpl {
 			return;
 		}
 		if (data.time === null) {
-			const ev = toSynthesizerEvent(data.data);
-			this.sequencer.sendEventToClientAt(-1, ev, 0, false);
+			this.sequencer.sendEventToClientAt(-1, data.data, 0, false);
 		} else {
 			const tick = this.startTime + data.time;
 			this.eventQueue.push({
@@ -920,8 +857,7 @@ export default class PlayerImpl {
 		}
 		for (const [e, time] of data.data) {
 			if (time === null) {
-				const ev = toSynthesizerEvent(e);
-				this.sequencer.sendEventToClientAt(-1, ev, 0, false);
+				this.sequencer.sendEventToClientAt(-1, e, 0, false);
 			} else {
 				const tick = this.startTime + time;
 				this.eventQueue.push({
@@ -957,7 +893,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
-					type: 'user',
+					type: SequencerEventTypes.Timer,
 					data: id,
 				},
 				tick: tick,
@@ -990,7 +926,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
-					type: 'user',
+					type: SequencerEventTypes.Timer,
 					data: id,
 				},
 				tick: tick,
@@ -1021,7 +957,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
-					type: 'user',
+					type: SequencerEventTypes.Timer,
 					data: id,
 				},
 				tick: tick,
@@ -1050,7 +986,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
-					type: 'user',
+					type: SequencerEventTypes.Timer,
 					data: -1,
 				},
 				tick: tick,
@@ -1082,7 +1018,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: this.myClient,
 				data: {
-					type: 'user',
+					type: SequencerEventTypes.Timer,
 					data: id,
 				},
 				tick: tick,
