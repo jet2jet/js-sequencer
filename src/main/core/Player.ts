@@ -675,8 +675,8 @@ export default class Player extends PlayerBase {
 				// console.log(`[Player] inject volume for fadeout (actual = ${actualValue}, new = ${newValue})`);
 				this.doSendEvent(
 					{
-						type:
-							JSSynth.SequencerEventTypes.EventType.ControlChange,
+						type: JSSynth.SequencerEventTypes.EventType
+							.ControlChange,
 						channel: channel,
 						control: 0x07,
 						value: Math.floor(newValue / 0x80),
@@ -743,10 +743,22 @@ export default class Player extends PlayerBase {
 
 	private doRenderNotes(
 		notesAndControls: ISequencerObject[],
-		currentIndex: number,
-		endTime: IPositionObject | null | undefined,
+		[currentIndex, endTime, isFirst]: [
+			currentIndex: number,
+			endTime: IPositionObject | null | undefined,
+			isFirst: boolean
+		],
 		loopStatus?: LoopStatus
 	) {
+		// const getTimeString = () => {
+		// 	const d = new Date();
+		// 	const hh = `0${d.getHours()}`.slice(-2);
+		// 	const mm = `0${d.getMinutes()}`.slice(-2);
+		// 	const ss = `0${d.getSeconds()}`.slice(-2);
+		// 	const mi = `00${d.getMilliseconds()}`.slice(-3);
+		// 	return `${hh}:${mm}:${ss}.${mi}`;
+		// };
+		// console.log(`[doRenderNotes] ${getTimeString()} start`);
 		if (!this.queuedNotesBasePos) {
 			this.queuedNotesBasePos = { numerator: 0, denominator: 1 };
 		}
@@ -762,10 +774,10 @@ export default class Player extends PlayerBase {
 		const oldTime = this.queuedNotesTime;
 
 		while (true) {
-			if (
-				renderedCount >= Constants.MaxEventCountPerRender &&
-				this.queuedNotesTime !== oldTime
-			) {
+			if (renderedCount >= Constants.MaxEventCountPerRender) {
+				break;
+			}
+			if (!isFirst && this.queuedNotesTime >= oldTime + 2) {
 				break;
 			}
 			if (loopStatus) {
@@ -932,13 +944,19 @@ export default class Player extends PlayerBase {
 
 			++renderedCount;
 		}
+		// console.log(
+		// 	`[doRenderNotes] ${getTimeString()} end delta = ${
+		// 		this.queuedNotesTime - oldTime
+		// 	}`
+		// );
+
+		this.sendDebouncedEvents();
 
 		this._nextPlayTimerId = setTimeout(
 			this.doRenderNotes.bind(
 				this,
 				notesAndControls,
-				currentIndex,
-				endTime,
+				[currentIndex, endTime, false],
 				loopStatus
 			),
 			5
@@ -1233,9 +1251,8 @@ export default class Player extends PlayerBase {
 					if (typeof ch.bank === 'number') {
 						this.sendEvent(
 							{
-								type:
-									JSSynth.SequencerEventTypes.EventType
-										.ControlChange,
+								type: JSSynth.SequencerEventTypes.EventType
+									.ControlChange,
 								channel: i,
 								control: 0, // Bank MSB
 								value: Math.floor(ch.bank / 0x80),
@@ -1245,9 +1262,8 @@ export default class Player extends PlayerBase {
 						if ((ch.bank & 0x7f) !== 0) {
 							this.sendEvent(
 								{
-									type:
-										JSSynth.SequencerEventTypes.EventType
-											.ControlChange,
+									type: JSSynth.SequencerEventTypes.EventType
+										.ControlChange,
 									channel: i,
 									control: 32, // Bank LSB
 									value: ch.bank & 0x7f,
@@ -1308,7 +1324,11 @@ export default class Player extends PlayerBase {
 				this.prepareLoop(notesAndControls, loopStatus);
 			}
 
-			this.doRenderNotes(notesAndControls, startIndex, to, loopStatus);
+			this.doRenderNotes(
+				notesAndControls,
+				[startIndex, to, true],
+				loopStatus
+			);
 		});
 	}
 

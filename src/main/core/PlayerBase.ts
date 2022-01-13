@@ -1107,7 +1107,7 @@ export default class PlayerBase {
 		if (typeof time === 'undefined' || time === null) {
 			this.proxy.sendEventNow(ev);
 		} else {
-			if (time > 0) {
+			if (time >= 0) {
 				d = [ev, time * 1000];
 			} else {
 				this.proxy.sendEvent(ev, time * 1000);
@@ -1126,12 +1126,16 @@ export default class PlayerBase {
 		return true;
 	}
 
-	private sendDebouncedEvents() {
+	/** Flushes the debounced events (queued by `sendEvent(s)`) */
+	public sendDebouncedEvents() {
+		if (this.debounceEventTimer !== null) {
+			clearTimeout(this.debounceEventTimer);
+			this.debounceEventTimer = null;
+		}
 		const events = this.debouncedEvents;
 		if (!events || !events.length) {
 			return;
 		}
-		this.debounceEventTimer = null;
 		this.debouncedEvents = null;
 		this.proxy.sendEvents(events);
 	}
