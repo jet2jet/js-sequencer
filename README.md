@@ -106,7 +106,7 @@ if (!JSSeq.Core.Player.isSupported()) {
 const JSFile_SeqWorker = 'js-sequencer.worker.min.js';
 // the dependencies of js-sequencer (js-synthesizer and its dependencies)
 // these paths must be relative to JSFile_SeqWorker
-const JSFile_SeqWorker = ['libfluidsynth-2.0.2.js', 'js-synthesizer.min.js'];
+const JSFile_Deps = ['libfluidsynth-2.0.2.js', 'js-synthesizer.min.js'];
 // the worklet files of js-sequencer (used if supported)
 // these paths must be relative to the document
 const JSFile_SeqWorklet = ['js-sequencer.worklet.min.js'];
