@@ -527,7 +527,9 @@ export default class Player extends PlayerBase {
 			// console.log('_checkStopped:', this.playedTime, this.renderedTime);
 			return;
 		}
-		this._isPlayingSequence = false;
+		if (!this.isPlayerRunning()) {
+			this._isPlayingSequence = false;
+		}
 	}
 
 	protected onPlayStart() {
@@ -1040,6 +1042,13 @@ export default class Player extends PlayerBase {
 		endTimePos: IPositionObject | null | undefined,
 		noSound?: boolean
 	): boolean {
+		if (
+			endTimePos != null &&
+			curPos.numerator * endTimePos.denominator >=
+				endTimePos.numerator * curPos.denominator
+		) {
+			return false;
+		}
 		if (o instanceof SysExControl) {
 			return this.sendSysEx(o.rawData, time);
 		} else if (o instanceof TempoControl) {
