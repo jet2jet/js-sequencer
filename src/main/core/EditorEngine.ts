@@ -692,7 +692,7 @@ export default class EditorEngine extends Engine {
 
 	public setBackgroundChords(
 		chords: BackgroundChord[],
-		endPos: IPositionObject
+		endPos: IPositionObject | null
 	) {
 		this.backgroundChords = chords;
 		this.backgroundEndPos = endPos;
