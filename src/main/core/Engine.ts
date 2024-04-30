@@ -1779,7 +1779,7 @@ export default class Engine {
 		this.parts = [];
 	}
 
-	private getAllNotes(): NoteObject[] {
+	public getAllNotes(): NoteObject[] {
 		const ret: NoteObject[] = [];
 		this.parts.forEach((p) => {
 			ret.push(...p.notes);
