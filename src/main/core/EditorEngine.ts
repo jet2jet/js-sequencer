@@ -980,6 +980,7 @@ export default class EditorEngine extends Engine {
 			}
 		}
 		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	// クリックアンドドラッグで音符を移動させる場合の処理
@@ -1031,6 +1032,7 @@ export default class EditorEngine extends Engine {
 					);
 					n.setNoteValue(noteValue);
 					if (this.playerNote) {
+						this.playerNote.stopPlayingNote();
 						this.playerNote.playNote(n);
 					}
 				}
@@ -1044,6 +1046,7 @@ export default class EditorEngine extends Engine {
 			}
 		}
 		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	// クリックアンドドラッグで音符を伸縮させる場合の処理
@@ -1073,6 +1076,7 @@ export default class EditorEngine extends Engine {
 			updateNoteObjectLength(n);
 		}
 		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	private onMouseMove(e: MouseEvent) {
@@ -1098,6 +1102,7 @@ export default class EditorEngine extends Engine {
 		sortNotesAndControls(this.curPart!.notes);
 		this.calcLastScrollXWithSortedNotes();
 		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	// this : Sequencer
