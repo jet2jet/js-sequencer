@@ -70,6 +70,7 @@ module.exports = (env) => {
 	const isMinified = !!(env && env.minified);
 	const suffix = isMinified ? '.min' : '';
 
+	/** @type {import('webpack').Configuration} */
 	const webpackConfBase = {
 		mode: isMinified ? 'production' : 'development',
 		devtool: 'source-map',
@@ -138,6 +139,7 @@ module.exports = (env) => {
 				// console.log('[NormalModuleReplacementPlugin]', resource);
 			}),
 		],
+		target: ['web', 'es5'],
 	};
 
 	return [
