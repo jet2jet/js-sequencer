@@ -1,6 +1,5 @@
 import { gcd } from '../functions';
 
-/** @internal */
 export default class BeatsCalculator {
 	public posNumerator: number = 0;
 	public posDenominator: number = 4;

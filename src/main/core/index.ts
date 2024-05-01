@@ -1,6 +1,6 @@
 import * as Controls from './controls';
 
-import EditorEngine from './EditorEngine';
+import BeatsCalculator from './BeatsCalculator';
 import Engine from './Engine';
 import IPlayStream from './IPlayStream';
 import NoteObject, { isNoteObject } from './NoteObject';
@@ -10,8 +10,8 @@ import Player from './Player';
 import PlayerBase, { SFontMap, StatusData } from './PlayerBase';
 
 export {
+	BeatsCalculator,
 	Controls,
-	EditorEngine,
 	Engine,
 	IPlayStream,
 	isNoteObject,

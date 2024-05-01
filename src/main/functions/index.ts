@@ -1,12 +1,3 @@
-export function getItemFromArray<T>(arr: T[], item: T): number {
-	return arr.indexOf(item);
-}
-
-export function removeItemFromArray<T>(arr: T[], item: T): boolean {
-	const n = arr.indexOf(item);
-	return n >= 0 ? (arr.splice(n, 1), true) : false;
-}
-
 export function gcd(m: number, n: number) {
 	if (m < n) {
 		const x = m;

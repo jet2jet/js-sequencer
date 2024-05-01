@@ -2249,17 +2249,14 @@ export default class Engine {
 		return _toJSON(obj);
 	}
 
-	/** @internal */
 	protected _afterLoadSMF(): void {
 		// empty
 	}
 
-	/** @internal */
 	public _afterAttachEngine(_obj: ISequencerObject) {
 		//
 	}
 
-	/** @internal */
 	public _beforeDetachEngine(_obj: ISequencerObject) {
 		//
 	}
