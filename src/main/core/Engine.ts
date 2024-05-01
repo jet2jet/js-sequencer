@@ -58,7 +58,7 @@ export function addToControlArray(arr: ControlObject[], obj: ControlObject) {
 	obj.parentArray = arr;
 }
 
-export function sortNotesAndControls(arr: ISequencerObject[]) {
+export function sortNotesAndControls(arr: ISequencerObject[]): void {
 	const compare = (a: ISequencerObject, b: ISequencerObject) => {
 		const pos1 = a.notePosNumerator * b.notePosDenominator;
 		const pos2 = b.notePosNumerator * a.notePosDenominator;
@@ -1780,10 +1780,30 @@ export default class Engine {
 	}
 
 	public getAllNotes(): NoteObject[] {
-		const ret: NoteObject[] = [];
+		let ret: NoteObject[] = [];
 		this.parts.forEach((p) => {
-			ret.push(...p.notes);
+			ret = ret.concat(p.notes);
 		});
+		sortNotesAndControls(ret);
+		return ret;
+	}
+
+	public getAllControls(): ControlObject[] {
+		let ret: ControlObject[] = [];
+		this.parts.forEach((p) => {
+			ret = ret.concat(p.controls);
+		});
+		sortNotesAndControls(ret);
+		return ret;
+	}
+
+	public getAllNotesAndControls(): ISequencerObject[] {
+		let ret: ISequencerObject[] = [];
+		this.parts.forEach((p) => {
+			ret = ret.concat(p.notes);
+			ret = ret.concat(p.controls);
+		});
+		ret = ret.concat(this.masterControls);
 		sortNotesAndControls(ret);
 		return ret;
 	}
@@ -1856,13 +1876,7 @@ export default class Engine {
 		timeStartOffset: TimeRationalValue;
 		duration: TimeRationalValue;
 	} | null {
-		let arr: ISequencerObject[] = [];
-		this.parts.forEach((p) => {
-			arr = arr.concat(p.notes);
-			arr = arr.concat(p.controls);
-		});
-		arr = arr.concat(this.masterControls);
-		sortNotesAndControls(arr);
+		const arr: ISequencerObject[] = this.getAllNotesAndControls();
 
 		const r = calculatePositionFromSeconds2(
 			arr,
@@ -1913,13 +1927,7 @@ export default class Engine {
 		timeStartOffset: TimeRationalValue;
 		duration: TimeRationalValue;
 	} | null {
-		let arr: ISequencerObject[] = [];
-		this.parts.forEach((p) => {
-			arr = arr.concat(p.notes);
-			arr = arr.concat(p.controls);
-		});
-		arr = arr.concat(this.masterControls);
-		sortNotesAndControls(arr);
+		const arr: ISequencerObject[] = this.getAllNotesAndControls();
 
 		const r = calculateSecondsFromPosition2(
 			arr,
@@ -1944,13 +1952,7 @@ export default class Engine {
 	}
 
 	public calculateDurationEx(disableHold?: boolean): TimeRationalValue {
-		let arr: ISequencerObject[] = [];
-		this.parts.forEach((p) => {
-			arr = arr.concat(p.notes);
-			arr = arr.concat(p.controls);
-		});
-		arr = arr.concat(this.masterControls);
-		sortNotesAndControls(arr);
+		const arr: ISequencerObject[] = this.getAllNotesAndControls();
 
 		const r = calculatePositionFromSeconds2(
 			arr,

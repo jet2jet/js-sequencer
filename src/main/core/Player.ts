@@ -1403,12 +1403,7 @@ export default class Player extends PlayerBase {
 		if (this._isPlayingSequence) {
 			this.stopSequence();
 		} else {
-			let arr: ISequencerObject[] = [];
-			this.engine.parts.forEach((p) => {
-				arr = arr.concat(p.notes);
-				arr = arr.concat(p.controls);
-			});
-			arr = arr.concat(this.engine.masterControls);
+			let arr: ISequencerObject[] = this.engine.getAllNotesAndControls();
 			if (backgroundChords && backgroundEndPos) {
 				arr = arr.concat(
 					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
@@ -1465,12 +1460,7 @@ export default class Player extends PlayerBase {
 		if (this._isPlayingSequence) {
 			this.stopSequence();
 		} else {
-			let arr: ISequencerObject[] = [];
-			this.engine.parts.forEach((p) => {
-				arr = arr.concat(p.notes);
-				arr = arr.concat(p.controls);
-			});
-			arr = arr.concat(this.engine.masterControls);
+			let arr: ISequencerObject[] = this.engine.getAllNotesAndControls();
 			if (backgroundChords && backgroundEndPos) {
 				arr = arr.concat(
 					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
@@ -1566,13 +1556,7 @@ export default class Player extends PlayerBase {
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
 	): TimeRationalValue {
-		let arr: ISequencerObject[] = [];
-		this.engine.parts.forEach((p) => {
-			arr = arr.concat(p.notes);
-			arr = arr.concat(p.controls);
-		});
-		arr = arr.concat(this.engine.masterControls);
-		sortNotesAndControls(arr);
+		const arr: ISequencerObject[] = this.engine.getAllNotesAndControls();
 
 		const r = calculatePositionFromSeconds2(
 			arr,
