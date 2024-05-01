@@ -1793,6 +1793,7 @@ export default class Engine {
 		this.parts.forEach((p) => {
 			ret = ret.concat(p.controls);
 		});
+		ret = ret.concat(this.masterControls);
 		sortNotesAndControls(ret);
 		return ret;
 	}
