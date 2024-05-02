@@ -4,7 +4,7 @@
     "npm": ">=6"
   },
   "name": "sequencer",
-  "version": "4.6.4",
+  "version": "4.6.5",
   "scripts": {
     "build": "npm run build:ts && npm run build:lib:dev",
     "build:lib:dev": "webpack --config ./build/webpack.config.js",
