@@ -1615,7 +1615,9 @@ export default class Engine {
 						) {
 							bc.changeTimeSignature(
 								c.beatsNumerator,
-								c.beatsDenominator
+								c.beatsDenominator,
+								c.notePosNumerator,
+								c.notePosDenominator
 							);
 							iCPos++;
 							if (iPos !== 0) {
@@ -1678,7 +1680,9 @@ export default class Engine {
 						) {
 							bc.changeTimeSignature(
 								c.beatsNumerator,
-								c.beatsDenominator
+								c.beatsDenominator,
+								c.notePosNumerator,
+								c.notePosDenominator
 							);
 							iCPos++;
 							if (iPos !== 0) {

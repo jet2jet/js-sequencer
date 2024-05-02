@@ -12,13 +12,14 @@ export default class BeatsCalculator {
 	}
 	public changeTimeSignature(
 		beatsNumerator: number,
-		beatsDenominator: number
+		beatsDenominator: number,
+		posNumerator: number,
+		posDenominator: number
 	): void {
-		const g = gcd(this.posDenominator, beatsDenominator);
+		const g = gcd(posDenominator, beatsDenominator);
 		const q = beatsDenominator / g;
-		// this.posDenominator = this.posDenominator / g;
-		this.posNumerator *= q;
-		this.posDenominator *= q;
+		this.posNumerator = posNumerator * q;
+		this.posDenominator = posDenominator * q;
 		this.posDenPerGcd =
 			this.posDenominator / gcd(this.posDenominator, beatsDenominator);
 		this.beatsNumerator = beatsNumerator;
