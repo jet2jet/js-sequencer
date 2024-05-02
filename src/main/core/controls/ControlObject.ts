@@ -71,9 +71,6 @@ export default class ControlObject implements ISequencerObject {
 	public isSimilar(obj: any) {
 		return this.isEqualType(obj) && this.isEqualPosition(obj);
 	}
-	public getText() {
-		return '';
-	}
 }
 _objCtors.ControlObject = ControlObject;
 

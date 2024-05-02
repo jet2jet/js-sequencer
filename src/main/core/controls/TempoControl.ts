@@ -49,8 +49,5 @@ export default class TempoControl extends ControlObject {
 	public isSimilar(obj: any) {
 		return this.equals(obj);
 	}
-	public getText() {
-		return 'Tempo: ' + Math.floor(60000000 / this.value).toString();
-	}
 }
 _objCtors.TempoControl = TempoControl;

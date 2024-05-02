@@ -36,7 +36,4 @@ export default class EOTObject extends ControlObject {
 	public isSimilar(obj: any) {
 		return this.equals(obj);
 	}
-	public getText() {
-		return 'EOT';
-	}
 }

@@ -1,39 +1,5 @@
 import ControlObject, { _objCtors } from './ControlObject';
-
 import { isUndefined } from '../../functions';
-
-const KEY_SIGNATURE_NAMES = [
-	'C',
-	'G',
-	'D',
-	'A',
-	'E',
-	'B',
-	'F#',
-	'C#',
-	'F',
-	'Bb',
-	'Eb',
-	'Ab',
-	'Db',
-	'Gb',
-	'Cb',
-	'Am',
-	'Em',
-	'Bm',
-	'F#m',
-	'C#m',
-	'G#m',
-	'D#m',
-	'A#m',
-	'Dm',
-	'Gm',
-	'Cm',
-	'Fm',
-	'Bbm',
-	'Ebm',
-	'Abm',
-];
 
 export default class KeySignatureControl extends ControlObject {
 	public sharpFlat: number;
@@ -85,11 +51,6 @@ export default class KeySignatureControl extends ControlObject {
 	}
 	public isEqualType(obj: any): obj is KeySignatureControl {
 		return obj instanceof KeySignatureControl;
-	}
-	public getText() {
-		let vPos = this.sharpFlat >= 0 ? this.sharpFlat : 7 - this.sharpFlat;
-		if (this.isMinor) vPos += 15;
-		return 'Key: ' + KEY_SIGNATURE_NAMES[vPos];
 	}
 }
 _objCtors.KeySignatureControl = KeySignatureControl;

@@ -77,8 +77,5 @@ export default class TimeSignatureControl extends ControlObject {
 	public isEqualType(obj: any): obj is TimeSignatureControl {
 		return obj instanceof TimeSignatureControl;
 	}
-	public getText() {
-		return `Time: ${this.beatsNumerator}/${this.beatsDenominator}`;
-	}
 }
 _objCtors.TimeSignatureControl = TimeSignatureControl;
