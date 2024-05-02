@@ -1722,12 +1722,6 @@ export default class Engine {
 		// unreachable
 	}
 
-	public updateMasterControls() {
-		this.masterControls.forEach((o) => {
-			o.attachEngine(this);
-		});
-	}
-
 	public raiseEventFileLoaded() {
 		const e = new SimpleEventObject(this);
 		for (const fn of this._evtFileLoaded) {
@@ -1776,12 +1770,6 @@ export default class Engine {
 	}
 
 	public reset(): void {
-		for (const c of this.masterControls) {
-			c.detachEngine();
-		}
-		for (const p of this.parts) {
-			p.detachEngine();
-		}
 		this.smfDivision = 0x120;
 		this.tempo = 120;
 		this.masterControls = [];
@@ -2048,19 +2036,11 @@ export default class Engine {
 			lenRemain -= len;
 		}
 
-		this.masterControls.forEach((c) => {
-			c.detachEngine();
-		});
-		this.parts.forEach((part) => {
-			part.detachEngine();
-		});
 		this.parts = parts;
-		parts[0].attachEngine(this);
 		updateControlArray(mcontrols);
 		sortNotesAndControls(mcontrols);
 		this.masterControls = mcontrols;
 		this.smfDivision = ctx.division;
-		this.updateMasterControls();
 
 		this._afterLoadSMF();
 
@@ -2234,7 +2214,6 @@ export default class Engine {
 			this.parts[i] = new Part();
 			this.parts[i].fromJSONObject(obj.parts[i]);
 		}
-		this.parts[0].attachEngine(this);
 		this.masterControls = [];
 		this.masterControls.length = obj.masterControls.length;
 		for (let i = 0; i < this.masterControls.length; ++i) {
@@ -2246,7 +2225,6 @@ export default class Engine {
 		sortNotesAndControls(this.masterControls);
 		this.smfDivision = obj.smfDivision;
 		this.tempo = obj.currentTempo;
-		this.updateMasterControls();
 
 		this._afterLoadSMF();
 

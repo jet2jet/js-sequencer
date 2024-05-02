@@ -1,13 +1,10 @@
 import ISequencerObject from '../../objects/ISequencerObject';
 
-import Engine from '../Engine';
-
 /** @internal */
 export const _objCtors: { [key: string]: typeof ControlObject | undefined } =
 	{};
 
 export default class ControlObject implements ISequencerObject {
-	public engine: Engine | null = null;
 	public notePosNumerator = 0;
 	public notePosDenominator = 1;
 	public parentArray: ControlObject[] | null = null;
@@ -29,7 +26,6 @@ export default class ControlObject implements ISequencerObject {
 	}
 
 	public fromJSONObject(obj: any) {
-		this.engine = null;
 		this.parentArray = null;
 		this.idData = 0;
 
@@ -49,19 +45,6 @@ export default class ControlObject implements ISequencerObject {
 		}
 		if (!this.notePosDenominator) {
 			this.notePosDenominator = 1;
-		}
-	}
-
-	public attachEngine(engine: Engine) {
-		this.detachEngine();
-		this.engine = engine;
-		engine._afterAttachEngine(this);
-	}
-
-	public detachEngine() {
-		if (this.engine) {
-			this.engine._beforeDetachEngine(this);
-			this.engine = null;
 		}
 	}
 

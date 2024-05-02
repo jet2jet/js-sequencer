@@ -1,12 +1,8 @@
 import { TimeValue } from '../types';
-
-import Engine from './Engine';
 import NoteObjectBase from './NoteObjectBase';
-
 import { isUndefined } from '../functions';
 
 export default class NoteObject implements NoteObjectBase {
-	public engine?: Engine | null;
 	public notePosNumerator: number;
 	public notePosDenominator: number;
 	public noteLengthNumerator: number;
@@ -47,7 +43,6 @@ export default class NoteObject implements NoteObjectBase {
 		noteValue: number = 0,
 		channel: number = 0
 	) {
-		this.engine = null;
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator !== 0 ? posDenominator : 1;
 		this.noteLengthNumerator = noteLengthNumerator;
@@ -61,18 +56,6 @@ export default class NoteObject implements NoteObjectBase {
 		this.x = this.y = 0;
 	}
 
-	public attachEngine(engine: Engine) {
-		this.detachEngine();
-		this.engine = engine;
-		engine._afterAttachEngine(this);
-	}
-
-	public detachEngine() {
-		if (this.engine) {
-			this.engine._beforeDetachEngine(this);
-			this.engine = null;
-		}
-	}
 	public toJSON(): any {
 		return {
 			notePosNumerator: this.notePosNumerator,

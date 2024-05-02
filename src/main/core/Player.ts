@@ -1562,7 +1562,6 @@ export default class Player extends PlayerBase {
 		this.releasePlayer();
 
 		this.engine.reset();
-		this.engine.updateMasterControls();
 		this.engine.raiseEventFileLoaded();
 	}
 
