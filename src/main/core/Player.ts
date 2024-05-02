@@ -92,70 +92,6 @@ const enum Constants {
 	ChannelChordNote = 18,
 }
 
-function convertBkChordsToNotes(
-	bkChords: BackgroundChord[],
-	endPos: IPositionObject
-): NoteObject[] {
-	const arr: NoteObject[] = [];
-	bkChords.forEach((bc, i) => {
-		const posNum = bc.posNumerator;
-		const posDen = bc.posDenominator;
-		let nextPosNum: number;
-		let nextPosDen: number;
-
-		if (bc.rootNote != null) {
-			nextPosNum = endPos.numerator;
-			nextPosDen = endPos.denominator;
-			for (let j = i + 1; j < bkChords.length; ++j) {
-				const bcNext = bkChords[j + 1];
-				if (bcNext == null) {
-					continue;
-				}
-				if (bcNext.rootNote != null) {
-					nextPosNum = bcNext.posNumerator;
-					nextPosDen = bcNext.posDenominator;
-					break;
-				}
-			}
-			const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
-			const noteLengthDen = posDen * nextPosDen;
-			const n = new NoteObject(
-				posNum,
-				posDen,
-				noteLengthNum,
-				noteLengthDen,
-				bc.rootNote,
-				Constants.ChannelRootNote
-			);
-			arr.push(n);
-		}
-		{
-			const bcNext = bkChords[i + 1];
-			if (bcNext == null) {
-				nextPosNum = endPos.numerator;
-				nextPosDen = endPos.denominator;
-			} else {
-				nextPosNum = bcNext.posNumerator;
-				nextPosDen = bcNext.posDenominator;
-			}
-			const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
-			const noteLengthDen = posDen * nextPosDen;
-			for (const note of bc.notes) {
-				const n = new NoteObject(
-					posNum,
-					posDen,
-					noteLengthNum,
-					noteLengthDen,
-					note,
-					Constants.ChannelChordNote
-				);
-				arr.push(n);
-			}
-		}
-	});
-	return arr;
-}
-
 function makeEventData(object: ISequencerObject): JSSynth.SequencerEvent {
 	if (object instanceof AftertouchControl) {
 		return {
@@ -287,6 +223,70 @@ export default class Player extends PlayerBase {
 			sampleRate,
 			Constants.ChannelChordNote
 		).then((p) => new Player(engine, p));
+	}
+
+	public static convertBackgroundChordsToNotes(
+		backgroundChords: readonly BackgroundChord[],
+		endPos: Readonly<IPositionObject>
+	): NoteObject[] {
+		const arr: NoteObject[] = [];
+		backgroundChords.forEach((bc, i) => {
+			const posNum = bc.posNumerator;
+			const posDen = bc.posDenominator;
+			let nextPosNum: number;
+			let nextPosDen: number;
+
+			if (bc.rootNote != null) {
+				nextPosNum = endPos.numerator;
+				nextPosDen = endPos.denominator;
+				for (let j = i + 1; j < backgroundChords.length; ++j) {
+					const bcNext = backgroundChords[j];
+					if (bcNext == null) {
+						continue;
+					}
+					if (bcNext.rootNote != null) {
+						nextPosNum = bcNext.posNumerator;
+						nextPosDen = bcNext.posDenominator;
+						break;
+					}
+				}
+				const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
+				const noteLengthDen = posDen * nextPosDen;
+				const n = new NoteObject(
+					posNum,
+					posDen,
+					noteLengthNum,
+					noteLengthDen,
+					bc.rootNote,
+					Constants.ChannelRootNote
+				);
+				arr.push(n);
+			}
+			{
+				const bcNext = backgroundChords[i + 1];
+				if (bcNext == null) {
+					nextPosNum = endPos.numerator;
+					nextPosDen = endPos.denominator;
+				} else {
+					nextPosNum = bcNext.posNumerator;
+					nextPosDen = bcNext.posDenominator;
+				}
+				const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
+				const noteLengthDen = posDen * nextPosDen;
+				for (const note of bc.notes) {
+					const n = new NoteObject(
+						posNum,
+						posDen,
+						noteLengthNum,
+						noteLengthDen,
+						note,
+						Constants.ChannelChordNote
+					);
+					arr.push(n);
+				}
+			}
+		});
+		return arr;
 	}
 
 	protected onQueuedPlayer(s: StatusData) {
@@ -1380,7 +1380,10 @@ export default class Player extends PlayerBase {
 			arr = arr.concat(this.engine.masterControls);
 			if (backgroundChords && backgroundEndPos) {
 				arr = arr.concat(
-					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
+					Player.convertBackgroundChordsToNotes(
+						backgroundChords,
+						backgroundEndPos
+					)
 				);
 			}
 			sortNotesAndControls(arr);
@@ -1425,7 +1428,10 @@ export default class Player extends PlayerBase {
 			let arr: ISequencerObject[] = this.engine.getAllNotesAndControls();
 			if (backgroundChords && backgroundEndPos) {
 				arr = arr.concat(
-					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
+					Player.convertBackgroundChordsToNotes(
+						backgroundChords,
+						backgroundEndPos
+					)
 				);
 			}
 			sortNotesAndControls(arr);
@@ -1482,7 +1488,10 @@ export default class Player extends PlayerBase {
 			let arr: ISequencerObject[] = this.engine.getAllNotesAndControls();
 			if (backgroundChords && backgroundEndPos) {
 				arr = arr.concat(
-					convertBkChordsToNotes(backgroundChords, backgroundEndPos)
+					Player.convertBackgroundChordsToNotes(
+						backgroundChords,
+						backgroundEndPos
+					)
 				);
 			}
 			sortNotesAndControls(arr);
