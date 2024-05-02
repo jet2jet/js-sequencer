@@ -2036,6 +2036,8 @@ export default class Engine {
 			lenRemain -= len;
 		}
 
+		this.reset();
+
 		this.parts = parts;
 		updateControlArray(mcontrols);
 		sortNotesAndControls(mcontrols);
@@ -2207,6 +2209,8 @@ export default class Engine {
 		) {
 			return false;
 		}
+
+		this.reset();
 
 		this.parts = [];
 		this.parts.length = obj.parts.length;
