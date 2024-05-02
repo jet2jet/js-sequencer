@@ -1771,8 +1771,13 @@ export default class Engine {
 		if (i >= 0) arr.splice(i, 1);
 	}
 
-	public reset() {
-		for (const c of this.masterControls) c.detachEngine();
+	public reset(): void {
+		for (const c of this.masterControls) {
+			c.detachEngine();
+		}
+		for (const p of this.parts) {
+			p.detachEngine();
+		}
 		this.smfDivision = 0x120;
 		this.tempo = 120;
 		this.masterControls = [];
@@ -2041,6 +2046,9 @@ export default class Engine {
 
 		this.masterControls.forEach((c) => {
 			c.detachEngine();
+		});
+		this.parts.forEach((part) => {
+			part.detachEngine();
 		});
 		this.parts = parts;
 		parts[0].attachEngine(this);
