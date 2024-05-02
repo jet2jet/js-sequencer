@@ -97,43 +97,62 @@ function convertBkChordsToNotes(
 	endPos: IPositionObject
 ): NoteObject[] {
 	const arr: NoteObject[] = [];
-	for (let i = 0; i < bkChords.length; ++i) {
-		const bc = bkChords[i];
+	bkChords.forEach((bc, i) => {
 		const posNum = bc.posNumerator;
 		const posDen = bc.posDenominator;
 		let nextPosNum: number;
 		let nextPosDen: number;
-		if (i === bkChords.length - 1) {
+
+		if (bc.rootNote != null) {
 			nextPosNum = endPos.numerator;
 			nextPosDen = endPos.denominator;
-		} else {
-			nextPosNum = bkChords[i + 1].posNumerator;
-			nextPosDen = bkChords[i + 1].posDenominator;
-		}
-		const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
-		const noteLengthDen = posDen * nextPosDen;
-
-		let n = new NoteObject(
-			posNum,
-			posDen,
-			noteLengthNum,
-			noteLengthDen,
-			bc.rootNote,
-			Constants.ChannelRootNote
-		);
-		arr.push(n);
-		for (const note of bc.notes) {
-			n = new NoteObject(
+			for (let j = i + 1; j < bkChords.length; ++j) {
+				const bcNext = bkChords[j + 1];
+				if (bcNext == null) {
+					continue;
+				}
+				if (bcNext.rootNote != null) {
+					nextPosNum = bcNext.posNumerator;
+					nextPosDen = bcNext.posDenominator;
+					break;
+				}
+			}
+			const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
+			const noteLengthDen = posDen * nextPosDen;
+			const n = new NoteObject(
 				posNum,
 				posDen,
 				noteLengthNum,
 				noteLengthDen,
-				note,
-				Constants.ChannelChordNote
+				bc.rootNote,
+				Constants.ChannelRootNote
 			);
 			arr.push(n);
 		}
-	}
+		{
+			const bcNext = bkChords[i + 1];
+			if (bcNext == null) {
+				nextPosNum = endPos.numerator;
+				nextPosDen = endPos.denominator;
+			} else {
+				nextPosNum = bcNext.posNumerator;
+				nextPosDen = bcNext.posDenominator;
+			}
+			const noteLengthNum = nextPosNum * posDen - posNum * nextPosDen;
+			const noteLengthDen = posDen * nextPosDen;
+			for (const note of bc.notes) {
+				const n = new NoteObject(
+					posNum,
+					posDen,
+					noteLengthNum,
+					noteLengthDen,
+					note,
+					Constants.ChannelChordNote
+				);
+				arr.push(n);
+			}
+		}
+	});
 	return arr;
 }
 
