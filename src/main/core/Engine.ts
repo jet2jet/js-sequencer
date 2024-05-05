@@ -34,18 +34,18 @@ import SimpleEventObject from '../events/SimpleEventObject';
 
 import { gcd } from '../functions';
 
-let _controlDataId = 0;
-
-export function updateControlArray(arr: ControlObject[]) {
+function updateControlArray(arr: ControlObject[]): void {
 	arr.forEach((c) => {
 		c.parentArray = arr;
 	});
 }
 
-export function addToControlArray(arr: ControlObject[], obj: ControlObject) {
+function addToControlArray(arr: ControlObject[], obj: ControlObject): void {
 	if (!(obj instanceof ControllerControl)) {
 		for (const c of arr) {
-			if (c.isSimilar(obj)) return;
+			if (c.isSimilar(obj)) {
+				return;
+			}
 			// if (arr[i].isEqualType(obj) && arr[i].isEqualPosition(obj)) {
 			// 	arr[i] = obj;
 			// 	obj.parentArray = arr;
@@ -53,27 +53,50 @@ export function addToControlArray(arr: ControlObject[], obj: ControlObject) {
 			// }
 		}
 	}
-	obj.idData = _controlDataId++;
+	const iLast = arr.length - 1;
+	const largestId = arr[iLast] != null ? arr[iLast].idData : 0;
+	obj.idData = largestId + 1;
 	arr.push(obj);
 	obj.parentArray = arr;
 }
 
-export function sortNotesAndControls(arr: ISequencerObject[]): void {
-	const compare = (a: ISequencerObject, b: ISequencerObject) => {
-		const pos1 = a.notePosNumerator * b.notePosDenominator;
-		const pos2 = b.notePosNumerator * a.notePosDenominator;
-		if (pos1 === pos2) {
-			if (a.isEqualType?.(b)) {
-				if (a.compareTo) return a.compareTo(b);
+function comparatorOfSortNotesAndControls(
+	a: ISequencerObject,
+	b: ISequencerObject
+): number {
+	const pos1 = a.notePosNumerator * b.notePosDenominator;
+	const pos2 = b.notePosNumerator * a.notePosDenominator;
+	if (pos1 === pos2) {
+		if (a.isEqualType?.(b)) {
+			if (a.compareTo) {
+				return a.compareTo(b);
 			}
-			if (a instanceof ControlObject) {
-				if (!(b instanceof ControlObject)) return -1;
-			} else if (b instanceof ControlObject) return 1;
-			return a.idData! - b.idData!;
 		}
-		return pos1 - pos2;
-	};
-	arr.sort(compare);
+		if (a instanceof ControlObject) {
+			if (!(b instanceof ControlObject)) {
+				return -1;
+			}
+		} else if (b instanceof ControlObject) {
+			return 1;
+		}
+		if (a.channel != null) {
+			if (b.channel != null) {
+				if (a.channel !== b.channel) {
+					return a.channel - b.channel;
+				}
+			} else {
+				return 1;
+			}
+		} else if (b.channel != null) {
+			return -1;
+		}
+		return a.idData! - b.idData!;
+	}
+	return pos1 - pos2;
+}
+
+export function sortNotesAndControls(arr: ISequencerObject[]): void {
+	arr.sort(comparatorOfSortNotesAndControls);
 }
 
 /** Returns the time seconds from position 'valFromNum/valFromDen' to 'valToNum/valToDen' */
