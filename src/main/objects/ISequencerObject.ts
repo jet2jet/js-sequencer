@@ -23,7 +23,6 @@ export default interface ISequencerObject {
 	equals?(obj: any): boolean;
 	isEqualType?(obj: any): boolean;
 	isEqualPosition?(obj: any): boolean;
-	isSimilar?(obj: any): boolean;
 	compareTo?(obj: any): number;
 
 	attachEngine?(engine: Engine): void;

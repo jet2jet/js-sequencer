@@ -94,8 +94,5 @@ export default class SysExControl extends ControlObject {
 	public isEqualType(obj: any): obj is SysExControl {
 		return obj instanceof SysExControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.SysExControl = SysExControl;

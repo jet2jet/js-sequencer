@@ -63,8 +63,5 @@ export default class AftertouchControl extends ControlObject {
 	public isEqualType(obj: any): obj is AftertouchControl {
 		return obj instanceof AftertouchControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.AftertouchControl = AftertouchControl;

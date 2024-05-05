@@ -76,8 +76,5 @@ export default class SysMsgControl extends ControlObject {
 	public isEqualType(obj: any): obj is SysMsgControl {
 		return obj instanceof SysMsgControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.SysMsgControl = SysMsgControl;

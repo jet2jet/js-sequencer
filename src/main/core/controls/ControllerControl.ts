@@ -63,9 +63,6 @@ export default class ControllerControl extends ControlObject {
 	public isEqualType(obj: any): obj is ControllerControl {
 		return obj instanceof ControllerControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 	public compareTo(obj: any): number {
 		if (!(obj instanceof ControllerControl)) return -1;
 		if (this.channel !== obj.channel) return this.channel - obj.channel;

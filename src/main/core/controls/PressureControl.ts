@@ -53,8 +53,5 @@ export default class PressureControl extends ControlObject {
 	public isEqualType(obj: any): obj is PressureControl {
 		return obj instanceof PressureControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.PressureControl = PressureControl;

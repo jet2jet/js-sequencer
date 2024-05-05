@@ -33,7 +33,4 @@ export default class EOTObject extends ControlObject {
 	public isEqualType(obj: any): obj is EOTObject {
 		return obj instanceof EOTObject;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }

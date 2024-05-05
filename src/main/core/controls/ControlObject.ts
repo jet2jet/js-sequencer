@@ -68,9 +68,6 @@ export default class ControlObject implements ISequencerObject {
 			this.notePosDenominator * obj.notePosNumerator
 		);
 	}
-	public isSimilar(obj: any) {
-		return this.isEqualType(obj) && this.isEqualPosition(obj);
-	}
 }
 _objCtors.ControlObject = ControlObject;
 

@@ -46,8 +46,5 @@ export default class TempoControl extends ControlObject {
 	public isEqualType(obj: any): obj is TempoControl {
 		return obj instanceof TempoControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.TempoControl = TempoControl;

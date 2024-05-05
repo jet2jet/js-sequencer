@@ -53,8 +53,5 @@ export default class PitchWheelControl extends ControlObject {
 	public isEqualType(obj: any): obj is PitchWheelControl {
 		return obj instanceof PitchWheelControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.PitchWheelControl = PitchWheelControl;

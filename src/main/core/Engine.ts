@@ -41,18 +41,6 @@ function updateControlArray(arr: ControlObject[]): void {
 }
 
 function addToControlArray(arr: ControlObject[], obj: ControlObject): void {
-	if (!(obj instanceof ControllerControl)) {
-		for (const c of arr) {
-			if (c.isSimilar(obj)) {
-				return;
-			}
-			// if (arr[i].isEqualType(obj) && arr[i].isEqualPosition(obj)) {
-			// 	arr[i] = obj;
-			// 	obj.parentArray = arr;
-			// 	return;
-			// }
-		}
-	}
 	const iLast = arr.length - 1;
 	const largestId = arr[iLast] != null ? arr[iLast].idData : 0;
 	obj.idData = largestId + 1;

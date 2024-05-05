@@ -53,8 +53,5 @@ export default class ProgramChangeControl extends ControlObject {
 	public isEqualType(obj: any): obj is ProgramChangeControl {
 		return obj instanceof ProgramChangeControl;
 	}
-	public isSimilar(obj: any) {
-		return this.equals(obj);
-	}
 }
 _objCtors.ProgramChangeControl = ProgramChangeControl;
