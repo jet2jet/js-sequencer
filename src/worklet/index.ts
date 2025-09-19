@@ -1,13 +1,12 @@
 /// <reference types='AudioWorklet' />
 
-import * as RenderMessage from './types/RenderMessageData';
-
-import FrameQueue from './core/playing/FrameQueue';
-
 import makeDelayProcessRaw, {
 	DelayMillisecFunction,
 	CancelDelayMillisecFunction,
 } from './core/makeDelayProcessRaw';
+import FrameQueue from './core/playing/FrameQueue';
+import { AudioWorkletProcessorOptions } from './types/AudioWorkletTypes';
+import * as RenderMessage from './types/RenderMessageData';
 
 interface TimerObject {
 	timeout: number;
@@ -76,8 +75,10 @@ class Processor extends AudioWorkletProcessor {
 		const timer = new TimerContainer(() => Date.now());
 		this.timer = timer;
 
-		this.prerenderFrames = options.processorOptions.options.prerenderFrames;
-		this.maxQueueFrames = options.processorOptions.options.maxQueueFrames;
+		const processorOptions =
+			options.processorOptions as AudioWorkletProcessorOptions;
+		this.prerenderFrames = processorOptions.options.prerenderFrames;
+		this.maxQueueFrames = processorOptions.options.maxQueueFrames;
 		this.halfMaxQueueFrames = Math.floor((this.maxQueueFrames * 3) / 2);
 
 		const makeDelayProcess = (() => {
@@ -180,8 +181,9 @@ class Processor extends AudioWorkletProcessor {
 	}
 
 	private onMessage(e: MessageEvent) {
-		const data: RenderMessage.AllTypes | null | undefined = e.data;
-		if (!data) {
+		const data: RenderMessage.AllTypes | null | undefined =
+			e.data as unknown as RenderMessage.AllTypes | null | undefined;
+		if (!data || !('type' in data)) {
 			return;
 		}
 		switch (data.type) {

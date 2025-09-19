@@ -1,12 +1,14 @@
+import EngineEventObjectMap from '../events/EngineEventObjectMap';
+import EventObjectBase from '../events/EventObjectBase';
+import SimpleEventObject from '../events/SimpleEventObject';
+import { gcd } from '../functions';
+import * as TimeRational from '../functions/timeRational';
 import Channel from '../objects/Channel';
 import IPositionObject from '../objects/IPositionObject';
 import ISequencerObject from '../objects/ISequencerObject';
 import PositionObject from '../objects/PositionObject';
-
 import { TimeRationalValue, TimeValue } from '../types';
-
-import * as TimeRational from '../functions/timeRational';
-
+import BeatsCalculator from './BeatsCalculator';
 import AftertouchControl from './controls/AftertouchControl';
 import ControllerControl from './controls/ControllerControl';
 import ControlObject, {
@@ -21,18 +23,10 @@ import SysExControl from './controls/SysExControl';
 import SysMsgControl from './controls/SysMsgControl';
 import TempoControl from './controls/TempoControl';
 import TimeSignatureControl from './controls/TimeSignatureControl';
-
-import BeatsCalculator from './BeatsCalculator';
 import DummyNoteStopObject from './DummyNoteStopObject';
 import NoteObject from './NoteObject';
 import NoteObjectBase from './NoteObjectBase';
 import Part from './Part';
-
-import EngineEventObjectMap from '../events/EngineEventObjectMap';
-import EventObjectBase from '../events/EventObjectBase';
-import SimpleEventObject from '../events/SimpleEventObject';
-
-import { gcd } from '../functions';
 
 function updateControlArray(arr: ControlObject[]): void {
 	arr.forEach((c) => {

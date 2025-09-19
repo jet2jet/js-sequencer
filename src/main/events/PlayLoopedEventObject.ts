@@ -1,7 +1,6 @@
-import EventObjectBase from './EventObjectBase';
-
 import Player from '../core/Player';
 import IPositionObject from '../objects/IPositionObject';
+import EventObjectBase from './EventObjectBase';
 
 export default class PlayLoopedEventObject extends EventObjectBase {
 	constructor(

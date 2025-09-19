@@ -1,9 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-
-const webpack = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
-
+const webpack = require('webpack');
 const packageJson = require('../package.json');
 
 const LIBRARY_NAME = 'js-sequencer';

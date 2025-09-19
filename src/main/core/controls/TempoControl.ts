@@ -1,6 +1,5 @@
-import ControlObject, { _objCtors } from './ControlObject';
-
 import { isUndefined } from '../../functions';
+import ControlObject, { _objCtors } from './ControlObject';
 
 export default class TempoControl extends ControlObject {
 	/** BPM = 60000000 / value */

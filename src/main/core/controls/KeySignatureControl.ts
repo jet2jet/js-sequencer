@@ -1,5 +1,5 @@
-import ControlObject, { _objCtors } from './ControlObject';
 import { isUndefined } from '../../functions';
+import ControlObject, { _objCtors } from './ControlObject';
 
 export default class KeySignatureControl extends ControlObject {
 	public sharpFlat: number;

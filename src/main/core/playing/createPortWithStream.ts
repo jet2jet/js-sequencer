@@ -1,7 +1,5 @@
 import * as RenderMessage from '../../types/RenderMessageData';
-
 import IPlayStream from '../IPlayStream';
-
 import Options from './Options';
 
 /** @internal */

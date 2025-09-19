@@ -10,7 +10,6 @@ import SequencerEvent, {
 } from 'js-synthesizer/SequencerEvent';
 import Synthesizer from 'js-synthesizer/Synthesizer';
 import SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
-
 import * as Message from './types/MessageData';
 import * as RenderMessage from './types/RenderMessageData';
 import * as Response from './types/ResponseData';

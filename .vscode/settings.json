@@ -1,8 +1,12 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.reportStyleChecksAsWarnings": false,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
+  },
   "eslint.validate": [
     "javascript",
     "javascriptreact",

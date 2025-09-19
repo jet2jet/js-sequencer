@@ -18,7 +18,7 @@
     "lint": "npm run lint:prettier && npm run lint:eslint",
     "lint:eslint": "eslint -c eslint.config.mjs --ext .js,.jsx,.mjs,.ts,.tsx .",
     "lint:eslint:fix": "eslint -c eslint.config.mjs --fix --ext .js,.mjs,.jsx,.ts,.tsx .",
-    "lint:fix": "npm run lint:prettier:fix && npm run lint:eslint:fix",
+    "lint:fix": "npm run lint:eslint:fix && npm run lint:prettier:fix",
     "lint:prettier": "prettier --config ./.prettierrc.yml --check \"**/*.{js,jsx,mjs,ts,tsx,yml,json,md}\"",
     "lint:prettier:fix": "prettier --config ./.prettierrc.yml --write \"**/*.{js,jsx,mjs,ts,tsx,yml,json,md}\"",
     "test": "echo \"Error: no test specified\" && exit 1",

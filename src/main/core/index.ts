@@ -1,6 +1,5 @@
-import * as Controls from './controls';
-
 import BeatsCalculator from './BeatsCalculator';
+import * as Controls from './controls';
 import Engine from './Engine';
 import IPlayStream from './IPlayStream';
 import NoteObject, { isNoteObject } from './NoteObject';

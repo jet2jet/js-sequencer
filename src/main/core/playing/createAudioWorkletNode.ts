@@ -1,10 +1,11 @@
+import type { AudioWorkletProcessorOptions } from '../../types/AudioWorkletTypes';
 import Options, { Defaults } from './Options';
 
 /** @internal */
 export default function createAudioWorkletNode(
 	ctx: BaseAudioContext,
 	options: Options
-) {
+): { node: AudioWorkletNode; port: MessagePort } {
 	const rate = ctx.sampleRate;
 	const prerenderFrames =
 		rate *
@@ -23,8 +24,11 @@ export default function createAudioWorkletNode(
 		numberOfOutputs: 1,
 		outputChannelCount: [2],
 		processorOptions: {
-			options: { prerenderFrames, maxQueueFrames },
-		},
+			options: {
+				prerenderFrames,
+				maxQueueFrames,
+			},
+		} satisfies AudioWorkletProcessorOptions,
 	});
 
 	return {

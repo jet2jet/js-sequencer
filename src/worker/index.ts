@@ -1,6 +1,5 @@
-import * as Message from './types/MessageData';
-
 import PlayerImpl from './PlayerImpl';
+import * as Message from './types/MessageData';
 
 function initialize(data: Message.Initialize) {
 	self.importScripts(...data.deps);

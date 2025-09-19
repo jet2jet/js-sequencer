@@ -1,9 +1,8 @@
+import PlayerBase from '../core/PlayerBase';
 import PlayStatusEventObject from './PlayStatusEventObject';
 import PlayUserEventObject from './PlayUserEventObject';
 import PlayUserMarkerEventObject from './PlayUserMarkerEventObject';
 import SimpleEventObject from './SimpleEventObject';
-
-import PlayerBase from '../core/PlayerBase';
 
 export default interface PlayerBaseEventObjectMap {
 	prepare: SimpleEventObject<PlayerBase>;

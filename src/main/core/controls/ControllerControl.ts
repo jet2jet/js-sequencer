@@ -1,6 +1,5 @@
-import ControlObject, { _objCtors } from './ControlObject';
-
 import { isUndefined } from '../../functions';
+import ControlObject, { _objCtors } from './ControlObject';
 
 export default class ControllerControl extends ControlObject {
 	public channel: number;

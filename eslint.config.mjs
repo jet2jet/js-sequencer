@@ -46,17 +46,16 @@ export default defineConfig(
 			],
 
 			'import-x/export': 'off',
-			'import-x/order': 'off',
-			// 'import-x/order': [
-			// 	'error',
-			// 	{
-			// 		'newlines-between': 'never',
-			// 		alphabetize: {
-			// 			order: 'asc',
-			// 			caseInsensitive: true,
-			// 		},
-			// 	},
-			// ],
+			'import-x/order': [
+				'error',
+				{
+					'newlines-between': 'never',
+					alphabetize: {
+						order: 'asc',
+						caseInsensitive: true,
+					},
+				},
+			],
 
 			'@typescript-eslint/adjacent-overload-signatures': 'error',
 			'@typescript-eslint/array-type': [
@@ -122,6 +121,7 @@ export default defineConfig(
 			'@typescript-eslint/no-non-null-assertion': 'off',
 			'@typescript-eslint/no-use-before-define': 'off',
 			'@typescript-eslint/no-useless-constructor': 'error',
+			'@typescript-eslint/no-unsafe-argument': 'warn',
 			'@typescript-eslint/no-unsafe-assignment': 'warn',
 			'@typescript-eslint/no-unsafe-call': 'warn',
 			'@typescript-eslint/no-unsafe-enum-comparison': 'off',

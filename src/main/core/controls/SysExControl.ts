@@ -1,6 +1,5 @@
-import ControlObject, { _objCtors } from './ControlObject';
-
 import { isUndefined } from '../../functions';
+import ControlObject, { _objCtors } from './ControlObject';
 
 export default class SysExControl extends ControlObject {
 	public rawData: Uint8Array;

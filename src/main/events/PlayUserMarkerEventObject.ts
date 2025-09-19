@@ -1,6 +1,5 @@
-import EventObjectBase from './EventObjectBase';
-
 import PlayerBase from '../core/PlayerBase';
+import EventObjectBase from './EventObjectBase';
 
 export default class PlayUserMarkerEventObject extends EventObjectBase {
 	constructor(

@@ -1,6 +1,5 @@
-import IPositionObject from './IPositionObject';
-
 import { gcd, isUndefined } from '../functions';
+import IPositionObject from './IPositionObject';
 
 export default class PositionObject implements IPositionObject {
 	public numerator: number;
