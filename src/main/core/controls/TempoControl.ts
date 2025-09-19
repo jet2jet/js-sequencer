@@ -16,7 +16,6 @@ export default class TempoControl extends ControlObject {
 	) {
 		super();
 		// zero is not allowed (use default value)
-		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		this.value = value || 500000;
 		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
 		this.notePosNumerator = posNumerator;

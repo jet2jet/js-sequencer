@@ -16,5 +16,6 @@
 .npmrc
 .prettierignore
 .prettierrc.yml
+eslint.config.mjs
 package-lock.json
 tsconfig.json

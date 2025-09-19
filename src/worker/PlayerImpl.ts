@@ -238,11 +238,9 @@ export default class PlayerImpl {
 		this.allRendered = false;
 
 		// uses the default value if zero
-		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		this.sampleRate = data.sampleRate || Defaults.SampleRate;
 		// uses the default value if zero
 		this.midiChannelCount =
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			Math.ceil(((data.channelCount || 16) + 15) / 16) * 16;
 		this.timerInterval = Defaults.Interval;
 		this.framesCount = Defaults.FramesCount;
@@ -402,7 +400,7 @@ export default class PlayerImpl {
 		id: number,
 		messageType: Response.NoResponseMessageTypes
 	) {
-		this.postMessage({ id: id, type: messageType });
+		this.postMessage({ id, type: messageType });
 	}
 
 	private postReset() {
@@ -438,7 +436,6 @@ export default class PlayerImpl {
 			} else {
 				const data = this.userMsgMap[id];
 				if (data) {
-					// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 					delete this.userMsgMap[id];
 					if (data.sysEx) {
 						this.synth.midiSysEx(data.sysEx);
@@ -845,7 +842,7 @@ export default class PlayerImpl {
 			this.eventQueue.push({
 				client: -1,
 				data: data.data,
-				tick: tick,
+				tick,
 			});
 			this.sorted = false;
 		}
@@ -863,7 +860,7 @@ export default class PlayerImpl {
 				this.eventQueue.push({
 					client: -1,
 					data: e,
-					tick: tick,
+					tick,
 				});
 				this.sorted = false;
 			}
@@ -896,7 +893,7 @@ export default class PlayerImpl {
 					type: SequencerEventTypes.Timer,
 					data: id,
 				},
-				tick: tick,
+				tick,
 			});
 			this.sorted = false;
 		}
@@ -929,7 +926,7 @@ export default class PlayerImpl {
 					type: SequencerEventTypes.Timer,
 					data: id,
 				},
-				tick: tick,
+				tick,
 			});
 			this.sorted = false;
 		}
@@ -960,7 +957,7 @@ export default class PlayerImpl {
 					type: SequencerEventTypes.Timer,
 					data: id,
 				},
-				tick: tick,
+				tick,
 			});
 			this.sorted = false;
 		}
@@ -989,7 +986,7 @@ export default class PlayerImpl {
 					type: SequencerEventTypes.Timer,
 					data: -1,
 				},
-				tick: tick,
+				tick,
 			});
 			this.sorted = false;
 		}
@@ -1021,7 +1018,7 @@ export default class PlayerImpl {
 					type: SequencerEventTypes.Timer,
 					data: id,
 				},
-				tick: tick,
+				tick,
 			});
 			this.sorted = false;
 		}

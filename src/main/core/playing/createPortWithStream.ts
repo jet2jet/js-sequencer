@@ -34,8 +34,8 @@ export default function createPortWithStream(
 						const s: RenderMessage.RenderedResponse = {
 							type: 'rendered',
 							data: {
-								outFrames: outFrames,
-								sampleRate: sampleRate,
+								outFrames,
+								sampleRate,
 								isQueueEmpty: true,
 							},
 						};
@@ -45,8 +45,8 @@ export default function createPortWithStream(
 						const s: RenderMessage.Status = {
 							type: 'status',
 							data: {
-								outFrames: outFrames,
-								sampleRate: sampleRate,
+								outFrames,
+								sampleRate,
 								isQueueEmpty: true,
 							},
 						};

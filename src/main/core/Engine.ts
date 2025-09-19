@@ -494,8 +494,8 @@ function calculatePositionImpl(
 		posTo === null
 			? null
 			: typeof posTo === 'number'
-			? TimeRational.fromNumber(posTo)
-			: posTo,
+				? TimeRational.fromNumber(posTo)
+				: posTo,
 		returnGreaterOrEqual,
 		disableHold
 	);
@@ -1871,7 +1871,7 @@ export default class Engine {
 					timeStartOffset:
 						r.timeStartOffset.num / r.timeStartOffset.den,
 					duration: r.duration.num / r.duration.den,
-			  }
+				}
 			: null;
 	}
 
@@ -1922,7 +1922,7 @@ export default class Engine {
 					timeStartOffset:
 						r.timeStartOffset.num / r.timeStartOffset.den,
 					duration: r.duration.num / r.duration.den,
-			  }
+				}
 			: null;
 	}
 
@@ -2062,7 +2062,6 @@ export default class Engine {
 
 	public getErrorFromLoadSMFData(ctx: ILoadSMFContext | null): any {
 		// ctx?.smfBuffer !== null is not correct
-		// eslint-disable-next-line @typescript-eslint/prefer-optional-chain
 		return ctx && ctx.smfBuffer !== null
 			? ctx.error
 			: new Error('Invalid context');
@@ -2080,9 +2079,7 @@ export default class Engine {
 		ctx: ILoadSMFContext | null,
 		callback: (err?: any) => void
 	) {
-		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		if (!ctx || ctx.error) {
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			callback(ctx?.error || new Error('Invalid data'));
 			return;
 		}
@@ -2100,7 +2097,6 @@ export default class Engine {
 	private loadContextAsyncImpl(ctx: ILoadSMFContext | null) {
 		return new Promise<void>((resolve, reject) => {
 			this.loadContextCallbackImpl(ctx, (err) => {
-				// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 				if (err) {
 					reject(err);
 				} else {
@@ -2135,7 +2131,7 @@ export default class Engine {
 			typeof fileElemId === 'string'
 				? (document.getElementById(
 						fileElemId
-				  ) as HTMLInputElement | null)
+					) as HTMLInputElement | null)
 				: fileElemId;
 		if (!f || !f.files || !f.files.length) {
 			return;
@@ -2143,7 +2139,6 @@ export default class Engine {
 
 		startLoadFromSMFFileImpl(f.files[0], (ctx) => {
 			this.loadContextCallbackImpl(ctx, (err) => {
-				// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 				if (err) {
 					if (callback) {
 						callback(err);
@@ -2166,7 +2161,7 @@ export default class Engine {
 				typeof fileElemId === 'string'
 					? (document.getElementById(
 							fileElemId
-					  ) as HTMLInputElement | null)
+						) as HTMLInputElement | null)
 					: fileElemId;
 			if (!f || !f.files || !f.files.length) {
 				reject(new Error('Invalid file element'));
@@ -2213,9 +2208,7 @@ export default class Engine {
 			obj === undefined ||
 			!(obj.parts instanceof Array) ||
 			!(obj.masterControls instanceof Array) ||
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			!(!obj.backgroundChords || obj.backgroundChords instanceof Array) ||
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			!(!obj.backgroundEndPos || obj.backgroundEndPos instanceof Array)
 		) {
 			return false;

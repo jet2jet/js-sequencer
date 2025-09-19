@@ -698,7 +698,7 @@ export default class Player extends PlayerBase {
 					{
 						type: JSSynth.SequencerEventTypes.EventType
 							.ControlChange,
-						channel: channel,
+						channel,
 						control: 0x07,
 						value: Math.floor(newValue / 0x80),
 					},
@@ -741,7 +741,7 @@ export default class Player extends PlayerBase {
 			this.doSendEvent(
 				{
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: channel,
+					channel,
 					control: 0x07,
 					value: Math.floor(vol / 0x80),
 				},
@@ -751,7 +751,7 @@ export default class Player extends PlayerBase {
 			this.doSendEvent(
 				{
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: channel,
+					channel,
 					control: 0x27,
 					value: vol & 0x7f,
 				},
@@ -767,7 +767,7 @@ export default class Player extends PlayerBase {
 		[currentIndex, endTime, isFirst]: [
 			currentIndex: number,
 			endTime: IPositionObject | null | undefined,
-			isFirst: boolean
+			isFirst: boolean,
 		],
 		loopStatus?: LoopStatus
 	) {
@@ -1323,7 +1323,6 @@ export default class Player extends PlayerBase {
 				this.fadeout = {
 					progress: false,
 					// zero is not allowed
-					// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 					step: fadeoutData.step || Constants.DefaultFadeoutStep,
 					startTimeFromLoop:
 						typeof fadeoutData.startTimeFromLoop === 'number'
@@ -1616,7 +1615,6 @@ export default class Player extends PlayerBase {
 		};
 		r.duration = TimeRational.add(r.duration, loopDuration);
 		// false value == disabled
-		// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 		if (fadeout) {
 			if (typeof fadeout === 'boolean') {
 				fadeout = { enabled: true };

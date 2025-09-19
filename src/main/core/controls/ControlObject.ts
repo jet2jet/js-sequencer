@@ -72,7 +72,6 @@ export default class ControlObject implements ISequencerObject {
 _objCtors.ControlObject = ControlObject;
 
 export function getControlFromJSONObject(obj: any): ControlObject {
-	// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 	let t: string = obj.objType || 'ControlObject';
 	// for compatibility
 	if (t === 'EOFObject') {

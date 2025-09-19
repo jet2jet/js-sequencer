@@ -28,7 +28,7 @@ export default function createAudioWorkletNode(
 	});
 
 	return {
-		node: node,
+		node,
 		port: node.port,
 	};
 }

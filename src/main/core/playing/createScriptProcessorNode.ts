@@ -208,7 +208,7 @@ export default function createScriptProcessorNode(
 	};
 
 	return {
-		node: node,
+		node,
 		port: port2,
 	};
 }

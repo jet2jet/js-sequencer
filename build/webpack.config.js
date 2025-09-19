@@ -99,7 +99,7 @@ module.exports = (env) => {
 						new TerserPlugin({
 							extractComments: false,
 						}),
-				  ]
+					]
 				: [],
 		},
 		plugins: [

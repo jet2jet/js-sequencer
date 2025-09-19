@@ -253,7 +253,6 @@ export default class PlayerBase {
 			interval,
 			framesCount,
 			sampleRate,
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			channelCount || 16
 		);
 	}
@@ -340,7 +339,7 @@ export default class PlayerBase {
 			this.sfontMap.push({
 				targetBank: -1,
 				targetPreset: -1,
-				sfontId: sfontId,
+				sfontId,
 				bank: 0,
 				preset: 0,
 			});
@@ -374,7 +373,7 @@ export default class PlayerBase {
 		targetPreset: number,
 		bank: number,
 		preset: number,
-		ampPercent?: number | null | undefined
+		ampPercent?: number | null
 	) {
 		if (targetBank < 0) {
 			throw new Error("Invalid 'targetBank' value");
@@ -408,13 +407,13 @@ export default class PlayerBase {
 			a.ampValue = ampValue;
 		} else {
 			this.sfontMap.push({
-				targetBank: targetBank,
-				targetPreset: targetPreset,
+				targetBank,
+				targetPreset,
 				sfontId: sfont,
-				bank: bank,
-				preset: preset,
-				ampPercent: ampPercent,
-				ampValue: ampValue,
+				bank,
+				preset,
+				ampPercent,
+				ampValue,
 			});
 		}
 	}
@@ -810,12 +809,12 @@ export default class PlayerBase {
 							actx,
 							this.sfontDefault!,
 							this.playOptions
-					  )
+						)
 					: this.proxy.startWithScriptProcessorNode(
 							actx,
 							this.sfontDefault!,
 							this.playOptions
-					  );
+						);
 				this.playingNode = node;
 				doConnect = true;
 			}
@@ -847,10 +846,7 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public sendEvent(
-		ev: JSSynth.SequencerEvent,
-		time?: TimeValue | null | undefined
-	) {
+	public sendEvent(ev: JSSynth.SequencerEvent, time?: TimeValue | null) {
 		switch (ev.type) {
 			case JSSynth.EventType.ProgramChange:
 				return this.doChangeProgram(ev.channel, ev.preset, time);
@@ -889,7 +885,7 @@ export default class PlayerBase {
 		return this.doSendEvent({ ...ev }, time);
 	}
 
-	public sendSysEx(rawData: Uint8Array, time?: TimeValue | null | undefined) {
+	public sendSysEx(rawData: Uint8Array, time?: TimeValue | null) {
 		const data = { rawData };
 		if (!this.preSendSysEx(data, time)) {
 			return false;
@@ -911,7 +907,7 @@ export default class PlayerBase {
 		type: JSSynth.Constants.GeneratorTypes,
 		value: number | null,
 		keepCurrentVoice?: boolean | null,
-		time?: TimeValue | null | undefined
+		time?: TimeValue | null
 	) {
 		if (typeof time === 'undefined' || time === null) {
 			this.proxy.sendGeneratorValueNow(
@@ -942,8 +938,8 @@ export default class PlayerBase {
 	 */
 	public sendUserEvent(type: string, time: TimeValue, data?: any) {
 		const ev: UserEventData = {
-			type: type,
-			data: data,
+			type,
+			data,
 		};
 		this.proxy.sendUserData(ev, time * 1000);
 	}
@@ -995,7 +991,7 @@ export default class PlayerBase {
 		channel: number,
 		isMSB: boolean,
 		value: number,
-		time?: TimeValue | null | undefined
+		time?: TimeValue | null
 	): boolean;
 	/**
 	 * Send 'change volume' event to the sequencer.
@@ -1008,14 +1004,14 @@ export default class PlayerBase {
 	public changeVolume(
 		channel: number,
 		value: number,
-		time?: TimeValue | null | undefined
+		time?: TimeValue | null
 	): boolean;
 
 	public changeVolume(
 		channel: number,
 		arg2: boolean | number,
-		arg3?: number | TimeValue | null | undefined,
-		arg4?: TimeValue | null | undefined
+		arg3?: number | null,
+		arg4?: TimeValue | null
 	): boolean {
 		const ch =
 			this.channels[channel] ||
@@ -1028,7 +1024,7 @@ export default class PlayerBase {
 			arg2 = this.calculateVolumeForChannel(ch, arg2);
 			let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
+				channel,
 				control: 0x07,
 				value: Math.floor(arg2 / 0x80),
 			};
@@ -1038,7 +1034,7 @@ export default class PlayerBase {
 			}
 			ev = {
 				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-				channel: channel,
+				channel,
 				control: 0x27,
 				value: arg2 & 0x7f,
 			};
@@ -1060,7 +1056,7 @@ export default class PlayerBase {
 			if (newValue !== actualValue) {
 				let ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: channel,
+					channel,
 					control: 0x07,
 					value: Math.floor(newValue / 0x80),
 				};
@@ -1069,7 +1065,7 @@ export default class PlayerBase {
 				}
 				ev = {
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: channel,
+					channel,
 					control: 0x27,
 					value: newValue & 0x7f,
 				};
@@ -1079,9 +1075,9 @@ export default class PlayerBase {
 			} else {
 				const ev: JSSynth.SequencerEventTypes.ControlChangeEvent = {
 					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: channel,
+					channel,
 					control: arg2 ? 0x07 : 0x27,
-					value: value,
+					value,
 				};
 				if (!this.doSendEvent(ev, arg4)) {
 					return false;
@@ -1164,7 +1160,7 @@ export default class PlayerBase {
 			if (m.targetBank === bankCurrent && m.targetPreset === preset) {
 				ev = {
 					type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
-					channel: channel,
+					channel,
 					sfontId: m.sfontId < 0 ? this.sfontDefault! : m.sfontId,
 					bank: m.bank,
 					preset: m.preset,
@@ -1178,11 +1174,11 @@ export default class PlayerBase {
 		if (!ev) {
 			ev = {
 				type: JSSynth.SequencerEventTypes.EventType.ProgramSelect,
-				channel: channel,
+				channel,
 				sfontId:
 					typeof sfontId === 'number' ? sfontId : this.sfontDefault!,
 				bank: bankCurrent,
-				preset: preset,
+				preset,
 			};
 		}
 		this.sendGeneratorValue(

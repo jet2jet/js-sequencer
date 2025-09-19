@@ -13,7 +13,7 @@ import IPlayStream from '../IPlayStream';
 
 type ResponseDataTypeBase<
 	TType extends Response.AllTypes['type'],
-	TResponseType extends Response.AllTypes
+	TResponseType extends Response.AllTypes,
 > = TResponseType extends { type: TType } ? TResponseType['data'] : never;
 type ResponseDataType<TType extends Response.AllTypes['type']> =
 	ResponseDataTypeBase<TType, Response.AllTypes>;
@@ -117,9 +117,9 @@ export default class PlayerProxy {
 			type: 'initialize',
 			deps: newWorker ? depsJs : [],
 			port: channel.port2,
-			interval: interval,
-			sampleRate: sampleRate,
-			channelCount: channelCount,
+			interval,
+			sampleRate,
+			channelCount,
 		};
 		const ret = proxy.addDefer(0, 'initialize').then(() => proxy);
 		worker.postMessage(initData, [channel.port2]);
@@ -149,7 +149,7 @@ export default class PlayerProxy {
 		const data: Message.UnloadSoundfont = {
 			id: this.msgId++,
 			type: 'unload-sfont',
-			sfontId: sfontId,
+			sfontId,
 		};
 		const ret: Promise<void> = this.addDefer(data.id, 'unload-sfont');
 		this.port.postMessage(data);
@@ -203,7 +203,7 @@ export default class PlayerProxy {
 	public startWithExistingConnection(sfontDefault: number) {
 		const data: Message.Start = {
 			type: 'start',
-			sfontDefault: sfontDefault,
+			sfontDefault,
 			playingId: this.initPlayingId(),
 		};
 		this.port.postMessage(data);
@@ -216,8 +216,8 @@ export default class PlayerProxy {
 		const data: Message.Start = {
 			type: 'start',
 			playingId: this.initPlayingId(),
-			sfontDefault: sfontDefault,
-			renderPort: renderPort,
+			sfontDefault,
+			renderPort,
 		};
 		this.port.postMessage(data, [renderPort]);
 		this.stopPromise = new Promise((resolve) => {
@@ -249,7 +249,7 @@ export default class PlayerProxy {
 	public releasePlayer(resetSynth?: boolean) {
 		const msg: Message.Release = {
 			type: 'release',
-			resetSynth: resetSynth,
+			resetSynth,
 		};
 		this.port.postMessage(msg);
 	}
@@ -270,7 +270,7 @@ export default class PlayerProxy {
 	public sendEvent(eventData: JSSynth.SequencerEvent, time: number) {
 		const data: Message.Event = {
 			type: 'event',
-			time: time,
+			time,
 			data: eventData,
 		};
 		this.port.postMessage(data);
@@ -296,7 +296,7 @@ export default class PlayerProxy {
 	public sendSysEx(bin: Uint8Array, time: number) {
 		const data: Message.SysEx = {
 			type: 'sysex',
-			time: time,
+			time,
 			data: bin.slice(0).buffer,
 		};
 		this.port.postMessage(data, [data.data]);
@@ -320,7 +320,7 @@ export default class PlayerProxy {
 	) {
 		const data: Message.Generator = {
 			type: 'gen',
-			time: time,
+			time,
 			data: {
 				channel,
 				type,
@@ -356,7 +356,7 @@ export default class PlayerProxy {
 		this.userEventData[text] = { data: userData };
 		const data: Message.UserEvent = {
 			type: 'user-event',
-			time: time,
+			time,
 			data: text,
 		};
 		this.port.postMessage(data);
@@ -365,7 +365,7 @@ export default class PlayerProxy {
 	public sendFinishMarker(time: number) {
 		const data: Message.FinishMarker = {
 			type: 'finish',
-			time: time,
+			time,
 		};
 		this.port.postMessage(data);
 	}
@@ -381,8 +381,8 @@ export default class PlayerProxy {
 	public sendUserMarker(time: number, marker: string) {
 		const data: Message.UserMarker = {
 			type: 'user-marker',
-			time: time,
-			marker: marker,
+			time,
+			marker,
 		};
 		this.port.postMessage(data);
 	}
@@ -397,9 +397,9 @@ export default class PlayerProxy {
 	) {
 		return new Promise<ResponseDataType<TType>>((resolve) => {
 			this.defers.push({
-				id: id,
-				type: type,
-				resolve: resolve,
+				id,
+				type,
+				resolve,
 			});
 		});
 	}
@@ -476,7 +476,6 @@ export default class PlayerProxy {
 		if (!d) {
 			return;
 		}
-		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 		delete this.userEventData[data];
 		if (this.onUserData) {
 			this.onUserData(d.data);

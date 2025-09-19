@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference types='AudioWorklet' />
 
 import * as RenderMessage from './types/RenderMessageData';
@@ -103,7 +102,7 @@ class Processor extends AudioWorkletProcessor {
 					type: 'rendered',
 					data: {
 						outFrames: r,
-						sampleRate: sampleRate,
+						sampleRate,
 						isQueueEmpty: false,
 					},
 				};
@@ -118,7 +117,7 @@ class Processor extends AudioWorkletProcessor {
 					type: 'status',
 					data: {
 						outFrames: r,
-						sampleRate: sampleRate,
+						sampleRate,
 						isQueueEmpty: false,
 					},
 				};
@@ -149,7 +148,7 @@ class Processor extends AudioWorkletProcessor {
 					data: {
 						marker,
 						framesBeforeMarker,
-						sampleRate: sampleRate,
+						sampleRate,
 					},
 				};
 				this.port.postMessage(msg);

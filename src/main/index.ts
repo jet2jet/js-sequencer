@@ -6,7 +6,6 @@ import * as Types from './types';
 import * as TimeRational from './functions/timeRational';
 
 declare global {
-	// eslint-disable-next-line no-var
 	var LIBRARY_VERSION: string;
 }
 

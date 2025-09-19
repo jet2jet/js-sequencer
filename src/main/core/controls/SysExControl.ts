@@ -33,7 +33,6 @@ export default class SysExControl extends ControlObject {
 			return;
 		}
 		if (arrayBuffer instanceof Uint8Array) {
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			if (offsetOrMove) {
 				this.rawData = arrayBuffer;
 			} else {
@@ -41,7 +40,6 @@ export default class SysExControl extends ControlObject {
 			}
 		} else {
 			// zero is not allowed
-			// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 			const dataLen = len || arrayBuffer?.byteLength || 0;
 			this.rawData = new Uint8Array(dataLen);
 			if (dataLen) {
