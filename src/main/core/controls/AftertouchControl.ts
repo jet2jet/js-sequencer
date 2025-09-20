@@ -27,7 +27,9 @@ export default class AftertouchControl extends ControlObject {
 		this.noteValue = noteValue;
 		this.channel = channel;
 		this.value = value;
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -60,12 +62,15 @@ export default class AftertouchControl extends ControlObject {
 		return true;
 	}
 	public equals(obj: unknown): boolean {
-		if (!(obj instanceof AftertouchControl)) return false;
+		if (!(obj instanceof AftertouchControl)) {
+			return false;
+		}
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator
-		)
+		) {
 			return false;
+		}
 		return (
 			this.noteValue === obj.noteValue &&
 			this.channel === obj.channel &&

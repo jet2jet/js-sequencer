@@ -7,7 +7,9 @@ export default class EOTObject extends ControlObject {
 
 	constructor(posNumerator?: number, posDenominator?: number) {
 		super();
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}

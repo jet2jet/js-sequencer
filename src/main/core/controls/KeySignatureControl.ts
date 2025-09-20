@@ -23,7 +23,9 @@ export default class KeySignatureControl extends ControlObject {
 		super();
 		this.sharpFlat = sharpFlat;
 		this.isMinor = isMinor;
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}

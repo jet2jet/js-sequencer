@@ -34,7 +34,9 @@ const preparedHeaderText = prependHeaderTextImpl(
 function toNumberStringWithZero(num, length) {
 	num = num.toString();
 	length -= num.length;
-	if (length > 0) num = Array(length + 1).join('0') + num;
+	if (length > 0) {
+		num = Array(length + 1).join('0') + num;
+	}
 	return num;
 }
 

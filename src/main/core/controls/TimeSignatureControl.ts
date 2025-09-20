@@ -31,12 +31,18 @@ export default class TimeSignatureControl extends ControlObject {
 		// zero is not allowed (use default values)
 		this.beatsNumerator = beatsNumerator || 4;
 		this.beatsDenominator = beatsDenominator || 4;
-		if (isUndefined(cl)) cl = 24;
-		if (isUndefined(num)) num = 8;
+		if (isUndefined(cl)) {
+			cl = 24;
+		}
+		if (isUndefined(num)) {
+			num = 8;
+		}
 		this.clocks = cl;
 		this.num32ndInQuater = num;
 
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -68,19 +74,24 @@ export default class TimeSignatureControl extends ControlObject {
 		if (!super.fromJSONObject(obj)) {
 			return false;
 		}
-		if (!isUndefined(obj.beatsNumerator))
+		if (!isUndefined(obj.beatsNumerator)) {
 			this.beatsNumerator = obj.beatsNumerator;
-		else if (!isUndefined(obj.beats)) this.beatsNumerator = obj.beats;
-		if (!isUndefined(obj.beatsDenominator))
+		} else if (!isUndefined(obj.beats)) {
+			this.beatsNumerator = obj.beats;
+		}
+		if (!isUndefined(obj.beatsDenominator)) {
 			this.beatsDenominator = obj.beatsDenominator;
-		else if (!isUndefined(obj.beatsFraction))
+		} else if (!isUndefined(obj.beatsFraction)) {
 			this.beatsDenominator = obj.beatsFraction;
+		}
 		this.clocks = obj.clocks;
 		this.num32ndInQuater = obj.num32ndInQuater;
 		return true;
 	}
 	public equals(obj: unknown): boolean {
-		if (!(obj instanceof TimeSignatureControl)) return false;
+		if (!(obj instanceof TimeSignatureControl)) {
+			return false;
+		}
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 				this.notePosDenominator * obj.notePosNumerator &&

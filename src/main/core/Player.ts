@@ -372,7 +372,9 @@ export default class Player extends PlayerBase {
 		);
 		for (const fn of this._evtPlayQueue) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -380,7 +382,9 @@ export default class Player extends PlayerBase {
 		const e = new PlayEndNoteEventObject(this, playing, played);
 		for (const fn of this._evtPlayEndNote) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -392,7 +396,9 @@ export default class Player extends PlayerBase {
 		const e = new PlayQueueEventObject(this, total, total, playing, played);
 		for (const fn of this._evtPlayAllQueued) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -411,7 +417,9 @@ export default class Player extends PlayerBase {
 		);
 		for (const fn of this._evtPlayLooped) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}

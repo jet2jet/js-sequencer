@@ -23,7 +23,9 @@ export default class ProgramChangeControl extends ControlObject {
 		super();
 		this.channel = channel;
 		this.value = value;
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -54,8 +56,9 @@ export default class ProgramChangeControl extends ControlObject {
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator
-		)
+		) {
 			return false;
+		}
 		return this.channel === obj.channel && this.value === obj.value;
 	}
 	public isEqualType(obj: unknown): obj is ProgramChangeControl {

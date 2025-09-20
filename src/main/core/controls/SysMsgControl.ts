@@ -36,7 +36,9 @@ export default class SysMsgControl extends ControlObject {
 				new Uint8Array(arrayBuffer!, offset || 0, dataLen)
 			);
 		}
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -62,20 +64,26 @@ export default class SysMsgControl extends ControlObject {
 		return true;
 	}
 	public equals(obj: unknown): boolean {
-		if (!(obj instanceof SysMsgControl)) return false;
+		if (!(obj instanceof SysMsgControl)) {
+			return false;
+		}
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator
-		)
+		) {
 			return false;
+		}
 		if (
 			!(this.msgType === obj.msgType) ||
 			!(this.rawData.byteLength === obj.rawData.byteLength)
-		)
+		) {
 			return false;
+		}
 		let l = this.rawData.byteLength;
 		while (l--) {
-			if (!(this.rawData[l] === obj.rawData[l])) return false;
+			if (!(this.rawData[l] === obj.rawData[l])) {
+				return false;
+			}
 		}
 		return true;
 	}

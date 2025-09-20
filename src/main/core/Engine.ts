@@ -136,7 +136,9 @@ export function calcHoldTime2(
 	if (!disableHold) {
 		for (; fromIndex < arr.length; ++fromIndex) {
 			const n = arr[fromIndex];
-			if (n.channel !== note.channel) continue;
+			if (n.channel !== note.channel) {
+				continue;
+			}
 			if (!isHolding) {
 				// Stop calculation if the note just after 'posTo' is found with non-hold status
 				if (
@@ -162,8 +164,12 @@ export function calcHoldTime2(
 				pos.denominator = n.notePosDenominator;
 				continue;
 			}
-			if (!(n instanceof ControllerControl)) continue;
-			if (n.value1 !== 0x40) continue;
+			if (!(n instanceof ControllerControl)) {
+				continue;
+			}
+			if (n.value1 !== 0x40) {
+				continue;
+			}
 			isHolding = n.value2 >= 64;
 			if (!isHolding) {
 				// replace 'posTo' value if the hold status is changed to 'OFF' and
@@ -235,7 +241,9 @@ function calculatePositionImpl2(
 		retTo = posTo as IPositionObject;
 		isPosSeconds = false;
 	} else {
-		if (posTo && TimeRational.compare(posFrom, posTo) > 0) return null;
+		if (posTo && TimeRational.compare(posFrom, posTo) > 0) {
+			return null;
+		}
 		tFrom = posFrom;
 		tTo = posTo;
 		isPosSeconds = true;
@@ -345,7 +353,9 @@ function calculatePositionImpl2(
 							break;
 						case 0x06: // DATA MSB
 							// console.log("DATA MSB: channel = " + note.channel + ", value = " + note.value2);
-							if (ch.rpnValue === null) break;
+							if (ch.rpnValue === null) {
+								break;
+							}
 							switch (ch.rpnValue) {
 								case 0x0000: // Pitch bend range: RPN 00(MSB), 00(LSB) [no DATA LSB]
 									// ch.pitchRange = note.value2;
@@ -353,11 +363,15 @@ function calculatePositionImpl2(
 							}
 							break;
 						case 0x24: // DATA LSB
-							if (ch.rpnValue === null) break;
+							if (ch.rpnValue === null) {
+								break;
+							}
 							// not implemented
 							break;
 						case 0x40: // Dumper pedal on/off (Hold)
-							if (!disableHold) ch.isHolding = note.value2 >= 64;
+							if (!disableHold) {
+								ch.isHolding = note.value2 >= 64;
+							}
 							break;
 						case 0x62: // NRPN LSB
 							if (note.value2 >= 0 && note.value2 <= 0x7f) {
@@ -445,7 +459,9 @@ function calculatePositionImpl2(
 		posNum = note.notePosNumerator;
 		posDen = note.notePosDenominator;
 	}
-	if (retFrom === null) return null;
+	if (retFrom === null) {
+		return null;
+	}
 	if (retTo === null) {
 		if (isPosSeconds) {
 			retTo = new PositionObject(posNum, posDen);
@@ -653,7 +669,9 @@ function _startLoadSMFData(
 	smfBuffer: ArrayBuffer,
 	offset: number
 ): ILoadSMFContext | null {
-	if (smfBuffer.byteLength - offset < 8) return null;
+	if (smfBuffer.byteLength - offset < 8) {
+		return null;
+	}
 	const dv = new DataView(smfBuffer, offset);
 	// check data header
 	if (dv.getUint32(0, true) !== 0x6468544d) {
@@ -661,8 +679,12 @@ function _startLoadSMFData(
 		return null;
 	}
 	const len = dv.getUint32(4, false);
-	if (smfBuffer.byteLength - offset - 8 < len) return null;
-	if (len !== 6) return null;
+	if (smfBuffer.byteLength - offset - 8 < len) {
+		return null;
+	}
+	if (len !== 6) {
+		return null;
+	}
 	const format = dv.getUint16(8, false);
 	if (format >= 2) {
 		// only supports format = 0 or format = 1
@@ -670,7 +692,9 @@ function _startLoadSMFData(
 	}
 	const trackCount = dv.getUint16(10, false);
 	const division = dv.getUint16(12, false);
-	if (!division) return null;
+	if (!division) {
+		return null;
+	}
 
 	ctx.smfBuffer = smfBuffer;
 	ctx.format = format;
@@ -951,7 +975,9 @@ function loadFromSMFTrack(
 			}
 		} else {
 			// MIDI messages
-			if (firstChannel === -1) firstChannel = msg & 0x0f;
+			if (firstChannel === -1) {
+				firstChannel = msg & 0x0f;
+			}
 			switch (msg & 0xf0) {
 				case 0x80: // Note off (with 2-bytes)
 				case 0x90: // Note on (with 2-bytes)
@@ -972,7 +998,9 @@ function loadFromSMFTrack(
 								)}`
 							);
 						}
-						if ((msg & 0xf0) === 0x80) vel = 0;
+						if ((msg & 0xf0) === 0x80) {
+							vel = 0;
+						}
 						if (!vel && curNotes[ch][b].velocity) {
 							_addNoteFromDeltaTime(
 								retNotes,
@@ -1210,7 +1238,9 @@ function calcTrackLength(
 				o.channel === before.channel
 			) {
 				len = 2;
-			} else len = 3;
+			} else {
+				len = 3;
+			}
 		} else if (o instanceof AftertouchControl) {
 			if (
 				before != null &&
@@ -1218,7 +1248,9 @@ function calcTrackLength(
 				before.channel === o.channel
 			) {
 				len = 2;
-			} else len = 3;
+			} else {
+				len = 3;
+			}
 		} else if (o instanceof ControllerControl) {
 			if (
 				before != null &&
@@ -1226,7 +1258,9 @@ function calcTrackLength(
 				before.channel === o.channel
 			) {
 				len = 2;
-			} else len = 3;
+			} else {
+				len = 3;
+			}
 		} else if (o instanceof ProgramChangeControl) {
 			if (
 				before != null &&
@@ -1234,7 +1268,9 @@ function calcTrackLength(
 				before.channel === o.channel
 			) {
 				len = 1;
-			} else len = 2;
+			} else {
+				len = 2;
+			}
 		} else if (o instanceof PressureControl) {
 			if (
 				before != null &&
@@ -1242,7 +1278,9 @@ function calcTrackLength(
 				before.channel === o.channel
 			) {
 				len = 1;
-			} else len = 2;
+			} else {
+				len = 2;
+			}
 		} else if (o instanceof PitchWheelControl) {
 			if (
 				before != null &&
@@ -1250,13 +1288,18 @@ function calcTrackLength(
 				before.channel === o.channel
 			) {
 				len = 2;
-			} else len = 3;
+			} else {
+				len = 3;
+			}
 		} else {
 			bf = null;
-			if (o instanceof TempoControl) len += 6;
-			else if (o instanceof TimeSignatureControl) len += 7;
-			else if (o instanceof KeySignatureControl) len += 5;
-			else if (o instanceof SysMsgControl) {
+			if (o instanceof TempoControl) {
+				len += 6;
+			} else if (o instanceof TimeSignatureControl) {
+				len += 7;
+			} else if (o instanceof KeySignatureControl) {
+				len += 5;
+			} else if (o instanceof SysMsgControl) {
 				len += 3 + o.rawData.byteLength;
 			} else if (o instanceof SysExControl) {
 				const rawData = o.rawData;
@@ -1341,7 +1384,9 @@ function outputTrackToDataView(
 			}
 			dv.setUint8(offset++, o.noteValue);
 			let vel = 0;
-			if (o instanceof NoteObject) vel = o.velocity;
+			if (o instanceof NoteObject) {
+				vel = o.velocity;
+			}
 			dv.setUint8(offset++, vel);
 		} else if (o instanceof AftertouchControl) {
 			if (
@@ -1566,7 +1611,9 @@ export default class Engine {
 		const ctrls = this.masterControls;
 		for (const c of ctrls) {
 			if (c instanceof TimeSignatureControl) {
-				if (!indexLast) return c;
+				if (!indexLast) {
+					return c;
+				}
 				--indexLast;
 			}
 		}
@@ -1577,7 +1624,9 @@ export default class Engine {
 		const ctrls = this.masterControls;
 		for (const c of ctrls) {
 			if (c instanceof KeySignatureControl) {
-				if (!indexLast) return c;
+				if (!indexLast) {
+					return c;
+				}
 				--indexLast;
 			}
 		}
@@ -1733,7 +1782,9 @@ export default class Engine {
 		const e = new SimpleEventObject(this);
 		for (const fn of this._evtFileLoaded) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -1753,7 +1804,9 @@ export default class Engine {
 				arr = this._evtFileLoaded;
 				break;
 		}
-		if (!arr) return;
+		if (!arr) {
+			return;
+		}
 		arr.push(fn);
 	}
 
@@ -1772,14 +1825,18 @@ export default class Engine {
 				arr = this._evtFileLoaded;
 				break;
 		}
-		if (!arr) return;
+		if (!arr) {
+			return;
+		}
 		let i = -1;
 		arr.forEach((f, index) => {
 			if (f === fn) {
 				i = index;
 			}
 		});
-		if (i >= 0) arr.splice(i, 1);
+		if (i >= 0) {
+			arr.splice(i, 1);
+		}
 	}
 
 	public reset(): void {
@@ -2193,7 +2250,9 @@ export default class Engine {
 	}
 
 	public makeSMFBlobURL(): string | null {
-		if (!this.isSaveAvailable()) return null;
+		if (!this.isSaveAvailable()) {
+			return null;
+		}
 
 		const ab = this.exportSMFToArrayBuffer();
 		return createURLForData(ab, 'audio/midi');
@@ -2201,7 +2260,9 @@ export default class Engine {
 
 	public saveAsMIDI(baseElement: HTMLElement): boolean {
 		const url = this.makeSMFBlobURL();
-		if (url === null) return false;
+		if (url === null) {
+			return false;
+		}
 		const frm = document.createElement('iframe');
 		frm.src = url;
 		baseElement.appendChild(frm);

@@ -145,5 +145,10 @@ export default defineConfig(
 	{
 		files: ['src/common/**'],
 	},
-	EslintConfigPrettier
+	EslintConfigPrettier,
+	{
+		rules: {
+			curly: ['error', 'all'],
+		},
+	}
 );

@@ -25,11 +25,16 @@ export default class PositionObject implements IPositionObject {
 		) {
 			return false;
 		}
-		if (!isUndefined(obj.numerator)) this.numerator = obj.numerator;
-		else if (!isUndefined(obj.position)) this.numerator = obj.position;
-		if (!isUndefined(obj.denominator)) this.denominator = obj.denominator;
-		else if (!isUndefined(obj.positionFraction))
+		if (!isUndefined(obj.numerator)) {
+			this.numerator = obj.numerator;
+		} else if (!isUndefined(obj.position)) {
+			this.numerator = obj.position;
+		}
+		if (!isUndefined(obj.denominator)) {
+			this.denominator = obj.denominator;
+		} else if (!isUndefined(obj.positionFraction)) {
 			this.denominator = obj.positionFraction;
+		}
 		return true;
 	}
 

@@ -603,7 +603,9 @@ export default class PlayerBase {
 		const e = new PlayStatusEventObject(this, current, sampleRate);
 		for (const fn of m) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -615,7 +617,9 @@ export default class PlayerBase {
 		const e = new PlayStatusEventObject(this, current, sampleRate);
 		for (const fn of m) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}
@@ -650,7 +654,9 @@ export default class PlayerBase {
 		);
 		for (const fn of m) {
 			fn(e);
-			if (e.isPropagationStopped()) break;
+			if (e.isPropagationStopped()) {
+				break;
+			}
 		}
 		return !e.isDefaultPrevented();
 	}

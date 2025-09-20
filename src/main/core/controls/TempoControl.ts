@@ -17,7 +17,9 @@ export default class TempoControl extends ControlObject {
 		super();
 		// zero is not allowed (use default value)
 		this.value = value || 500000;
-		if (isUndefined(posNumerator) || isUndefined(posDenominator)) return;
+		if (isUndefined(posNumerator) || isUndefined(posDenominator)) {
+			return;
+		}
 		this.notePosNumerator = posNumerator;
 		this.notePosDenominator = posDenominator;
 	}
@@ -41,7 +43,9 @@ export default class TempoControl extends ControlObject {
 		return true;
 	}
 	public equals(obj: unknown): boolean {
-		if (!(obj instanceof TempoControl)) return false;
+		if (!(obj instanceof TempoControl)) {
+			return false;
+		}
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 				this.notePosDenominator * obj.notePosNumerator &&
