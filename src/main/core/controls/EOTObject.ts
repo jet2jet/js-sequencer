@@ -19,17 +19,19 @@ export default class EOTObject extends ControlObject {
 			notePosDenominator: this.notePosDenominator,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		return super.fromJSONObject(obj);
 	}
-	public equals(obj: any) {
-		if (!(obj instanceof EOTObject)) return false;
+	public equals(obj: unknown): boolean {
+		if (!(obj instanceof EOTObject)) {
+			return false;
+		}
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 			this.notePosDenominator * obj.notePosNumerator
 		);
 	}
-	public isEqualType(obj: any): obj is EOTObject {
+	public isEqualType(obj: unknown): obj is EOTObject {
 		return obj instanceof EOTObject;
 	}
 }

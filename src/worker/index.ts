@@ -9,7 +9,10 @@ function initialize(data: Message.Initialize) {
 }
 
 function onMessage(e: MessageEvent) {
-	const data: Message.AllTypes = e.data;
+	const data = e.data as unknown as Message.AllTypes | null | undefined;
+	if (!data) {
+		return;
+	}
 	switch (data.type) {
 		case 'initialize':
 			initialize(data);

@@ -1,4 +1,5 @@
 import { isUndefined } from '../functions';
+import { isObjectWithFields } from '../functions/objectUtils';
 
 export default class BackgroundChord {
 	public posNumerator: number;
@@ -20,20 +21,31 @@ export default class BackgroundChord {
 	public toJSON(): any {
 		return this;
 	}
-	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-	public fromJSONObject(obj: any): void {
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				posNumerator: ['number'],
+				position: ['number'],
+				posDenominator: ['number'],
+				positionFraction: ['number'],
+				rootNote: 'number',
+				notes: Array,
+			})
+		) {
+			return false;
+		}
 		if (!isUndefined(obj.posNumerator)) {
 			this.posNumerator = obj.posNumerator;
-		} else {
+		} else if (!isUndefined(obj.position)) {
 			this.posNumerator = obj.position;
 		}
 		if (!isUndefined(obj.posDenominator)) {
 			this.posDenominator = obj.posDenominator;
-		} else {
+		} else if (!isUndefined(obj.positionFraction)) {
 			this.posDenominator = obj.positionFraction;
 		}
-		this.posDenominator = obj.posDenominator;
 		this.rootNote = obj.rootNote;
-		this.notes = obj.notes;
+		this.notes = obj.notes.filter((n) => typeof n === 'number');
+		return true;
 	}
 }

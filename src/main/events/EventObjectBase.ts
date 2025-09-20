@@ -6,19 +6,19 @@ export default abstract class EventObjectBase {
 	 * Prevent the default action for this event.
 	 * For status-update events, this method affects nothing.
 	 */
-	public preventDefault() {
+	public preventDefault(): void {
 		this._preventDefault = true;
 	}
 	/**
 	 * Stop calling all following event handlers.
 	 */
-	public stopPropagation() {
+	public stopPropagation(): void {
 		this._stopPropagation = true;
 	}
-	public isDefaultPrevented() {
+	public isDefaultPrevented(): boolean {
 		return this._preventDefault;
 	}
-	public isPropagationStopped() {
+	public isPropagationStopped(): boolean {
 		return this._stopPropagation;
 	}
 }

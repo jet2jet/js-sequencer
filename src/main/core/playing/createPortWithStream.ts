@@ -14,7 +14,10 @@ export default function createPortWithStream(
 	let isPaused = false;
 
 	const listener = (e: MessageEvent) => {
-		const data: RenderMessage.AllTypes | null | undefined = e.data;
+		const data: RenderMessage.AllTypes | null | undefined = e.data as
+			| RenderMessage.AllTypes
+			| null
+			| undefined;
 		if (!data) {
 			return;
 		}

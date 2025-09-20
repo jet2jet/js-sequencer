@@ -198,7 +198,7 @@ export function calcHoldTime(
 	arr: ISequencerObject[],
 	fromIndex: number,
 	disableHold: boolean | undefined
-) {
+): number {
 	const r = calcHoldTime2(
 		note,
 		currentSMFTempo,
@@ -1535,7 +1535,9 @@ function createURLForData(ab: ArrayBuffer, mime: string) {
 }
 
 function _toJSON(obj: any): string {
-	return JSON.stringify(obj, (k, v) => (k === 'sequencer' ? void 0 : v));
+	return JSON.stringify(obj, (k, v): unknown =>
+		k === 'sequencer' ? void 0 : v
+	);
 }
 
 function _fromJSON(text: string): any {
@@ -1727,7 +1729,7 @@ export default class Engine {
 		// unreachable
 	}
 
-	public raiseEventFileLoaded() {
+	public raiseEventFileLoaded(): boolean {
 		const e = new SimpleEventObject(this);
 		for (const fn of this._evtFileLoaded) {
 			fn(e);
@@ -1741,8 +1743,11 @@ export default class Engine {
 		fn: (e: EngineEventObjectMap[T]) => void
 	): void;
 
-	public addEventHandler(name: string, fn: (e: EventObjectBase) => void) {
-		let arr: any[] | null = null;
+	public addEventHandler(
+		name: string,
+		fn: (e: EventObjectBase) => void
+	): void {
+		let arr: any[] | undefined;
 		switch (name.toLowerCase()) {
 			case 'fileloaded':
 				arr = this._evtFileLoaded;
@@ -1757,8 +1762,11 @@ export default class Engine {
 		fn: (e: EngineEventObjectMap[T]) => void
 	): void;
 
-	public removeEventHandler(name: string, fn: (e: EventObjectBase) => void) {
-		let arr: any[] | null = null;
+	public removeEventHandler(
+		name: string,
+		fn: (e: EventObjectBase) => void
+	): void {
+		let arr: any[] | undefined;
 		switch (name.toLowerCase()) {
 			case 'fileloaded':
 				arr = this._evtFileLoaded;
@@ -1811,20 +1819,20 @@ export default class Engine {
 		return ret;
 	}
 
-	public getAllNoteValues() {
+	public getAllNoteValues(): number[] {
 		const a = this.getAllNotes();
 		return a.map((note) => note.noteValue);
 	}
 
-	public getSequenceTitleData() {
+	public getSequenceTitleData(): Uint8Array | null {
 		return this.getSequenceTrackName(0);
 	}
 
-	public getSequenceCopyrightData() {
+	public getSequenceCopyrightData(): Uint8Array | null {
 		return this.getFirstMsgData(0, 2);
 	}
 
-	public getSequenceTrackName(partIndex: number) {
+	public getSequenceTrackName(partIndex: number): Uint8Array | null {
 		return this.getFirstMsgData(partIndex, 3);
 	}
 
@@ -2104,14 +2112,17 @@ export default class Engine {
 		smfBuffer: ArrayBuffer,
 		offset: number,
 		callback: (err?: any) => void
-	) {
-		return this.loadContextCallbackImpl(
+	): void {
+		this.loadContextCallbackImpl(
 			this.startLoadSMFData(smfBuffer, offset),
 			callback
 		);
 	}
 
-	public loadSMFDataPromise(smfBuffer: ArrayBuffer, offset: number) {
+	public loadSMFDataPromise(
+		smfBuffer: ArrayBuffer,
+		offset: number
+	): Promise<void> {
 		return this.loadContextAsyncImpl(
 			this.startLoadSMFData(smfBuffer, offset)
 		);
@@ -2120,7 +2131,7 @@ export default class Engine {
 	public loadFromFile(
 		fileElemId: string | HTMLInputElement,
 		callback?: (error?: any) => void
-	) {
+	): void {
 		const f: HTMLInputElement | null =
 			typeof fileElemId === 'string'
 				? (document.getElementById(
@@ -2149,7 +2160,9 @@ export default class Engine {
 		});
 	}
 
-	public loadFromFilePromise(fileElemId: string | HTMLInputElement) {
+	public loadFromFilePromise(
+		fileElemId: string | HTMLInputElement
+	): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			const f: HTMLInputElement | null =
 				typeof fileElemId === 'string'
@@ -2186,7 +2199,7 @@ export default class Engine {
 		return createURLForData(ab, 'audio/midi');
 	}
 
-	public saveAsMIDI(baseElement: HTMLElement) {
+	public saveAsMIDI(baseElement: HTMLElement): boolean {
 		const url = this.makeSMFBlobURL();
 		if (url === null) return false;
 		const frm = document.createElement('iframe');
@@ -2196,14 +2209,22 @@ export default class Engine {
 	}
 
 	public loadFromJSON(text: string): boolean {
-		const obj = _fromJSON(text);
+		const obj: unknown = _fromJSON(text);
 		if (
-			obj === null ||
-			obj === undefined ||
-			!(obj.parts instanceof Array) ||
-			!(obj.masterControls instanceof Array) ||
-			!(!obj.backgroundChords || obj.backgroundChords instanceof Array) ||
-			!(!obj.backgroundEndPos || obj.backgroundEndPos instanceof Array)
+			obj == null ||
+			typeof obj !== 'object' ||
+			!('parts' in obj && obj.parts instanceof Array) ||
+			!('masterControls' in obj && obj.masterControls instanceof Array) ||
+			!(
+				!('backgroundChords' in obj) ||
+				!obj.backgroundChords ||
+				obj.backgroundChords instanceof Array
+			) ||
+			!(
+				!('backgroundEndPos' in obj) ||
+				!obj.backgroundEndPos ||
+				obj.backgroundEndPos instanceof Array
+			)
 		) {
 			return false;
 		}
@@ -2211,22 +2232,29 @@ export default class Engine {
 		this.reset();
 
 		this.parts = [];
-		this.parts.length = obj.parts.length;
-		for (let i = 0; i < this.parts.length; ++i) {
-			this.parts[i] = new Part();
-			this.parts[i].fromJSONObject(obj.parts[i]);
+		for (let i = 0; i < obj.parts.length; ++i) {
+			const p = Part.createFromJSONObject(obj.parts[i]);
+			if (p) {
+				this.parts.push(p);
+			}
 		}
 		this.masterControls = [];
-		this.masterControls.length = obj.masterControls.length;
-		for (let i = 0; i < this.masterControls.length; ++i) {
-			this.masterControls[i] = getControlFromJSONObject(
-				obj.masterControls[i]
-			);
+		for (let i = 0; i < obj.masterControls.length; ++i) {
+			const c = getControlFromJSONObject(obj.masterControls[i]);
+			if (c) {
+				this.masterControls.push(c);
+			}
 		}
 		updateControlArray(this.masterControls);
 		sortNotesAndControls(this.masterControls);
-		this.smfDivision = obj.smfDivision;
-		this.tempo = obj.currentTempo;
+		this.smfDivision =
+			'smfDivision' in obj && typeof obj.smfDivision === 'number'
+				? obj.smfDivision
+				: 0x120;
+		this.tempo =
+			'currentTempo' in obj && typeof obj.currentTempo === 'number'
+				? obj.currentTempo
+				: 120;
 
 		this._afterLoadSMF();
 
@@ -2248,11 +2276,11 @@ export default class Engine {
 		// empty
 	}
 
-	public _afterAttachEngine(_obj: ISequencerObject) {
+	public _afterAttachEngine(_obj: ISequencerObject): void {
 		//
 	}
 
-	public _beforeDetachEngine(_obj: ISequencerObject) {
+	public _beforeDetachEngine(_obj: ISequencerObject): void {
 		//
 	}
 }

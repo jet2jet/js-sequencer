@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class ProgramChangeControl extends ControlObject {
@@ -35,13 +36,21 @@ export default class ProgramChangeControl extends ControlObject {
 			value: this.value,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (!isObjectWithFields(obj, { channel: 'number', value: 'number' })) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.channel = obj.channel;
 		this.value = obj.value;
+		return true;
 	}
-	public equals(obj: any) {
-		if (!(obj instanceof ProgramChangeControl)) return false;
+	public equals(obj: unknown): boolean {
+		if (!(obj instanceof ProgramChangeControl)) {
+			return false;
+		}
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
 			this.notePosDenominator * obj.notePosNumerator
@@ -49,7 +58,7 @@ export default class ProgramChangeControl extends ControlObject {
 			return false;
 		return this.channel === obj.channel && this.value === obj.value;
 	}
-	public isEqualType(obj: any): obj is ProgramChangeControl {
+	public isEqualType(obj: unknown): obj is ProgramChangeControl {
 		return obj instanceof ProgramChangeControl;
 	}
 }

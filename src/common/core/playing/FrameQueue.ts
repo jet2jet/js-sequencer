@@ -4,7 +4,7 @@ export default class FrameQueue {
 	private offset: number = 0;
 	private queuedFrames = 0;
 
-	public pushFrames(rawFrames: [ArrayBuffer, ArrayBuffer]) {
+	public pushFrames(rawFrames: [ArrayBuffer, ArrayBuffer]): void {
 		if (typeof this.curFrames === 'undefined') {
 			this.curFrames = rawFrames;
 		} else {
@@ -13,7 +13,7 @@ export default class FrameQueue {
 		this.queuedFrames += rawFrames[0].byteLength / 4;
 	}
 
-	public pushMarker(marker: string) {
+	public pushMarker(marker: string): void {
 		if (typeof this.curFrames === 'undefined') {
 			this.curFrames = marker;
 		} else {
@@ -21,15 +21,15 @@ export default class FrameQueue {
 		}
 	}
 
-	public getFrameCountInQueue() {
+	public getFrameCountInQueue(): number {
 		return this.queuedFrames;
 	}
 
-	public isEmpty() {
+	public isEmpty(): boolean {
 		return !this.queuedFrames;
 	}
 
-	public clear() {
+	public clear(): void {
 		this.frames.splice(0);
 		this.curFrames = void 0;
 		this.queuedFrames = 0;
@@ -38,7 +38,7 @@ export default class FrameQueue {
 	public outputFrames(
 		dest: [Float32Array, Float32Array],
 		cbMarker: (marker: string, framesBeforeMarker: number) => void
-	) {
+	): number {
 		let cf = this.curFrames;
 		if (typeof cf === 'undefined') {
 			return 0;

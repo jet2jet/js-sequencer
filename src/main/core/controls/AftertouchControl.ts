@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class AftertouchControl extends ControlObject {
@@ -40,13 +41,25 @@ export default class AftertouchControl extends ControlObject {
 			value: this.value,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				noteValue: 'number',
+				channel: 'number',
+				value: 'number',
+			})
+		) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.noteValue = obj.noteValue;
 		this.channel = obj.channel;
 		this.value = obj.value;
+		return true;
 	}
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		if (!(obj instanceof AftertouchControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
@@ -59,7 +72,7 @@ export default class AftertouchControl extends ControlObject {
 			this.value === obj.value
 		);
 	}
-	public isEqualType(obj: any): obj is AftertouchControl {
+	public isEqualType(obj: unknown): obj is AftertouchControl {
 		return obj instanceof AftertouchControl;
 	}
 }

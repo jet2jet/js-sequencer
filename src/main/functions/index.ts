@@ -1,4 +1,4 @@
-export function gcd(m: number, n: number) {
+export function gcd(m: number, n: number): number {
 	if (m < n) {
 		const x = m;
 		m = n;
@@ -12,15 +12,17 @@ export function gcd(m: number, n: number) {
 	return m;
 }
 
-export function isUndefined(value: any): value is undefined {
+export function isUndefined(value: unknown): value is undefined {
 	return typeof value === 'undefined';
 }
 
-export function isAudioAvailable() {
+export function isAudioAvailable(): boolean {
 	return typeof AudioContext !== 'undefined';
 }
 
-export function loadBinaryFromFile(fileElemId: string | HTMLInputElement) {
+export function loadBinaryFromFile(
+	fileElemId: string | HTMLInputElement
+): Promise<ArrayBuffer> {
 	const f: HTMLInputElement | null =
 		typeof fileElemId === 'string'
 			? (document.getElementById(fileElemId) as HTMLInputElement | null)

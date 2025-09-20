@@ -1,4 +1,5 @@
 import { isUndefined } from '../functions';
+import { isObjectWithFields } from '../functions/objectUtils';
 import { TimeValue } from '../types';
 import NoteObjectBase from './NoteObjectBase';
 
@@ -67,36 +68,62 @@ export default class NoteObject implements NoteObjectBase {
 			velocity: this.velocity,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		if (!isUndefined(obj.notePosNumerator))
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				notePosNumerator: ['number'],
+				notePos: ['number'],
+				notePosDenominator: ['number'],
+				notePosFraction: ['number'],
+				noteLengthNumerator: ['number'],
+				noteLength: ['number'],
+				noteLengthDenominator: ['number'],
+				noteLengthFraction: ['number'],
+				noteValue: 'number',
+				channel: 'number',
+				velocity: 'number',
+			})
+		) {
+			return false;
+		}
+		if (!isUndefined(obj.notePosNumerator)) {
 			this.notePosNumerator = obj.notePosNumerator;
-		else this.notePosNumerator = obj.notePos;
-		if (!isUndefined(obj.notePosDenominator))
+		} else if (!isUndefined(obj.notePos)) {
+			this.notePosNumerator = obj.notePos;
+		}
+		if (!isUndefined(obj.notePosDenominator)) {
 			this.notePosDenominator = obj.notePosDenominator;
-		else this.notePosDenominator = obj.notePosFraction;
-		if (!isUndefined(obj.noteLengthNumerator))
+		} else if (!isUndefined(obj.notePosFraction)) {
+			this.notePosDenominator = obj.notePosFraction;
+		}
+		if (!isUndefined(obj.noteLengthNumerator)) {
 			this.noteLengthNumerator = obj.noteLengthNumerator;
-		else this.noteLengthNumerator = obj.noteLength;
-		if (!isUndefined(obj.noteLengthDenominator))
+		} else if (!isUndefined(obj.noteLength)) {
+			this.noteLengthNumerator = obj.noteLength;
+		}
+		if (!isUndefined(obj.noteLengthDenominator)) {
 			this.noteLengthDenominator = obj.noteLengthDenominator;
-		else this.noteLengthDenominator = obj.noteLengthFraction;
+		} else if (!isUndefined(obj.noteLengthFraction)) {
+			this.noteLengthDenominator = obj.noteLengthFraction;
+		}
 		this.noteValue = obj.noteValue;
 		this.channel = obj.channel;
 		this.velocity = obj.velocity;
+		return true;
 	}
-	public setPosition(numerator: number, denominator: number) {
+	public setPosition(numerator: number, denominator: number): void {
 		this.notePosNumerator = numerator;
 		this.notePosDenominator = denominator;
 	}
-	public setLength(numerator: number, denominator: number) {
+	public setLength(numerator: number, denominator: number): void {
 		this.noteLengthNumerator = numerator;
 		this.noteLengthDenominator = denominator;
 	}
-	public setNoteValue(value: number) {
+	public setNoteValue(value: number): void {
 		this.noteValue = value;
 	}
 }
 
-export function isNoteObject(obj: any): obj is NoteObject {
+export function isNoteObject(obj: unknown): obj is NoteObject {
 	return obj instanceof NoteObject;
 }

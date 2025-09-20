@@ -12,7 +12,7 @@ export default interface Channel {
 	pitchMIDIValue: number | null;
 }
 
-export function makeChannel(isDrum: boolean) {
+export function makeChannel(isDrum: boolean): Channel {
 	return {
 		bank: isDrum ? 128 : 0,
 		preset: 0,

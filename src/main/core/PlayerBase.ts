@@ -182,14 +182,14 @@ export default class PlayerBase {
 		proxy.onUserMarker = this.onUserMarkerPlayer.bind(this);
 	}
 
-	public static isSupported() {
+	public static isSupported(): boolean {
 		return (
 			typeof AudioContext !== 'undefined' &&
 			typeof WebAssembly !== 'undefined'
 		);
 	}
 
-	public static isAudioWorkletSupported() {
+	public static isAudioWorkletSupported(): boolean {
 		return typeof AudioWorkletNode !== 'undefined';
 	}
 
@@ -228,7 +228,7 @@ export default class PlayerBase {
 		framesCount?: number,
 		sampleRate?: number,
 		channelCount?: number
-	) {
+	): Promise<PlayerProxy> {
 		if (typeof Promise === 'undefined') {
 			throw new Error('Unsupported');
 		}
@@ -256,7 +256,7 @@ export default class PlayerBase {
 	 * Close and release the player.
 	 * After called, all methods will not be usable and those behavior will be undefined.
 	 */
-	public close() {
+	public close(): void {
 		this.proxy.close();
 	}
 
@@ -265,7 +265,7 @@ export default class PlayerBase {
 	 * @param bin soundfont binary data
 	 * @return Promise object which resolves when loading process is done
 	 */
-	public loadSoundfont(bin: ArrayBuffer) {
+	public loadSoundfont(bin: ArrayBuffer): Promise<void> {
 		return this.unloadSoundfont()
 			.then(() => this.proxy.loadSoundfont(bin))
 			.then((id) => {
@@ -278,7 +278,9 @@ export default class PlayerBase {
 	 * @param fileElemId file element ID or file element instance itself
 	 * @return Promise object which resolves when loading process is done
 	 */
-	public loadSoundfontFromFile(fileElemId: string | HTMLInputElement) {
+	public loadSoundfontFromFile(
+		fileElemId: string | HTMLInputElement
+	): Promise<void> {
 		return loadBinaryFromFile(fileElemId).then((bin) =>
 			this.loadSoundfont(bin)
 		);
@@ -287,7 +289,7 @@ export default class PlayerBase {
 	/**
 	 * Unload main soundfont data.
 	 */
-	public unloadSoundfont() {
+	public unloadSoundfont(): Promise<void> {
 		if (this.sfontDefault === null) {
 			return Promise.resolve();
 		}
@@ -301,7 +303,7 @@ export default class PlayerBase {
 		});
 	}
 
-	public isSoundfontLoaded() {
+	public isSoundfontLoaded(): boolean {
 		return this.sfontDefault !== null;
 	}
 
@@ -311,7 +313,7 @@ export default class PlayerBase {
 	 * @param sfontId soundfont identifier (returned by addSoundfontForMap or addSoundfontForMapFromFile).
 	 *     To unset, specify null or undefined.
 	 */
-	public useSoundfont(sfontId: number | null | undefined) {
+	public useSoundfont(sfontId: number | null | undefined): void {
 		if (this.sfontDefault !== null && !this.isSfontDefaultExternal) {
 			void this.proxy.unloadSoundfont(this.sfontDefault);
 		}
@@ -329,7 +331,7 @@ export default class PlayerBase {
 	 * @param sfontBin soundfont binary data
 	 * @return Promise object which resolves with soundfont identifier when succeeded
 	 */
-	public addSoundfontForMap(sfontBin: ArrayBuffer) {
+	public addSoundfontForMap(sfontBin: ArrayBuffer): Promise<number> {
 		return this.proxy.loadSoundfont(sfontBin).then((sfontId) => {
 			this.sfontMap.push({
 				targetBank: -1,
@@ -347,7 +349,9 @@ export default class PlayerBase {
 	 * @param fileElemId file element ID or file element instance itself
 	 * @return Promise object which resolves with soundfont identifier when succeeded
 	 */
-	public addSoundfontForMapFromFile(fileElemId: string | HTMLInputElement) {
+	public addSoundfontForMapFromFile(
+		fileElemId: string | HTMLInputElement
+	): Promise<number> {
 		return loadBinaryFromFile(fileElemId).then((bin) =>
 			this.addSoundfontForMap(bin)
 		);
@@ -369,7 +373,7 @@ export default class PlayerBase {
 		bank: number,
 		preset: number,
 		ampPercent?: number | null
-	) {
+	): void {
 		if (targetBank < 0) {
 			throw new Error("Invalid 'targetBank' value");
 		}
@@ -416,7 +420,7 @@ export default class PlayerBase {
 	/**
 	 * Return all preset mappings.
 	 */
-	public getAllMaps() {
+	public getAllMaps(): SFontMap[] {
 		return this.sfontMap.map(
 			(m): SFontMap => ({
 				sfontId: m.sfontId,
@@ -433,7 +437,7 @@ export default class PlayerBase {
 	 * Return all preset mappings for the soundfont.
 	 * @param sfont soundfont identifier or -1 for using main soundfont
 	 */
-	public getAllMapForSoundfont(sfont: number) {
+	public getAllMapForSoundfont(sfont: number): SFontMap[] {
 		if (sfont < 0) {
 			sfont = -1;
 		}
@@ -444,13 +448,16 @@ export default class PlayerBase {
 					m.targetBank >= 0 &&
 					m.targetPreset >= 0
 			)
-			.map((m) => ({
-				targetBank: m.targetBank,
-				targetPreset: m.targetPreset,
-				bank: m.bank,
-				preset: m.preset,
-				ampPercent: m.ampPercent,
-			}));
+			.map(
+				(m): SFontMap => ({
+					sfontId: m.sfontId,
+					targetBank: m.targetBank,
+					targetPreset: m.targetPreset,
+					bank: m.bank,
+					preset: m.preset,
+					ampPercent: m.ampPercent,
+				})
+			);
 	}
 
 	/**
@@ -464,7 +471,7 @@ export default class PlayerBase {
 		sfont: number,
 		targetBank?: number,
 		targetPreset?: number
-	) {
+	): boolean {
 		if (sfont < 0) {
 			sfont = -1;
 		}
@@ -518,7 +525,7 @@ export default class PlayerBase {
 	 * If keepSfontLoaded is not true, the associated soundfonts are unloaded.
 	 * @param keepSfontLoaded true if the loaded soundfonts are not unloaded
 	 */
-	public resetAllProgramMap(keepSfontLoaded?: boolean) {
+	public resetAllProgramMap(keepSfontLoaded?: boolean): void {
 		const map = this.sfontMap;
 		for (let i = map.length - 1; i >= 0; --i) {
 			const m = map[i];
@@ -533,7 +540,7 @@ export default class PlayerBase {
 		}
 	}
 
-	protected onQueuedPlayer(s: StatusData) {
+	protected onQueuedPlayer(s: StatusData): void {
 		this.queuedFrames += s.outFrames;
 		// console.log('onQueuedPlayer:', this.renderedTime, this.renderedFrames);
 
@@ -713,7 +720,7 @@ export default class PlayerBase {
 		return { ...this.playOptions };
 	}
 
-	public setPlayOptions(options: Readonly<Options>) {
+	public setPlayOptions(options: Readonly<Options>): void {
 		this.playOptions = { ...options };
 	}
 
@@ -841,7 +848,10 @@ export default class PlayerBase {
 	 * @return true if the event is sent, or false if not
 	 *     (indicating render process has been stopped)
 	 */
-	public sendEvent(ev: JSSynth.SequencerEvent, time?: TimeValue | null) {
+	public sendEvent(
+		ev: JSSynth.SequencerEvent,
+		time?: TimeValue | null
+	): boolean {
 		switch (ev.type) {
 			case JSSynth.EventType.ProgramChange:
 				return this.doChangeProgram(ev.channel, ev.preset, time);
@@ -880,7 +890,7 @@ export default class PlayerBase {
 		return this.doSendEvent({ ...ev }, time);
 	}
 
-	public sendSysEx(rawData: Uint8Array, time?: TimeValue | null) {
+	public sendSysEx(rawData: Uint8Array, time?: TimeValue | null): boolean {
 		const data = { rawData };
 		if (!this.preSendSysEx(data, time)) {
 			return false;
@@ -903,7 +913,7 @@ export default class PlayerBase {
 		value: number | null,
 		keepCurrentVoice?: boolean | null,
 		time?: TimeValue | null
-	) {
+	): boolean {
 		if (typeof time === 'undefined' || time === null) {
 			this.proxy.sendGeneratorValueNow(
 				channel,
@@ -931,7 +941,7 @@ export default class PlayerBase {
 	 * @param time time to render the event (null/undefined is not allowed)
 	 * @param data any data for the event
 	 */
-	public sendUserEvent(type: string, time: TimeValue, data?: any) {
+	public sendUserEvent(type: string, time: TimeValue, data?: unknown): void {
 		const ev: UserEventData = {
 			type,
 			data,
@@ -943,7 +953,7 @@ export default class PlayerBase {
 	 * Send a 'finish' event to tell that render process has finished.
 	 * After this, 'stopped' event will be raised.
 	 */
-	public sendFinish(time: TimeValue) {
+	public sendFinish(time: TimeValue): void {
 		this.proxy.sendFinishMarker(time * 1000);
 	}
 
@@ -951,7 +961,7 @@ export default class PlayerBase {
 	 * Send a user-defined marker, which is queued to audio buffer (frames).
 	 * During render process, when the marker is read, 'playusermarkerevent' will be raised.
 	 */
-	public sendUserMarker(marker: string, time: TimeValue) {
+	public sendUserMarker(marker: string, time: TimeValue): void {
 		this.proxy.sendUserMarker(time * 1000, marker);
 	}
 
@@ -969,7 +979,7 @@ export default class PlayerBase {
 		preset: number,
 		bank?: number | null,
 		time?: TimeValue | null
-	) {
+	): boolean {
 		return this.doChangeProgram(channel, preset, time, bank);
 	}
 
@@ -1089,7 +1099,7 @@ export default class PlayerBase {
 		ev: JSSynth.SequencerEvent,
 		time: TimeValue | null | undefined,
 		noHook?: boolean
-	) {
+	): boolean {
 		if (!noHook && !this.preSendEvent(ev, time)) {
 			return false;
 		}
@@ -1118,7 +1128,7 @@ export default class PlayerBase {
 	}
 
 	/** Flushes the debounced events (queued by `sendEvent(s)`) */
-	public sendDebouncedEvents() {
+	public sendDebouncedEvents(): void {
 		if (this.debounceEventTimer !== null) {
 			clearTimeout(this.debounceEventTimer);
 			this.debounceEventTimer = null;
@@ -1206,7 +1216,7 @@ export default class PlayerBase {
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null,
 		noStop?: boolean
-	) {
+	): Promise<void> {
 		if (!isAudioAvailable()) {
 			return Promise.reject(new Error('Not supported'));
 		}
@@ -1232,7 +1242,7 @@ export default class PlayerBase {
 	/**
 	 * Stop rendering MIDI events for player engine.
 	 */
-	public stopPlayer() {
+	public stopPlayer(): void {
 		// console.log('[PlayerBase] stopPlayer', this._isPlayerRunning, this.isWaitingForStop);
 		if (!this._isPlayerRunning) {
 			if (this.isPlayerPreparing) {
@@ -1258,11 +1268,11 @@ export default class PlayerBase {
 	/**
 	 * Return whether the player is running (rendering).
 	 */
-	public isPlayerRunning() {
+	public isPlayerRunning(): boolean {
 		return this._isPlayerRunning;
 	}
 
-	protected setReleaseTimer() {
+	protected setReleaseTimer(): void {
 		this.releasePlayerTimer = setTimeout(
 			this._releasePlayerCallback.bind(this),
 			Constants.StopWaitTime * 1000
@@ -1274,7 +1284,7 @@ export default class PlayerBase {
 	 * Note that the release process will be done automatically 5 seconds after when stopped.
 	 * @param resetSynth true to release internal synthesizer instance
 	 */
-	public releasePlayer(resetSynth?: boolean) {
+	public releasePlayer(resetSynth?: boolean): void {
 		this.preReleasePlayer();
 		if (this.releasePlayerTimer !== null) {
 			clearTimeout(this.releasePlayerTimer);
@@ -1313,7 +1323,7 @@ export default class PlayerBase {
 	/**
 	 * Return the current master volume for output with Web Audio.
 	 */
-	public getMasterVolume() {
+	public getMasterVolume(): number {
 		return this.masterVolume;
 	}
 
@@ -1323,7 +1333,7 @@ export default class PlayerBase {
 	 * When the render process is running, the volume value is updated immediately.
 	 * @param value the volume/gain value (usually from 0.0 to 1.0, initial value is 0.5)
 	 */
-	public setMasterVolume(value: number) {
+	public setMasterVolume(value: number): void {
 		this.masterVolume = value;
 		if (this.playingGain) {
 			this.playingGain.gain.value = value;
@@ -1333,7 +1343,7 @@ export default class PlayerBase {
 	/**
 	 * Return whether the MIDI channel 16 (15 for zero-based index) is the drums part.
 	 */
-	public isChannel16IsDrums() {
+	public isChannel16IsDrums(): boolean {
 		return this.channel16IsDrums;
 	}
 
@@ -1343,7 +1353,7 @@ export default class PlayerBase {
 	 * @param value true if the MIDI channel 16 is the drums part
 	 * @return a Promise object that resolves when the configuration has done
 	 */
-	public setChannel16IsDrums(value: boolean) {
+	public setChannel16IsDrums(value: boolean): Promise<void> {
 		if (this._isPlayerRunning) {
 			return Promise.resolve();
 		}
@@ -1362,7 +1372,7 @@ export default class PlayerBase {
 	 */
 	public setAudioWorkletScripts(
 		audioWorkletScripts: readonly string[] | null | undefined
-	) {
+	): void {
 		if (typeof AudioWorkletNode === 'undefined') {
 			return;
 		}
@@ -1384,7 +1394,7 @@ export default class PlayerBase {
 	/**
 	 * Set the audio frame count for render process.
 	 */
-	public setRenderFrameCount(count: number) {
+	public setRenderFrameCount(count: number): Promise<void> {
 		return this.proxy.configure({
 			framesCount: count,
 		});
@@ -1398,7 +1408,7 @@ export default class PlayerBase {
 	 * @param value the gain value (usually from 0.0 to 1.0)
 	 * @return a Promise object that resolves when the configuration has done
 	 */
-	public setSynthGain(value: number) {
+	public setSynthGain(value: number): Promise<void> {
 		return this.proxy.configure({
 			gain: value,
 		});
@@ -1408,7 +1418,7 @@ export default class PlayerBase {
 	 * Resets the player internal time (tick).
 	 * After reset, the base time value for sendEvent() or other send methods will be the tick of reset.
 	 */
-	public resetPlayerTime() {
+	public resetPlayerTime(): void {
 		this.proxy.resetTime();
 	}
 
@@ -1419,7 +1429,7 @@ export default class PlayerBase {
 	 * the playing is stopped.
 	 * @param stream the output stream or null to reset
 	 */
-	public setOutputStream(stream: IPlayStream | null) {
+	public setOutputStream(stream: IPlayStream | null): void {
 		this.outputStream = stream;
 	}
 
@@ -1437,7 +1447,7 @@ export default class PlayerBase {
 		return value;
 	}
 
-	protected onPlayStart() {
+	protected onPlayStart(): void {
 		// do nothing
 	}
 	protected preSendEvent(
@@ -1454,10 +1464,10 @@ export default class PlayerBase {
 		// do nothing
 		return true;
 	}
-	protected preStopPlayer() {
+	protected preStopPlayer(): void {
 		// do nothing
 	}
-	protected preReleasePlayer() {
+	protected preReleasePlayer(): void {
 		// do nothing
 	}
 }

@@ -1,3 +1,4 @@
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ISequencerObject from '../../objects/ISequencerObject';
 
 /** @internal */
@@ -25,7 +26,17 @@ export default class ControlObject implements ISequencerObject {
 		};
 	}
 
-	public fromJSONObject(obj: any) {
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				notePosNumerator: ['number'],
+				notePos: ['number'],
+				notePosDenominator: ['number'],
+				notePosFraction: ['number'],
+			})
+		) {
+			return false;
+		}
 		this.parentArray = null;
 		this.idData = 0;
 
@@ -46,20 +57,21 @@ export default class ControlObject implements ISequencerObject {
 		if (!this.notePosDenominator) {
 			this.notePosDenominator = 1;
 		}
+		return true;
 	}
 
-	public setPosition(numerator: number, denominator: number) {
+	public setPosition(numerator: number, denominator: number): void {
 		this.notePosNumerator = numerator;
 		this.notePosDenominator = denominator;
 	}
 
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		return this === obj;
 	}
-	public isEqualType(obj: any): obj is ControlObject {
+	public isEqualType(obj: unknown): obj is ControlObject {
 		return obj instanceof ControlObject;
 	}
-	public isEqualPosition(obj: any) {
+	public isEqualPosition(obj: unknown): boolean {
 		if (!(obj instanceof ControlObject)) {
 			return false;
 		}
@@ -71,7 +83,10 @@ export default class ControlObject implements ISequencerObject {
 }
 _objCtors.ControlObject = ControlObject;
 
-export function getControlFromJSONObject(obj: any): ControlObject {
+export function getControlFromJSONObject(obj: unknown): ControlObject | null {
+	if (!isObjectWithFields(obj, { objType: ['string'] })) {
+		return null;
+	}
 	let t: string = obj.objType || 'ControlObject';
 	// for compatibility
 	if (t === 'EOFObject') {

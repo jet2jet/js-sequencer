@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class PitchWheelControl extends ControlObject {
@@ -35,12 +36,18 @@ export default class PitchWheelControl extends ControlObject {
 			value: this.value,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (!isObjectWithFields(obj, { channel: 'number', value: 'number' })) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.channel = obj.channel;
 		this.value = obj.value;
+		return true;
 	}
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		if (!(obj instanceof PitchWheelControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
@@ -49,7 +56,7 @@ export default class PitchWheelControl extends ControlObject {
 			return false;
 		return this.channel === obj.channel && this.value === obj.value;
 	}
-	public isEqualType(obj: any): obj is PitchWheelControl {
+	public isEqualType(obj: unknown): obj is PitchWheelControl {
 		return obj instanceof PitchWheelControl;
 	}
 }

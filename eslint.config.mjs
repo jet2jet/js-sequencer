@@ -62,9 +62,8 @@ export default defineConfig(
 				'error',
 				{ default: 'array-simple' },
 			],
-			'@typescript-eslint/explicit-function-return-type': 'off',
 			// '@typescript-eslint/explicit-member-accessibility': 'error',
-			'@typescript-eslint/explicit-module-boundary-types': 'warn',
+			'@typescript-eslint/explicit-module-boundary-types': 'error',
 			'@typescript-eslint/lines-between-class-members': 'off',
 			'@typescript-eslint/member-delimiter-style': 'off',
 			'@typescript-eslint/member-ordering': [

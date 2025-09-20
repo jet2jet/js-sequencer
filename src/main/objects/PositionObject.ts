@@ -1,4 +1,5 @@
 import { gcd, isUndefined } from '../functions';
+import { isObjectWithFields } from '../functions/objectUtils';
 import IPositionObject from './IPositionObject';
 
 export default class PositionObject implements IPositionObject {
@@ -13,14 +14,26 @@ export default class PositionObject implements IPositionObject {
 	public toJSON(): any {
 		return this;
 	}
-	public fromJSONObject(obj: any) {
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				numerator: ['number'],
+				position: ['number'],
+				denominator: ['number'],
+				positionFraction: ['number'],
+			})
+		) {
+			return false;
+		}
 		if (!isUndefined(obj.numerator)) this.numerator = obj.numerator;
-		else this.numerator = obj.position;
+		else if (!isUndefined(obj.position)) this.numerator = obj.position;
 		if (!isUndefined(obj.denominator)) this.denominator = obj.denominator;
-		else this.denominator = obj.positionFraction;
+		else if (!isUndefined(obj.positionFraction))
+			this.denominator = obj.positionFraction;
+		return true;
 	}
 
-	public addPosition(pos: IPositionObject) {
+	public addPosition(pos: IPositionObject): PositionObject {
 		const g = gcd(this.denominator, pos.denominator);
 		return new PositionObject(
 			(this.numerator * pos.denominator +
@@ -29,14 +42,17 @@ export default class PositionObject implements IPositionObject {
 			(this.denominator * pos.denominator) / g
 		);
 	}
-	public addPositionDirect(numerator: number, denominator: number) {
+	public addPositionDirect(
+		numerator: number,
+		denominator: number
+	): PositionObject {
 		const g = gcd(this.denominator, denominator);
 		return new PositionObject(
 			(this.numerator * denominator + numerator * this.denominator) / g,
 			(this.denominator * denominator) / g
 		);
 	}
-	public addPositionMe(pos: IPositionObject) {
+	public addPositionMe(pos: IPositionObject): void {
 		const g = gcd(this.denominator, pos.denominator);
 		const n =
 			(this.numerator * pos.denominator +
@@ -46,7 +62,7 @@ export default class PositionObject implements IPositionObject {
 		this.numerator = n;
 		this.denominator = d;
 	}
-	public addPositionMeDirect(numerator: number, denominator: number) {
+	public addPositionMeDirect(numerator: number, denominator: number): void {
 		const g = gcd(this.denominator, denominator);
 		const n =
 			(this.numerator * denominator + numerator * this.denominator) / g;

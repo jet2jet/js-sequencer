@@ -176,15 +176,12 @@ export default class Player extends PlayerBase {
 		);
 	}
 
-	public static isSupported() {
-		return (
-			typeof AudioContext !== 'undefined' &&
-			typeof WebAssembly !== 'undefined'
-		);
+	public static isSupported(): boolean {
+		return PlayerBase.isSupported();
 	}
 
-	public static isAudioWorkletSupported() {
-		return typeof AudioWorkletNode !== 'undefined';
+	public static isAudioWorkletSupported(): boolean {
+		return PlayerBase.isAudioWorkletSupported();
 	}
 
 	/**
@@ -281,7 +278,7 @@ export default class Player extends PlayerBase {
 		return arr;
 	}
 
-	protected onQueuedPlayer(s: StatusData) {
+	protected onQueuedPlayer(s: StatusData): void {
 		super.onQueuedPlayer(s);
 		this.renderedFrames += s.outFrames;
 		this.renderedTime = this.renderedFrames / s.sampleRate;
@@ -423,7 +420,7 @@ export default class Player extends PlayerBase {
 		n: NoteObject,
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null
-	) {
+	): void {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -452,7 +449,7 @@ export default class Player extends PlayerBase {
 	 * Stop playing the note played by playNote method.
 	 * The player data is not released, if doReleasePlayer is not true, or until releasePlayer method is called.
 	 */
-	public stopPlayingNote(doReleasePlayer?: boolean) {
+	public stopPlayingNote(doReleasePlayer?: boolean): void {
 		const n = this.playingNote;
 		if (n) {
 			this.sendEvent({
@@ -471,7 +468,7 @@ export default class Player extends PlayerBase {
 		notes: NoteObject | NoteObject[],
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null
-	) {
+	): void {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -502,7 +499,7 @@ export default class Player extends PlayerBase {
 	public stopNoteMultiple(
 		notes: NoteObject | NoteObject[],
 		doReleasePlayer?: boolean
-	) {
+	): void {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -543,7 +540,7 @@ export default class Player extends PlayerBase {
 		}
 	}
 
-	protected onPlayStart() {
+	protected onPlayStart(): void {
 		this.loopEnabled = false;
 		this.isAllNotesPlayed = false;
 		this.renderedFrames = 0;
@@ -657,7 +654,7 @@ export default class Player extends PlayerBase {
 	protected preSendEvent(
 		ev: JSSynth.SequencerEvent,
 		time: TimeValue | null | undefined
-	) {
+	): boolean {
 		if (typeof time === 'undefined' || time === null) {
 			return true;
 		}
@@ -704,7 +701,10 @@ export default class Player extends PlayerBase {
 		return true;
 	}
 
-	protected preSendSysEx(_data: any, time: TimeValue | null | undefined) {
+	protected preSendSysEx(
+		_data: unknown,
+		time: TimeValue | null | undefined
+	): boolean {
 		if (typeof time === 'undefined' || time === null) {
 			return true;
 		}
@@ -991,7 +991,7 @@ export default class Player extends PlayerBase {
 			try {
 				const loopStatus: LoopStatus = JSON.parse(
 					e.marker.substring(7)
-				);
+				) as unknown as LoopStatus;
 				this.loopIndexCurrent = loopStatus.loopIndex;
 				this.raiseEventPlayLooped(
 					loopStatus,
@@ -1358,7 +1358,7 @@ export default class Player extends PlayerBase {
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null
-	) {
+	): void {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -1387,7 +1387,7 @@ export default class Player extends PlayerBase {
 		backgroundChords?: BackgroundChord[] | null,
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null
-	) {
+	): void {
 		this.playPartRange(
 			part,
 			null,
@@ -1409,7 +1409,7 @@ export default class Player extends PlayerBase {
 		dest?: AudioNode | null,
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
-	) {
+	): void {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -1446,7 +1446,7 @@ export default class Player extends PlayerBase {
 		dest?: AudioNode | null,
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
-	) {
+	): void {
 		this.playSequenceRange(
 			null,
 			null,
@@ -1469,7 +1469,7 @@ export default class Player extends PlayerBase {
 		dest?: AudioNode | null,
 		loopData?: LoopData,
 		fadeout?: FadeoutData | boolean
-	) {
+	): void {
 		if (!isAudioAvailable()) {
 			return;
 		}
@@ -1519,11 +1519,11 @@ export default class Player extends PlayerBase {
 		return this._isPlayingSequence || this.isPlayerRunning();
 	}
 
-	protected preStopPlayer() {
+	protected preStopPlayer(): void {
 		this._stopSequenceImpl();
 	}
 
-	protected preReleasePlayer() {
+	protected preReleasePlayer(): void {
 		this._stopSequenceImpl();
 	}
 
@@ -1549,7 +1549,7 @@ export default class Player extends PlayerBase {
 		this.stopPlayer();
 	}
 
-	public resetAll() {
+	public resetAll(): void {
 		this.releasePlayer();
 
 		this.engine.reset();

@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class TempoControl extends ControlObject {
@@ -29,11 +30,17 @@ export default class TempoControl extends ControlObject {
 			value: this.value,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (!isObjectWithFields(obj, { value: 'number' })) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.value = obj.value;
+		return true;
 	}
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		if (!(obj instanceof TempoControl)) return false;
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
@@ -41,7 +48,7 @@ export default class TempoControl extends ControlObject {
 			this.value === obj.value
 		);
 	}
-	public isEqualType(obj: any): obj is TempoControl {
+	public isEqualType(obj: unknown): obj is TempoControl {
 		return obj instanceof TempoControl;
 	}
 }

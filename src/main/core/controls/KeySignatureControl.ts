@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class KeySignatureControl extends ControlObject {
@@ -35,13 +36,26 @@ export default class KeySignatureControl extends ControlObject {
 			isMinor: this.isMinor,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				sharpFlat: 'number',
+				isMinor: 'boolean',
+			})
+		) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.sharpFlat = obj.sharpFlat;
 		this.isMinor = obj.isMinor;
+		return true;
 	}
-	public equals(obj: any) {
-		if (!(obj instanceof KeySignatureControl)) return false;
+	public equals(obj: unknown): boolean {
+		if (!(obj instanceof KeySignatureControl)) {
+			return false;
+		}
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
 				this.notePosDenominator * obj.notePosNumerator &&
@@ -49,7 +63,7 @@ export default class KeySignatureControl extends ControlObject {
 			this.isMinor === obj.isMinor
 		);
 	}
-	public isEqualType(obj: any): obj is KeySignatureControl {
+	public isEqualType(obj: unknown): obj is KeySignatureControl {
 		return obj instanceof KeySignatureControl;
 	}
 }

@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class SysMsgControl extends ControlObject {
@@ -48,13 +49,19 @@ export default class SysMsgControl extends ControlObject {
 			rawData: ([] as number[]).slice.call(this.rawData),
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (!isObjectWithFields(obj, { msgType: 'number', rawData: Array })) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.msgType = obj.msgType;
 		this.rawData = new Uint8Array(obj.rawData.length);
-		this.rawData.set(obj.rawData);
+		this.rawData.set(obj.rawData.filter((c) => typeof c === 'number'));
+		return true;
 	}
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		if (!(obj instanceof SysMsgControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
@@ -72,7 +79,7 @@ export default class SysMsgControl extends ControlObject {
 		}
 		return true;
 	}
-	public isEqualType(obj: any): obj is SysMsgControl {
+	public isEqualType(obj: unknown): obj is SysMsgControl {
 		return obj instanceof SysMsgControl;
 	}
 }

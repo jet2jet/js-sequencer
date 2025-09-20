@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class TimeSignatureControl extends ControlObject {
@@ -51,18 +52,34 @@ export default class TimeSignatureControl extends ControlObject {
 			num32ndInQuater: this.num32ndInQuater,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				beatsNumerator: ['number'],
+				beats: ['number'],
+				beatsDenominator: ['number'],
+				beatsFraction: ['number'],
+				clocks: 'number',
+				num32ndInQuater: 'number',
+			})
+		) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		if (!isUndefined(obj.beatsNumerator))
 			this.beatsNumerator = obj.beatsNumerator;
-		else this.beatsNumerator = obj.beats;
+		else if (!isUndefined(obj.beats)) this.beatsNumerator = obj.beats;
 		if (!isUndefined(obj.beatsDenominator))
 			this.beatsDenominator = obj.beatsDenominator;
-		else this.beatsDenominator = obj.beatsFraction;
+		else if (!isUndefined(obj.beatsFraction))
+			this.beatsDenominator = obj.beatsFraction;
 		this.clocks = obj.clocks;
 		this.num32ndInQuater = obj.num32ndInQuater;
+		return true;
 	}
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		if (!(obj instanceof TimeSignatureControl)) return false;
 		return (
 			this.notePosNumerator * obj.notePosDenominator ===
@@ -71,7 +88,7 @@ export default class TimeSignatureControl extends ControlObject {
 			this.beatsDenominator === obj.beatsDenominator
 		);
 	}
-	public isEqualType(obj: any): obj is TimeSignatureControl {
+	public isEqualType(obj: unknown): obj is TimeSignatureControl {
 		return obj instanceof TimeSignatureControl;
 	}
 }

@@ -123,7 +123,7 @@ export default class PlayerProxy {
 		return ret;
 	}
 
-	public close() {
+	public close(): void {
 		const data: Message.Close = {
 			type: 'close',
 		};
@@ -131,7 +131,10 @@ export default class PlayerProxy {
 		this.port.close();
 	}
 
-	public loadSoundfont(bin: ArrayBuffer, transfer?: boolean) {
+	public loadSoundfont(
+		bin: ArrayBuffer,
+		transfer?: boolean
+	): Promise<number> {
 		const data: Message.LoadSoundfont = {
 			id: this.msgId++,
 			type: 'load-sfont',
@@ -142,7 +145,7 @@ export default class PlayerProxy {
 		return ret;
 	}
 
-	public unloadSoundfont(sfontId: number) {
+	public unloadSoundfont(sfontId: number): Promise<void> {
 		const data: Message.UnloadSoundfont = {
 			id: this.msgId++,
 			type: 'unload-sfont',
@@ -153,7 +156,7 @@ export default class PlayerProxy {
 		return ret;
 	}
 
-	public configure(config: Message.ConfigBase) {
+	public configure(config: Message.ConfigBase): Promise<void> {
 		if (typeof config.framesCount === 'number') {
 			this.framesCount = config.framesCount;
 		}
@@ -172,7 +175,7 @@ export default class PlayerProxy {
 		ctx: BaseAudioContext,
 		sfontDefault: number,
 		options: Options
-	) {
+	): ScriptProcessorNode {
 		const r = createScriptProcessorNode(ctx, this.framesCount, options);
 		this.startImpl(r.port, sfontDefault);
 		return r.node;
@@ -182,7 +185,7 @@ export default class PlayerProxy {
 		ctx: BaseAudioContext,
 		sfontDefault: number,
 		options: Options
-	) {
+	): AudioWorkletNode {
 		const r = createAudioWorkletNode(ctx, options);
 		this.startImpl(r.port, sfontDefault);
 		return r.node;
@@ -192,12 +195,12 @@ export default class PlayerProxy {
 		stream: IPlayStream,
 		sfontDefault: number,
 		options: Options
-	) {
+	): void {
 		const port = createPortWithStream(stream, this.sampleRate, options);
 		this.startImpl(port, sfontDefault);
 	}
 
-	public startWithExistingConnection(sfontDefault: number) {
+	public startWithExistingConnection(sfontDefault: number): void {
 		const data: Message.Start = {
 			type: 'start',
 			sfontDefault,
@@ -222,7 +225,7 @@ export default class PlayerProxy {
 		});
 	}
 
-	public pause(isPaused: boolean) {
+	public pause(isPaused: boolean): Promise<ResponseDataType<'pause'>> {
 		const data: Message.Pause = {
 			id: this.msgId++,
 			type: 'pause',
@@ -233,17 +236,17 @@ export default class PlayerProxy {
 		return ret;
 	}
 
-	public stop() {
+	public stop(): void {
 		const msg: Message.Stop = { type: 'stop' };
 		this.port.postMessage(msg);
 	}
 
-	public resetTime() {
+	public resetTime(): void {
 		const msg: Message.ResetTime = { type: 'reset-time' };
 		this.port.postMessage(msg);
 	}
 
-	public releasePlayer(resetSynth?: boolean) {
+	public releasePlayer(resetSynth?: boolean): void {
 		const msg: Message.Release = {
 			type: 'release',
 			resetSynth,
@@ -251,7 +254,7 @@ export default class PlayerProxy {
 		this.port.postMessage(msg);
 	}
 
-	public waitForFinish(timeoutMilliseconds?: number) {
+	public waitForFinish(timeoutMilliseconds?: number): Promise<void> {
 		if (typeof timeoutMilliseconds === 'number') {
 			return promiseWithTimeout(
 				this.stopPromise,
@@ -264,7 +267,7 @@ export default class PlayerProxy {
 		}
 	}
 
-	public sendEvent(eventData: JSSynth.SequencerEvent, time: number) {
+	public sendEvent(eventData: JSSynth.SequencerEvent, time: number): void {
 		const data: Message.Event = {
 			type: 'event',
 			time,
@@ -273,7 +276,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendEventNow(eventData: JSSynth.SequencerEvent) {
+	public sendEventNow(eventData: JSSynth.SequencerEvent): void {
 		const data: Message.Event = {
 			type: 'event',
 			time: null,
@@ -282,7 +285,9 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendEvents(events: Array<[JSSynth.SequencerEvent, number | null]>) {
+	public sendEvents(
+		events: Array<[JSSynth.SequencerEvent, number | null]>
+	): void {
 		const data: Message.Events = {
 			type: 'events',
 			data: events,
@@ -290,7 +295,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendSysEx(bin: Uint8Array, time: number) {
+	public sendSysEx(bin: Uint8Array, time: number): void {
 		const data: Message.SysEx = {
 			type: 'sysex',
 			time,
@@ -299,7 +304,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data, [data.data]);
 	}
 
-	public sendSysExNow(bin: Uint8Array) {
+	public sendSysExNow(bin: Uint8Array): void {
 		const data: Message.SysEx = {
 			type: 'sysex',
 			time: null,
@@ -314,7 +319,7 @@ export default class PlayerProxy {
 		value: number | null,
 		keepCurrentVoice: boolean | null | undefined,
 		time: number
-	) {
+	): void {
 		const data: Message.Generator = {
 			type: 'gen',
 			time,
@@ -333,7 +338,7 @@ export default class PlayerProxy {
 		type: JSSynth.Constants.GeneratorTypes,
 		value: number | null,
 		keepCurrentVoice: boolean | null | undefined
-	) {
+	): void {
 		const data: Message.Generator = {
 			type: 'gen',
 			time: null,
@@ -347,7 +352,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendUserData(userData: any, time: number) {
+	public sendUserData(userData: unknown, time: number): void {
 		const id = this.userEventId++;
 		const text = `ud-${id}`;
 		this.userEventData[text] = { data: userData };
@@ -359,7 +364,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendFinishMarker(time: number) {
+	public sendFinishMarker(time: number): void {
 		const data: Message.FinishMarker = {
 			type: 'finish',
 			time,
@@ -367,7 +372,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendFinishMarkerNow() {
+	public sendFinishMarkerNow(): void {
 		const data: Message.FinishMarker = {
 			type: 'finish',
 			time: null,
@@ -375,7 +380,7 @@ export default class PlayerProxy {
 		this.port.postMessage(data);
 	}
 
-	public sendUserMarker(time: number, marker: string) {
+	public sendUserMarker(time: number, marker: string): void {
 		const data: Message.UserMarker = {
 			type: 'user-marker',
 			time,
@@ -402,7 +407,10 @@ export default class PlayerProxy {
 	}
 
 	private onMessage(e: MessageEvent) {
-		const data: Response.AllTypes | null | undefined = e.data;
+		const data: Response.AllTypes | null | undefined = e.data as unknown as
+			| Response.AllTypes
+			| null
+			| undefined;
 		if (!data) {
 			return;
 		}

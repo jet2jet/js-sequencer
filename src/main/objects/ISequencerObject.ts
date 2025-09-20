@@ -19,11 +19,11 @@ export default interface ISequencerObject {
 	element?: HTMLElement;
 
 	toJSON?(): any;
-	fromJSONObject?(obj: any): void;
-	equals?(obj: any): boolean;
-	isEqualType?(obj: any): boolean;
-	isEqualPosition?(obj: any): boolean;
-	compareTo?(obj: any): number;
+	fromJSONObject?(obj: unknown): boolean;
+	equals?(obj: unknown): boolean;
+	isEqualType?(obj: unknown): boolean;
+	isEqualPosition?(obj: unknown): boolean;
+	compareTo?(obj: unknown): number;
 
 	attachEngine?(engine: Engine): void;
 	detachEngine?(): void;

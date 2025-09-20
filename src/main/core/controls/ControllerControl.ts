@@ -1,4 +1,5 @@
 import { isUndefined } from '../../functions';
+import { isObjectWithFields } from '../../functions/objectUtils';
 import ControlObject, { _objCtors } from './ControlObject';
 
 export default class ControllerControl extends ControlObject {
@@ -40,13 +41,25 @@ export default class ControllerControl extends ControlObject {
 			value2: this.value2,
 		};
 	}
-	public fromJSONObject(obj: any) {
-		super.fromJSONObject(obj);
+	public fromJSONObject(obj: unknown): boolean {
+		if (
+			!isObjectWithFields(obj, {
+				channel: 'number',
+				value1: 'number',
+				value2: 'number',
+			})
+		) {
+			return false;
+		}
+		if (!super.fromJSONObject(obj)) {
+			return false;
+		}
 		this.channel = obj.channel;
 		this.value1 = obj.value1;
 		this.value2 = obj.value2;
+		return true;
 	}
-	public equals(obj: any) {
+	public equals(obj: unknown): boolean {
 		if (!(obj instanceof ControllerControl)) return false;
 		if (
 			this.notePosNumerator * obj.notePosDenominator !==
@@ -59,10 +72,10 @@ export default class ControllerControl extends ControlObject {
 			this.value2 === obj.value2
 		);
 	}
-	public isEqualType(obj: any): obj is ControllerControl {
+	public isEqualType(obj: unknown): obj is ControllerControl {
 		return obj instanceof ControllerControl;
 	}
-	public compareTo(obj: any): number {
+	public compareTo(obj: unknown): number {
 		if (!(obj instanceof ControllerControl)) return -1;
 		if (this.channel !== obj.channel) return this.channel - obj.channel;
 		// DATA MSB/LSB must follow another controls (for sorting)

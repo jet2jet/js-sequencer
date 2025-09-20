@@ -8,7 +8,7 @@ export default function createScriptProcessorNode(
 	ctx: BaseAudioContext,
 	renderFrameCount: number,
 	options: Options
-) {
+): { node: ScriptProcessorNode; port: MessagePort } {
 	{
 		let x = 0;
 		while (renderFrameCount) {
@@ -82,7 +82,8 @@ export default function createScriptProcessorNode(
 	});
 
 	const listener = (e: MessageEvent) => {
-		const data: RenderMessage.AllTypes | null | undefined = e.data;
+		const data: RenderMessage.AllTypes | null | undefined =
+			e.data as unknown as RenderMessage.AllTypes | null | undefined;
 		if (!data) {
 			return;
 		}
