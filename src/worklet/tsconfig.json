@@ -1,15 +1,13 @@
 {
   "compilerOptions": {
-    "baseUrl": "..",
     "declaration": true,
-    "downlevelIteration": true,
     "lib": ["es2017"],
     "newLine": "LF",
     "module": "es6",
     "moduleResolution": "bundler",
     "outDir": "../../dist/lib",
     "paths": {
-      "*": ["../reference/*", "../node_modules/*"]
+      "*": ["../../reference/*", "../../node_modules/*"]
     },
     "removeComments": false,
     "rootDir": "..",

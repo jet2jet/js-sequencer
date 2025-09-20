@@ -1,15 +1,14 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "downlevelIteration": true,
     "lib": ["es2015", "dom"],
     "newLine": "LF",
     "module": "es6",
     "moduleResolution": "bundler",
     "outDir": "../../dist/lib",
     "paths": {
-      "js-synthesizer/*": ["../node_modules/js-synthesizer/dist/lib/*"],
-      "*": ["../reference/*", "../node_modules/*"]
+      "js-synthesizer/*": ["../../node_modules/js-synthesizer/dist/lib/*"],
+      "*": ["../../reference/*", "../../node_modules/*"]
     },
     "removeComments": false,
     "rootDir": "..",
