@@ -3,7 +3,6 @@ import ISequencerEventData from 'js-synthesizer/ISequencerEventData';
 import SequencerEvent, {
 	EventType as SequencerEventTypes,
 	ControlChangeEvent,
-	VolumeEvent,
 	NoteEvent,
 	NoteOnEvent,
 	NoteOffEvent,
@@ -26,10 +25,19 @@ type GenEvent = Message.Generator['data'];
 // eslint-disable-next-line no-var
 declare var JSSynth: typeof import('js-synthesizer');
 
-// eslint-disable-next-line no-var
-declare var Module: any;
+// Written necessary only
+type LibfluidsynthModule = {
+	[name: string]: (...args: any[]) => any;
+	_malloc: (size: number) => number;
+	_free: (ptr: number) => void;
+} & {
+	HEAPU32: Uint32Array;
+};
 
-let _module: any;
+// eslint-disable-next-line no-var
+declare var Module: LibfluidsynthModule;
+
+let _module: LibfluidsynthModule;
 
 async function waitForWasmInitialized() {
 	await JSSynth.Synthesizer.waitForWasmInitialized();
@@ -478,7 +486,7 @@ export default class PlayerImpl {
 			const syn = this.synth.getRawSynthesizer();
 			// prot: int fluid_synth_get_active_voice_count(fluid_synth_t*)
 			const voiceCount: number =
-				_module._fluid_synth_get_active_voice_count(syn);
+				_module._fluid_synth_get_active_voice_count(syn) as number;
 			// fluid_voice_t* voiceList = malloc(sizeof(fluid_voice_t*) * voiceCount)
 			const voiceList: number = _module._malloc(voiceCount * 4);
 			// prot: void fluid_synth_get_voicelist(fluid_synth_t*, fluid_voice_t*, int, int)
@@ -580,7 +588,10 @@ export default class PlayerImpl {
 	private async onMessageImpl(e: MessageEvent) {
 		await this.promiseResetTime;
 
-		const data: Message.AllTypes = e.data;
+		const data = e.data as unknown as Message.AllTypes | null | undefined;
+		if (!data) {
+			return;
+		}
 		switch (data.type) {
 			case 'close':
 				this.onClose();
@@ -1032,7 +1043,10 @@ export default class PlayerImpl {
 	}
 
 	private onRenderMessage(e: MessageEvent) {
-		const data: RenderMessage.AllTypes | null | undefined = e.data;
+		const data = e.data as unknown as
+			| RenderMessage.AllTypes
+			| null
+			| undefined;
 		if (!data) {
 			return;
 		}
