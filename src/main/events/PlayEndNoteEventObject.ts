@@ -1,4 +1,4 @@
-import Player from '../core/Player';
+import type Player from '../core/Player';
 import EventObjectBase from './EventObjectBase';
 
 export default class PlayEndNoteEventObject extends EventObjectBase {

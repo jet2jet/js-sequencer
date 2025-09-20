@@ -1,4 +1,4 @@
-import NoteObjectBase from './NoteObjectBase';
+import type NoteObjectBase from './NoteObjectBase';
 
 /** @internal */
 export default class DummyNoteStopObject implements NoteObjectBase {

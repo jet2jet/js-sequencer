@@ -1,7 +1,7 @@
 import {
-	RenderedResponse,
-	Status,
-	UserMarkerResponse,
+	type RenderedResponse,
+	type Status,
+	type UserMarkerResponse,
 } from './RenderMessageData';
 
 /** @internal */
@@ -77,6 +77,3 @@ export type AllTypes =
 	| Stop
 	| Reset
 	| UserEvent;
-
-/** @internal */
-export default AllTypes;

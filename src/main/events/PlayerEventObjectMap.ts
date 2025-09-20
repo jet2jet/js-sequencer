@@ -1,7 +1,7 @@
-import PlayEndNoteEventObject from './PlayEndNoteEventObject';
-import PlayerBaseEventObjectMap from './PlayerBaseEventObjectMap';
-import PlayLoopedEventObject from './PlayLoopedEventObject';
-import PlayQueueEventObject from './PlayQueueEventObject';
+import type PlayEndNoteEventObject from './PlayEndNoteEventObject';
+import type PlayerBaseEventObjectMap from './PlayerBaseEventObjectMap';
+import type PlayLoopedEventObject from './PlayLoopedEventObject';
+import type PlayQueueEventObject from './PlayQueueEventObject';
 
 export default interface PlayerEventObjectMap extends PlayerBaseEventObjectMap {
 	playqueue: PlayQueueEventObject;

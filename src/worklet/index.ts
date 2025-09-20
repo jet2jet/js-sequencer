@@ -1,12 +1,12 @@
 /// <reference types='AudioWorklet' />
 
 import makeDelayProcessRaw, {
-	DelayMillisecFunction,
-	CancelDelayMillisecFunction,
+	type DelayMillisecFunction,
+	type CancelDelayMillisecFunction,
 } from './core/makeDelayProcessRaw';
 import FrameQueue from './core/playing/FrameQueue';
-import { AudioWorkletProcessorOptions } from './types/AudioWorkletTypes';
-import * as RenderMessage from './types/RenderMessageData';
+import { type AudioWorkletProcessorOptions } from './types/AudioWorkletTypes';
+import type * as RenderMessage from './types/RenderMessageData';
 
 interface TimerObject {
 	timeout: number;

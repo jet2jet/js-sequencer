@@ -1,12 +1,12 @@
-import * as JSSynth from 'js-synthesizer';
-import * as Message from '../../types/MessageData';
-import * as RenderMessage from '../../types/RenderMessageData';
-import * as Response from '../../types/ResponseData';
-import IPlayStream from '../IPlayStream';
+import type * as JSSynth from 'js-synthesizer';
+import type * as Message from '../../types/MessageData';
+import type * as RenderMessage from '../../types/RenderMessageData';
+import type * as Response from '../../types/ResponseData';
+import type IPlayStream from '../IPlayStream';
 import createAudioWorkletNode from './createAudioWorkletNode';
 import createPortWithStream from './createPortWithStream';
 import createScriptProcessorNode from './createScriptProcessorNode';
-import Options from './Options';
+import type Options from './Options';
 
 type ResponseDataTypeBase<
 	TType extends Response.AllTypes['type'],

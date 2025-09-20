@@ -1,4 +1,4 @@
-import PlayerBase from '../core/PlayerBase';
+import type PlayerBase from '../core/PlayerBase';
 import EventObjectBase from './EventObjectBase';
 
 export default class PlayStatusEventObject extends EventObjectBase {

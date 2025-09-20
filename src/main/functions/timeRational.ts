@@ -1,4 +1,4 @@
-import { TimeRationalValue } from '../types';
+import { type TimeRationalValue } from '../types';
 
 function gcd(m: number, n: number) {
 	if (m < n) {

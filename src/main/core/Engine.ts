@@ -1,13 +1,13 @@
-import EngineEventObjectMap from '../events/EngineEventObjectMap';
-import EventObjectBase from '../events/EventObjectBase';
+import type EngineEventObjectMap from '../events/EngineEventObjectMap';
+import type EventObjectBase from '../events/EventObjectBase';
 import SimpleEventObject from '../events/SimpleEventObject';
 import { gcd } from '../functions';
 import * as TimeRational from '../functions/timeRational';
-import Channel from '../objects/Channel';
-import IPositionObject from '../objects/IPositionObject';
-import ISequencerObject from '../objects/ISequencerObject';
+import type Channel from '../objects/Channel';
+import type IPositionObject from '../objects/IPositionObject';
+import type ISequencerObject from '../objects/ISequencerObject';
 import PositionObject from '../objects/PositionObject';
-import { TimeRationalValue, TimeValue } from '../types';
+import { type TimeRationalValue, type TimeValue } from '../types';
 import BeatsCalculator from './BeatsCalculator';
 import AftertouchControl from './controls/AftertouchControl';
 import ControllerControl from './controls/ControllerControl';
@@ -25,7 +25,7 @@ import TempoControl from './controls/TempoControl';
 import TimeSignatureControl from './controls/TimeSignatureControl';
 import DummyNoteStopObject from './DummyNoteStopObject';
 import NoteObject from './NoteObject';
-import NoteObjectBase from './NoteObjectBase';
+import type NoteObjectBase from './NoteObjectBase';
 import Part from './Part';
 
 function updateControlArray(arr: ControlObject[]): void {

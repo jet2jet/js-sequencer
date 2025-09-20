@@ -1,19 +1,24 @@
 import * as JSSynth from 'js-synthesizer';
 import PlayEndNoteEventObject from '../events/PlayEndNoteEventObject';
-import PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
-import PlayerEventObjectMap from '../events/PlayerEventObjectMap';
+import type PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
+import type PlayerEventObjectMap from '../events/PlayerEventObjectMap';
 import PlayLoopedEventObject from '../events/PlayLoopedEventObject';
 import PlayQueueEventObject from '../events/PlayQueueEventObject';
-import PlayStatusEventObject from '../events/PlayStatusEventObject';
-import PlayUserEventObject from '../events/PlayUserEventObject';
-import PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
+import type PlayStatusEventObject from '../events/PlayStatusEventObject';
+import type PlayUserEventObject from '../events/PlayUserEventObject';
+import type PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
 import { isAudioAvailable } from '../functions';
 import * as TimeRational from '../functions/timeRational';
-import BackgroundChord from '../objects/BackgroundChord';
-import IPositionObject from '../objects/IPositionObject';
-import ISequencerObject from '../objects/ISequencerObject';
+import type BackgroundChord from '../objects/BackgroundChord';
+import type IPositionObject from '../objects/IPositionObject';
+import type ISequencerObject from '../objects/ISequencerObject';
 import PositionObject from '../objects/PositionObject';
-import { FadeoutData, LoopData, TimeValue, TimeRationalValue } from '../types';
+import {
+	type FadeoutData,
+	type LoopData,
+	type TimeValue,
+	type TimeRationalValue,
+} from '../types';
 import AftertouchControl from './controls/AftertouchControl';
 import ControllerControl from './controls/ControllerControl';
 import KeySignatureControl from './controls/KeySignatureControl';
@@ -24,7 +29,8 @@ import SysExControl from './controls/SysExControl';
 import SysMsgControl from './controls/SysMsgControl';
 import TempoControl from './controls/TempoControl';
 import TimeSignatureControl from './controls/TimeSignatureControl';
-import Engine, {
+import type Engine from './Engine';
+import {
 	calcTimeExFromSMFTempo,
 	calculatePositionFromSeconds,
 	calculateSecondsFromPosition2,
@@ -32,9 +38,9 @@ import Engine, {
 	calculatePositionFromSeconds2,
 } from './Engine';
 import NoteObject from './NoteObject';
-import Part from './Part';
-import PlayerBase, { StatusData } from './PlayerBase';
-import PlayerProxy from './playing/PlayerProxy';
+import type Part from './Part';
+import PlayerBase, { type StatusData } from './PlayerBase';
+import type PlayerProxy from './playing/PlayerProxy';
 
 interface LoopStatus {
 	start: IPositionObject;

@@ -46,6 +46,7 @@ export default defineConfig(
 			],
 
 			'import-x/export': 'off',
+			'import-x/no-duplicates': ['error', { 'prefer-inline': true }],
 			'import-x/order': [
 				'error',
 				{
@@ -61,6 +62,14 @@ export default defineConfig(
 			'@typescript-eslint/array-type': [
 				'error',
 				{ default: 'array-simple' },
+			],
+			'@typescript-eslint/consistent-type-imports': [
+				'error',
+				{
+					prefer: 'type-imports',
+					fixStyle: 'inline-type-imports',
+					disallowTypeAnnotations: false,
+				},
 			],
 			// '@typescript-eslint/explicit-member-accessibility': 'error',
 			'@typescript-eslint/explicit-module-boundary-types': 'error',
@@ -141,9 +150,6 @@ export default defineConfig(
 		rules: {
 			'@typescript-eslint/no-require-imports': 'off',
 		},
-	},
-	{
-		files: ['src/common/**'],
 	},
 	EslintConfigPrettier,
 	{

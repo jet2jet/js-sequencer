@@ -88,6 +88,3 @@ export type AllTypes =
 	| Release
 	| UserMarkerSend
 	| UserMarkerResponse;
-
-/** @internal */
-export default AllTypes;

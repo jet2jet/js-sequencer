@@ -1,13 +1,13 @@
 import * as JSSynth from 'js-synthesizer';
-import PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
+import type PlayerBaseEventObjectMap from '../events/PlayerBaseEventObjectMap';
 import PlayStatusEventObject from '../events/PlayStatusEventObject';
 import PlayUserEventObject from '../events/PlayUserEventObject';
 import PlayUserMarkerEventObject from '../events/PlayUserMarkerEventObject';
 import SimpleEventObject from '../events/SimpleEventObject';
 import { isAudioAvailable, loadBinaryFromFile } from '../functions';
-import { TimeValue } from '../types';
-import IPlayStream from './IPlayStream';
-import Options from './playing/Options';
+import { type TimeValue } from '../types';
+import type IPlayStream from './IPlayStream';
+import type Options from './playing/Options';
 import PlayerProxy from './playing/PlayerProxy';
 
 type IsAlmostSameType<T1, T2, TTrue, TFalse> = T1 extends T2

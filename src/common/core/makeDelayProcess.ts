@@ -1,6 +1,6 @@
 import makeDelayProcessRaw, {
-	DelayMillisecFunction,
-	CancelDelayMillisecFunction,
+	type DelayMillisecFunction,
+	type CancelDelayMillisecFunction,
 } from './makeDelayProcessRaw';
 
 /**

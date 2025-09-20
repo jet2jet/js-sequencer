@@ -1,8 +1,8 @@
-import PlayerBase from '../core/PlayerBase';
-import PlayStatusEventObject from './PlayStatusEventObject';
-import PlayUserEventObject from './PlayUserEventObject';
-import PlayUserMarkerEventObject from './PlayUserMarkerEventObject';
-import SimpleEventObject from './SimpleEventObject';
+import type PlayerBase from '../core/PlayerBase';
+import type PlayStatusEventObject from './PlayStatusEventObject';
+import type PlayUserEventObject from './PlayUserEventObject';
+import type PlayUserMarkerEventObject from './PlayUserMarkerEventObject';
+import type SimpleEventObject from './SimpleEventObject';
 
 export default interface PlayerBaseEventObjectMap {
 	prepare: SimpleEventObject<PlayerBase>;

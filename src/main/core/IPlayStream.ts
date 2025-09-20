@@ -1,4 +1,4 @@
-import Options from './playing/Options';
+import type Options from './playing/Options';
 
 export default interface IPlayStream {
 	startStreaming?(sampleRate: number, options: Options): void;

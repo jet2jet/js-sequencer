@@ -1,6 +1,6 @@
-import * as RenderMessage from '../../types/RenderMessageData';
-import IPlayStream from '../IPlayStream';
-import Options from './Options';
+import type * as RenderMessage from '../../types/RenderMessageData';
+import type IPlayStream from '../IPlayStream';
+import type Options from './Options';
 
 /** @internal */
 export default function createPortWithStream(

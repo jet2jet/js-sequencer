@@ -1,5 +1,6 @@
 import type { AudioWorkletProcessorOptions } from '../../types/AudioWorkletTypes';
-import Options, { Defaults } from './Options';
+import type Options from './Options';
+import { Defaults } from './Options';
 
 /** @internal */
 export default function createAudioWorkletNode(

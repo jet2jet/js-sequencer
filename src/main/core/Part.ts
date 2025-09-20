@@ -1,7 +1,6 @@
 import { isObjectWithFields } from '../functions/objectUtils';
-import ControlObject, {
-	getControlFromJSONObject,
-} from './controls/ControlObject';
+import type ControlObject from './controls/ControlObject';
+import { getControlFromJSONObject } from './controls/ControlObject';
 import NoteObject from './NoteObject';
 
 export default class Part {

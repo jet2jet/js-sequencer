@@ -1,4 +1,4 @@
-import * as JSSynth from 'js-synthesizer';
+import type * as JSSynth from 'js-synthesizer';
 
 type Flatten<T> = { [P in keyof T]: T[P] };
 type PartialRequired<T, TKeys extends keyof T> = Flatten<
@@ -183,5 +183,3 @@ export type AllTypes =
 	| FinishMarker
 	| UserMarker
 	| ResetTime;
-/** @internal */
-export default AllTypes;

@@ -1,7 +1,8 @@
-import * as RenderMessage from '../../types/RenderMessageData';
+import type * as RenderMessage from '../../types/RenderMessageData';
 import makeDelayProcess from '../makeDelayProcess';
 import FrameQueue from './FrameQueue';
-import Options, { Defaults } from './Options';
+import type Options from './Options';
+import { Defaults } from './Options';
 
 /** @internal */
 export default function createScriptProcessorNode(

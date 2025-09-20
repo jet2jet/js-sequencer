@@ -1,17 +1,18 @@
-import ISequencer from 'js-synthesizer/ISequencer';
-import ISequencerEventData from 'js-synthesizer/ISequencerEventData';
-import SequencerEvent, {
+import type ISequencer from 'js-synthesizer/ISequencer';
+import type ISequencerEventData from 'js-synthesizer/ISequencerEventData';
+import type SequencerEvent from 'js-synthesizer/SequencerEvent';
+import {
+	type ControlChangeEvent,
+	type NoteEvent,
+	type NoteOnEvent,
+	type NoteOffEvent,
 	EventType as SequencerEventTypes,
-	ControlChangeEvent,
-	NoteEvent,
-	NoteOnEvent,
-	NoteOffEvent,
 } from 'js-synthesizer/SequencerEvent';
-import Synthesizer from 'js-synthesizer/Synthesizer';
-import SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
-import * as Message from './types/MessageData';
-import * as RenderMessage from './types/RenderMessageData';
-import * as Response from './types/ResponseData';
+import type Synthesizer from 'js-synthesizer/Synthesizer';
+import type SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
+import type * as Message from './types/MessageData';
+import type * as RenderMessage from './types/RenderMessageData';
+import type * as Response from './types/ResponseData';
 
 const enum Defaults {
 	SampleRate = 48000,

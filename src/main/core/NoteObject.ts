@@ -1,7 +1,7 @@
 import { isUndefined } from '../functions';
 import { isObjectWithFields } from '../functions/objectUtils';
-import { TimeValue } from '../types';
-import NoteObjectBase from './NoteObjectBase';
+import { type TimeValue } from '../types';
+import type NoteObjectBase from './NoteObjectBase';
 
 export default class NoteObject implements NoteObjectBase {
 	public notePosNumerator: number;

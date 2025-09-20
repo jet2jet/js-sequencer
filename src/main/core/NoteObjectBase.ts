@@ -1,4 +1,4 @@
-import ISequencerObject from '../objects/ISequencerObject';
+import type ISequencerObject from '../objects/ISequencerObject';
 
 export default interface NoteObjectBase extends ISequencerObject {
 	notePosNumerator: number;

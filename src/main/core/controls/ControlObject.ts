@@ -1,5 +1,5 @@
 import { isObjectWithFields } from '../../functions/objectUtils';
-import ISequencerObject from '../../objects/ISequencerObject';
+import type ISequencerObject from '../../objects/ISequencerObject';
 
 /** @internal */
 export const _objCtors: { [key: string]: typeof ControlObject | undefined } =
