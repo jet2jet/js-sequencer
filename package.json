@@ -4,7 +4,23 @@
     "npm": ">=11"
   },
   "name": "js-sequencer",
+  "description": "JS library for Web to process MIDI messages, to render audio frames via js-synthesizer",
   "version": "4.6.7",
+  "author": "jet",
+  "license": "BSD-3-Clause",
+  "main": "./dist/js-sequencer.min.js",
+  "types": "./dist/lib/main/index.d.ts",
+  "homepage": "https://github.com/jet2jet/js-sequencer",
+  "keywords": [
+    "sequencer",
+    "midi",
+    "midi-player",
+    "webaudio"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jet2jet/js-sequencer.git"
+  },
   "scripts": {
     "build": "npm run build:ts && npm run build:lib:dev",
     "build:lib:dev": "webpack --config ./build/webpack.config.js",
@@ -28,8 +44,6 @@
     "typecheck:worker": "tsc --noEmit -p src/worker/tsconfig.json",
     "typecheck:worklet": "tsc --noEmit -p src/worklet/tsconfig.json"
   },
-  "author": "jet",
-  "license": "BSD-3-Clause",
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
