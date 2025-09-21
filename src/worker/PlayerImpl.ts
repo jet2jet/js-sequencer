@@ -184,6 +184,7 @@ export default class PlayerImpl {
 	private timerId: ReturnType<typeof setTimeout> | null = null;
 	private readonly onTimerBind: () => void;
 	private playingId: number | undefined;
+	private renderQuantumSize: number | null = null;
 	private starting: boolean;
 	private pauseRender: boolean;
 	private startTime: number;
@@ -570,11 +571,34 @@ export default class PlayerImpl {
 		];
 		this.synth.render(buffers.map((buffer) => new Float32Array(buffer)));
 
+		const renderFrames: Array<[ArrayBuffer, ArrayBuffer]> = [];
+		let transferable: Transferable[];
+		if (this.renderQuantumSize != null) {
+			transferable = [];
+			const baseL = new Float32Array(buffers[0]);
+			const baseR = new Float32Array(buffers[1]);
+			for (let f = 0; f < size; f += this.renderQuantumSize) {
+				const s = Math.min(size - f, this.renderQuantumSize);
+				const lb = new ArrayBuffer(s * 4);
+				const rb = new ArrayBuffer(s * 4);
+				const l = new Float32Array(lb);
+				const r = new Float32Array(rb);
+				l.set(baseL.subarray(f, f + s));
+				r.set(baseR.subarray(f, f + s));
+				renderFrames.push([lb, rb]);
+				transferable.push(lb);
+				transferable.push(rb);
+			}
+		} else {
+			renderFrames.push(buffers);
+			transferable = buffers;
+		}
+
 		const data: RenderMessage.Render = {
 			type: 'render',
-			data: buffers,
+			data: renderFrames,
 		};
-		this.renderPort!.postMessage(data, buffers);
+		this.renderPort!.postMessage(data, transferable);
 
 		if (!this.synth.isPlaying() && this.hasFinished) {
 			// console.log('[PlayerImpl] onRender: allRendered');
@@ -696,6 +720,7 @@ export default class PlayerImpl {
 			// console.log('onStart ignored because already waiting.');
 			return;
 		}
+		this.renderQuantumSize = data.renderQuantumSize;
 		this.starting = true;
 		await this.waitForVoicesStopped();
 		if (!this.starting) {

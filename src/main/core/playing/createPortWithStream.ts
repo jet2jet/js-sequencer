@@ -24,13 +24,11 @@ export default function createPortWithStream(
 		switch (data.type) {
 			case 'render':
 				{
-					stream.renderFrames(
-						sampleRate,
-						data.data[0],
-						data.data[1],
-						isPaused
-					);
-					const outFrames = data.data[0].byteLength / 4;
+					let outFrames = 0;
+					for (const f of data.data) {
+						stream.renderFrames(sampleRate, f[0], f[1], isPaused);
+						outFrames += f[0].byteLength / 4;
+					}
 					{
 						const s: RenderMessage.RenderedResponse = {
 							type: 'rendered',

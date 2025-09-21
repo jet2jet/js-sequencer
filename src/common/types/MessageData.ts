@@ -67,6 +67,7 @@ export interface Start extends Base {
 	type: 'start';
 	playingId: number;
 	sfontDefault: number;
+	renderQuantumSize: number | null;
 	renderPort?: MessagePort;
 }
 

@@ -8,6 +8,12 @@ import createPortWithStream from './createPortWithStream';
 import createScriptProcessorNode from './createScriptProcessorNode';
 import type Options from './Options';
 
+declare global {
+	interface BaseAudioContext {
+		renderQuantumSize?: number;
+	}
+}
+
 type ResponseDataTypeBase<
 	TType extends Response.AllTypes['type'],
 	TResponseType extends Response.AllTypes,
@@ -177,7 +183,7 @@ export default class PlayerProxy {
 		options: Options
 	): ScriptProcessorNode {
 		const r = createScriptProcessorNode(ctx, this.framesCount, options);
-		this.startImpl(r.port, sfontDefault);
+		this.startImpl(r.port, sfontDefault, null);
 		return r.node;
 	}
 
@@ -187,7 +193,8 @@ export default class PlayerProxy {
 		options: Options
 	): AudioWorkletNode {
 		const r = createAudioWorkletNode(ctx, options);
-		this.startImpl(r.port, sfontDefault);
+		// For Audio Worklet, we strictly use renderQuantumSize
+		this.startImpl(r.port, sfontDefault, ctx.renderQuantumSize || 128);
 		return r.node;
 	}
 
@@ -197,7 +204,7 @@ export default class PlayerProxy {
 		options: Options
 	): void {
 		const port = createPortWithStream(stream, this.sampleRate, options);
-		this.startImpl(port, sfontDefault);
+		this.startImpl(port, sfontDefault, null);
 	}
 
 	public startWithExistingConnection(sfontDefault: number): void {
@@ -205,6 +212,7 @@ export default class PlayerProxy {
 			type: 'start',
 			sfontDefault,
 			playingId: this.initPlayingId(),
+			renderQuantumSize: null,
 		};
 		this.port.postMessage(data);
 		this.stopPromise = new Promise((resolve) => {
@@ -212,11 +220,16 @@ export default class PlayerProxy {
 		});
 	}
 
-	private startImpl(renderPort: MessagePort, sfontDefault: number) {
+	private startImpl(
+		renderPort: MessagePort,
+		sfontDefault: number,
+		renderQuantumSize: number | null
+	) {
 		const data: Message.Start = {
 			type: 'start',
 			playingId: this.initPlayingId(),
 			sfontDefault,
+			renderQuantumSize,
 			renderPort,
 		};
 		this.port.postMessage(data, [renderPort]);

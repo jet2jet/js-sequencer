@@ -90,27 +90,29 @@ export default function createScriptProcessorNode(
 		}
 		switch (data.type) {
 			case 'render':
-				queue.pushFrames(data.data);
-				if (isPrerendering) {
-					if (queue.getFrameCountInQueue() >= prerenderFrames) {
-						// console.log('Prerender finished', queue.getFrameCountInQueue());
-						isPrerendering = false;
+				{
+					const pushedFrameCount = queue.pushFrames(data.data);
+					if (isPrerendering) {
+						if (queue.getFrameCountInQueue() >= prerenderFrames) {
+							// console.log('Prerender finished', queue.getFrameCountInQueue());
+							isPrerendering = false;
+						}
 					}
-				}
 
-				renderedFrames += data.data[0].byteLength / 4;
-				delaySendRender(250);
+					renderedFrames += pushedFrameCount;
+					delaySendRender(250);
 
-				if (
-					isRendering &&
-					queue.getFrameCountInQueue() >= maxQueueFrames
-				) {
-					isRendering = false;
-					const msg: RenderMessage.QueueControl = {
-						type: 'queue',
-						data: { pause: true },
-					};
-					port1.postMessage(msg);
+					if (
+						isRendering &&
+						queue.getFrameCountInQueue() >= maxQueueFrames
+					) {
+						isRendering = false;
+						const msg: RenderMessage.QueueControl = {
+							type: 'queue',
+							data: { pause: true },
+						};
+						port1.postMessage(msg);
+					}
 				}
 				break;
 			case 'pause':

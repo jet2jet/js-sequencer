@@ -190,7 +190,7 @@ class Processor extends AudioWorkletProcessor {
 			case 'render':
 				{
 					const queue = this.queue;
-					queue.pushFrames(data.data);
+					const pushedFrameCount = queue.pushFrames(data.data);
 					if (this.isPrerendering) {
 						if (
 							queue.getFrameCountInQueue() >= this.prerenderFrames
@@ -199,8 +199,7 @@ class Processor extends AudioWorkletProcessor {
 						}
 					}
 
-					const frames = data.data[0].byteLength / 4;
-					this.renderedFrames += frames;
+					this.renderedFrames += pushedFrameCount;
 					this.delaySendRender(250);
 
 					if (

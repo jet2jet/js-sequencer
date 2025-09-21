@@ -21,7 +21,7 @@ export interface Base {
 /** @internal */
 export interface Render extends Base {
 	type: 'render';
-	data: [ArrayBuffer, ArrayBuffer];
+	data: Array<[ArrayBuffer, ArrayBuffer]>;
 }
 
 /** @internal */

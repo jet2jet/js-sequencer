@@ -4,13 +4,18 @@ export default class FrameQueue {
 	private offset: number = 0;
 	private queuedFrames = 0;
 
-	public pushFrames(rawFrames: [ArrayBuffer, ArrayBuffer]): void {
-		if (typeof this.curFrames === 'undefined') {
-			this.curFrames = rawFrames;
-		} else {
-			this.frames.push(rawFrames);
+	public pushFrames(rawFrames: Array<[ArrayBuffer, ArrayBuffer]>): number {
+		let pushedFrameCount = 0;
+		for (const f of rawFrames) {
+			if (typeof this.curFrames === 'undefined') {
+				this.curFrames = f;
+			} else {
+				this.frames.push(f);
+			}
+			pushedFrameCount += f[0].byteLength / 4;
 		}
-		this.queuedFrames += rawFrames[0].byteLength / 4;
+		this.queuedFrames += pushedFrameCount;
+		return pushedFrameCount;
 	}
 
 	public pushMarker(marker: string): void {
@@ -51,6 +56,9 @@ export default class FrameQueue {
 				const bufferFrames = cf[0].byteLength / 4;
 				const offset = this.offset;
 				let copyFrames = dest[0].length - framesCopied;
+				if (!copyFrames) {
+					break;
+				}
 				if (offset + copyFrames > bufferFrames) {
 					copyFrames = bufferFrames - offset;
 				}
