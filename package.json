@@ -5,7 +5,7 @@
   },
   "name": "js-sequencer",
   "description": "JS library for Web to process MIDI messages, to render audio frames via js-synthesizer",
-  "version": "4.6.7",
+  "version": "4.7.0",
   "author": "jet",
   "license": "BSD-3-Clause",
   "main": "./dist/js-sequencer.min.js",
