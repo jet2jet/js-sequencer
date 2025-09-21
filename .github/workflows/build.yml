@@ -1,0 +1,46 @@
+name: Build
+on:
+  push:
+    branches:
+      - '*'
+  workflow_call:
+
+jobs:
+  get-vars:
+    uses: ./.github/workflows/nodevars.yml
+
+  main:
+    needs: get-vars
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.get-vars.outputs.node-version }}
+          cache: npm
+      - name: Setup npm
+        run: npm i -g npm@${{ needs.get-vars.outputs.npm-version }}
+      - name: Cache node modules
+        id: node_modules_cache
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ env.cache-name }}-${{ hashFiles('package-lock.json') }}
+      - name: Install
+        if: steps.node_modules_cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Build dev
+        run: npm run build
+      - name: Build minified
+        run: npm run build:minified
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
