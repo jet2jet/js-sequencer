@@ -1965,7 +1965,7 @@ export default class Engine {
 
 	public calculateSeconds(
 		posFrom: IPositionObject,
-		posTo: IPositionObject,
+		posTo: IPositionObject | null,
 		disableHold?: boolean
 	): {
 		timeFrom: TimeValue;
