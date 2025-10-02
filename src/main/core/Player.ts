@@ -775,7 +775,7 @@ export default class Player extends PlayerBase {
 			endTime: IPositionObject | null | undefined,
 			isFirst: boolean,
 		],
-		loopStatus?: LoopStatus
+		loopStatus?: LoopStatus | null
 	) {
 		// const getTimeString = () => {
 		// 	const d = new Date();
@@ -1261,7 +1261,7 @@ export default class Player extends PlayerBase {
 		timeStartOffset?: TimeValue | null,
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null,
-		loopData?: LoopData,
+		loopData?: LoopData | null,
 		fadeout?: FadeoutData | boolean
 	) {
 		if (this._nextPlayTimerId !== null) {
@@ -1313,7 +1313,7 @@ export default class Player extends PlayerBase {
 			});
 
 			const loopCount = loopData?.loopCount;
-			let loopStatus: LoopStatus | undefined = loopData && {
+			let loopStatus: LoopStatus | null | undefined = loopData && {
 				start: loopData.start || { numerator: 0, denominator: 1 },
 				end: loopData.end,
 				loopCount: typeof loopCount === 'number' ? loopCount : null,
@@ -1421,7 +1421,7 @@ export default class Player extends PlayerBase {
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null,
-		loopData?: LoopData,
+		loopData?: LoopData | null,
 		fadeout?: FadeoutData | boolean
 	): void {
 		if (!isAudioAvailable()) {
@@ -1458,7 +1458,7 @@ export default class Player extends PlayerBase {
 	public playSequence(
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null,
-		loopData?: LoopData,
+		loopData?: LoopData | null,
 		fadeout?: FadeoutData | boolean
 	): void {
 		this.playSequenceRange(
@@ -1481,7 +1481,7 @@ export default class Player extends PlayerBase {
 		backgroundEndPos?: IPositionObject | null,
 		actx?: BaseAudioContext | null,
 		dest?: AudioNode | null,
-		loopData?: LoopData,
+		loopData?: LoopData | null,
 		fadeout?: FadeoutData | boolean
 	): void {
 		if (!isAudioAvailable()) {
@@ -1585,7 +1585,7 @@ export default class Player extends PlayerBase {
 	}
 
 	public calculateDurationWithLooped(
-		loopData?: LoopData,
+		loopData?: LoopData | null,
 		fadeout?: FadeoutData | boolean
 	): TimeRationalValue {
 		const arr: ISequencerObject[] = this.engine.getAllNotesAndControls();
