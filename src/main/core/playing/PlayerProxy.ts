@@ -1,4 +1,5 @@
 import type * as JSSynth from 'js-synthesizer';
+import { type AudioWorkletProcessorOptions } from '../../types/AudioWorkletTypes';
 import type * as Message from '../../types/MessageData';
 import type * as RenderMessage from '../../types/RenderMessageData';
 import type * as Response from '../../types/ResponseData';
@@ -7,6 +8,7 @@ import createAudioWorkletNode from './createAudioWorkletNode';
 import createPortWithStream from './createPortWithStream';
 import createScriptProcessorNode from './createScriptProcessorNode';
 import type Options from './Options';
+import { Defaults } from './Options';
 
 declare global {
 	interface BaseAudioContext {
@@ -78,6 +80,8 @@ export default class PlayerProxy {
 	} = {};
 	private userEventId: number = 0;
 
+	private audioWorkletNode: AudioWorkletNode | undefined;
+
 	private constructor(
 		private readonly port: MessagePort,
 		private framesCount: number,
@@ -129,25 +133,117 @@ export default class PlayerProxy {
 		return ret;
 	}
 
+	public static instantiateWithAudioWorklet(
+		audioContext: BaseAudioContext,
+		playOptions: Options,
+		interval: number,
+		framesCount: number,
+		sampleRate: number,
+		channelCount?: number
+	): Promise<PlayerProxy> {
+		const prerenderFrames =
+			sampleRate *
+			(typeof playOptions.prerenderSeconds !== 'undefined'
+				? playOptions.prerenderSeconds
+				: Defaults.PrerenderSeconds);
+		const maxQueueFrames =
+			sampleRate *
+			(typeof playOptions.maxQueueSeconds !== 'undefined'
+				? playOptions.maxQueueSeconds
+				: Defaults.MaxQueueSeconds);
+
+		const audioWorkletNode = new AudioWorkletNode(
+			audioContext,
+			'js-sequencer',
+			{
+				channelCount: 2,
+				numberOfInputs: 0,
+				numberOfOutputs: 1,
+				outputChannelCount: [2],
+				processorOptions: {
+					options: {
+						prerenderFrames,
+						maxQueueFrames,
+					},
+					workletProcessMode: true,
+				} satisfies AudioWorkletProcessorOptions,
+			}
+		);
+		const channel = new MessageChannel();
+		const proxy = new PlayerProxy(channel.port1, framesCount, sampleRate);
+
+		const initData: Message.Initialize = {
+			id: 0,
+			type: 'initialize',
+			deps: [],
+			port: channel.port2,
+			interval,
+			sampleRate,
+			channelCount,
+		};
+		const ret = proxy.addDefer(0, 'initialize').then(() => proxy);
+		audioWorkletNode.port.postMessage(initData, [channel.port2]);
+		proxy.audioWorkletNode = audioWorkletNode;
+		return ret;
+	}
+
+	private postMessage(
+		message: Message.AllTypes,
+		transferable?: Transferable[]
+	) {
+		console.log(`[PlayerProxy] postMessage: type = ${message.type}`);
+		const p = this.port;
+		transferable
+			? p.postMessage(message, transferable)
+			: p.postMessage(message);
+	}
+
 	public close(): void {
 		const data: Message.Close = {
 			type: 'close',
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 		this.port.close();
+		if (this.audioWorkletNode) {
+			this.audioWorkletNode.disconnect();
+			this.audioWorkletNode = void 0;
+		}
 	}
 
-	public loadSoundfont(
-		bin: ArrayBuffer,
-		transfer?: boolean
-	): Promise<number> {
+	public isWorkletMode(): boolean {
+		return this.audioWorkletNode != null;
+	}
+
+	public setPlayOptions(options: Readonly<Options>): void {
+		if (this.audioWorkletNode != null) {
+			const prerenderFrames =
+				this.sampleRate *
+				(typeof options.prerenderSeconds !== 'undefined'
+					? options.prerenderSeconds
+					: Defaults.PrerenderSeconds);
+			const maxQueueFrames =
+				this.sampleRate *
+				(typeof options.maxQueueSeconds !== 'undefined'
+					? options.maxQueueSeconds
+					: Defaults.MaxQueueSeconds);
+
+			const data: Message.SetPlayOptions = {
+				type: 'set-play-options',
+				prerenderFrames,
+				maxQueueFrames,
+			};
+			this.audioWorkletNode.port.postMessage(data);
+		}
+	}
+
+	public loadSoundfont(bin: ArrayBuffer): Promise<number> {
 		const data: Message.LoadSoundfont = {
 			id: this.msgId++,
 			type: 'load-sfont',
 			data: bin,
 		};
 		const ret = this.addDefer(data.id, 'load-sfont');
-		this.port.postMessage(data, transfer ? [bin] : []);
+		this.postMessage(data);
 		return ret;
 	}
 
@@ -158,7 +254,7 @@ export default class PlayerProxy {
 			sfontId,
 		};
 		const ret: Promise<void> = this.addDefer(data.id, 'unload-sfont');
-		this.port.postMessage(data);
+		this.postMessage(data);
 		return ret;
 	}
 
@@ -173,7 +269,7 @@ export default class PlayerProxy {
 			type: 'config',
 		};
 		const ret: Promise<void> = this.addDefer(data.id, 'config');
-		this.port.postMessage(data);
+		this.postMessage(data);
 		return ret;
 	}
 
@@ -192,6 +288,10 @@ export default class PlayerProxy {
 		sfontDefault: number,
 		options: Options
 	): AudioWorkletNode {
+		if (this.audioWorkletNode) {
+			this.startImpl(void 0, sfontDefault, ctx.renderQuantumSize || 128);
+			return this.audioWorkletNode;
+		}
 		const r = createAudioWorkletNode(ctx, options);
 		// For Audio Worklet, we strictly use renderQuantumSize
 		this.startImpl(r.port, sfontDefault, ctx.renderQuantumSize || 128);
@@ -214,14 +314,14 @@ export default class PlayerProxy {
 			playingId: this.initPlayingId(),
 			renderQuantumSize: null,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 		this.stopPromise = new Promise((resolve) => {
 			this.stopResolver = resolve;
 		});
 	}
 
 	private startImpl(
-		renderPort: MessagePort,
+		renderPort: MessagePort | undefined,
 		sfontDefault: number,
 		renderQuantumSize: number | null
 	) {
@@ -232,7 +332,7 @@ export default class PlayerProxy {
 			renderQuantumSize,
 			renderPort,
 		};
-		this.port.postMessage(data, [renderPort]);
+		this.postMessage(data, renderPort ? [renderPort] : []);
 		this.stopPromise = new Promise((resolve) => {
 			this.stopResolver = resolve;
 		});
@@ -245,18 +345,18 @@ export default class PlayerProxy {
 			paused: isPaused,
 		};
 		const ret = this.addDefer(data.id, 'pause');
-		this.port.postMessage(data);
+		this.postMessage(data);
 		return ret;
 	}
 
 	public stop(): void {
 		const msg: Message.Stop = { type: 'stop' };
-		this.port.postMessage(msg);
+		this.postMessage(msg);
 	}
 
 	public resetTime(): void {
 		const msg: Message.ResetTime = { type: 'reset-time' };
-		this.port.postMessage(msg);
+		this.postMessage(msg);
 	}
 
 	public releasePlayer(resetSynth?: boolean): void {
@@ -264,7 +364,7 @@ export default class PlayerProxy {
 			type: 'release',
 			resetSynth,
 		};
-		this.port.postMessage(msg);
+		this.postMessage(msg);
 	}
 
 	public waitForFinish(timeoutMilliseconds?: number): Promise<void> {
@@ -286,7 +386,7 @@ export default class PlayerProxy {
 			time,
 			data: eventData,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendEventNow(eventData: JSSynth.SequencerEvent): void {
@@ -295,7 +395,7 @@ export default class PlayerProxy {
 			time: null,
 			data: eventData,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendEvents(
@@ -305,7 +405,7 @@ export default class PlayerProxy {
 			type: 'events',
 			data: events,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendSysEx(bin: Uint8Array, time: number): void {
@@ -314,7 +414,7 @@ export default class PlayerProxy {
 			time,
 			data: bin.slice(0).buffer,
 		};
-		this.port.postMessage(data, [data.data]);
+		this.postMessage(data, [data.data]);
 	}
 
 	public sendSysExNow(bin: Uint8Array): void {
@@ -323,7 +423,7 @@ export default class PlayerProxy {
 			time: null,
 			data: bin.slice(0).buffer,
 		};
-		this.port.postMessage(data, [data.data]);
+		this.postMessage(data, [data.data]);
 	}
 
 	public sendGeneratorValue(
@@ -343,7 +443,7 @@ export default class PlayerProxy {
 				keepCurrentVoice,
 			},
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendGeneratorValueNow(
@@ -362,7 +462,7 @@ export default class PlayerProxy {
 				keepCurrentVoice,
 			},
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendUserData(userData: unknown, time: number): void {
@@ -374,7 +474,7 @@ export default class PlayerProxy {
 			time,
 			data: text,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendFinishMarker(time: number): void {
@@ -382,7 +482,7 @@ export default class PlayerProxy {
 			type: 'finish',
 			time,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendFinishMarkerNow(): void {
@@ -390,7 +490,7 @@ export default class PlayerProxy {
 			type: 'finish',
 			time: null,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	public sendUserMarker(time: number, marker: string): void {
@@ -399,7 +499,7 @@ export default class PlayerProxy {
 			time,
 			marker,
 		};
-		this.port.postMessage(data);
+		this.postMessage(data);
 	}
 
 	private initPlayingId(): number {
@@ -427,6 +527,7 @@ export default class PlayerProxy {
 		if (!data) {
 			return;
 		}
+		console.log(`[PlayerProxy] onMessage: type = ${data.type}`);
 		switch (data.type) {
 			case 'stop':
 				if (data.data === this.playingId) {

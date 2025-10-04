@@ -176,6 +176,8 @@ engine.loadFromFilePromise(elem).then(function () {
 });
 ```
 
+**Note: If the played music has glitch, consider creating `AudioContext` manually with `latencyHint: 'playback'`.** (`playSequence` accepts `AudioContext` instance.)
+
 ## License
 
 [BSD 3-Clause License](./LICENSE)

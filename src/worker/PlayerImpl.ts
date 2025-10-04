@@ -10,6 +10,7 @@ import {
 } from 'js-synthesizer/SequencerEvent';
 import type Synthesizer from 'js-synthesizer/Synthesizer';
 import type SynthesizerSettings from 'js-synthesizer/SynthesizerSettings';
+import type ITimer from './types/ITimer';
 import type * as Message from './types/MessageData';
 import type * as RenderMessage from './types/RenderMessageData';
 import type * as Response from './types/ResponseData';
@@ -27,7 +28,7 @@ type GenEvent = Message.Generator['data'];
 declare var JSSynth: typeof import('js-synthesizer');
 
 // Written necessary only
-type LibfluidsynthModule = {
+export type LibfluidsynthModule = {
 	[name: string]: (...args: any[]) => any;
 	_malloc: (size: number) => number;
 	_free: (ptr: number) => void;
@@ -38,20 +39,33 @@ type LibfluidsynthModule = {
 // eslint-disable-next-line no-var
 declare var Module: LibfluidsynthModule;
 
+let _jssynth: typeof import('js-synthesizer');
 let _module: LibfluidsynthModule;
 
-async function waitForWasmInitialized() {
-	await JSSynth.Synthesizer.waitForWasmInitialized();
-	_module = Module;
+async function waitForWasmInitialized(
+	_JSSynth?: typeof _jssynth,
+	module?: LibfluidsynthModule
+) {
+	if (_JSSynth && module) {
+		_jssynth = _JSSynth;
+		_jssynth.Synthesizer.initializeWithFluidSynthModule(module);
+		await _jssynth.Synthesizer.waitForWasmInitialized();
+		_module = module;
+	} else {
+		_jssynth = JSSynth;
+		await _jssynth.Synthesizer.waitForWasmInitialized();
+		_module = Module;
+	}
 }
 
 function promiseWithTimeout<T>(
+	timer: ITimer,
 	promise: Promise<T>,
 	timeoutMilliseconds: number
 ) {
 	return new Promise<T>((resolve, reject) => {
 		let resolved = false;
-		const id = setTimeout(() => {
+		const id = timer.set(() => {
 			if (!resolved) {
 				resolved = true;
 				reject(new Error('timeout'));
@@ -60,14 +74,14 @@ function promiseWithTimeout<T>(
 		promise.then(
 			(r) => {
 				if (!resolved) {
-					clearTimeout(id);
+					timer.clear(id);
 					resolved = true;
 					resolve(r);
 				}
 			},
 			(e) => {
 				if (!resolved) {
-					clearTimeout(id);
+					timer.clear(id);
 					resolved = true;
 					reject(e);
 				}
@@ -174,14 +188,28 @@ function dropDuplicatedEvents(
 	return tickChanged;
 }
 
-export default class PlayerImpl {
+export interface RenderTarget {
+	onMessage: (
+		data: RenderMessage.AllTypes,
+		transferable?: Transferable[]
+	) => void;
+	addMessageListener: (
+		listener: (data: RenderMessage.AllTypes) => void
+	) => () => void;
+	close?: () => void;
+}
+
+export default class PlayerImpl<TTimerId = unknown> {
 	private readonly port: MessagePort;
-	private renderPort: MessagePort | undefined;
+	private renderTarget: RenderTarget | undefined;
+	private readonly renderTargetBase: RenderTarget | undefined;
+	private isExternalRenderTarget: boolean;
+	private unregisterHandler: (() => void) | undefined;
 	private synth!: Synthesizer;
 	private sequencer: ISequencer | undefined;
 	private myClient!: number;
 	/** timer id for onRender method; also used for check 'playing' (non-null indicates 'playing') */
-	private timerId: ReturnType<typeof setTimeout> | null = null;
+	private timerId: ReturnType<ITimer<TTimerId>['set']> | null = null;
 	private readonly onTimerBind: () => void;
 	private playingId: number | undefined;
 	private renderQuantumSize: number | null = null;
@@ -191,8 +219,9 @@ export default class PlayerImpl {
 	private hasFinished: boolean;
 	private promiseWaitingForStop: Promise<void> | undefined;
 	private allRendered: boolean;
-	private finishTimer: ReturnType<typeof setTimeout> | null = null;
-	private stopTimerOnFinish: ReturnType<typeof setTimeout> | null = null;
+	private finishTimer: ReturnType<ITimer<TTimerId>['set']> | null = null;
+	private stopTimerOnFinish: ReturnType<ITimer<TTimerId>['set']> | null =
+		null;
 	private promiseResetTime: Promise<void> | undefined;
 
 	private readonly midiChannelCount: number;
@@ -236,9 +265,36 @@ export default class PlayerImpl {
 	} = {};
 	private userMsgMapId: number = 0;
 
+	private readonly timer: ITimer<TTimerId>;
+	private renderEnabled: boolean = false;
+	private readonly manualRender: boolean;
 	private readonly onRenderMessageBind: PlayerImpl['onRenderMessage'];
 
-	constructor(data: Message.Initialize) {
+	constructor(
+		timer: ITimer<TTimerId>,
+		data: Message.Initialize,
+		manualRender?: boolean,
+		renderTarget?: RenderTarget
+	);
+	constructor(
+		timer: ITimer<TTimerId>,
+		data: Message.Initialize,
+		manualRender: boolean,
+		renderTarget: RenderTarget,
+		JSSynth: typeof _jssynth,
+		module: LibfluidsynthModule
+	);
+
+	constructor(
+		timer: ITimer<TTimerId>,
+		data: Message.Initialize,
+		manualRender?: boolean,
+		renderTarget?: RenderTarget,
+		JSSynth?: typeof _jssynth,
+		module?: LibfluidsynthModule
+	) {
+		this.timer = timer;
+		this.manualRender = manualRender === true;
 		this.port = data.port;
 		this.starting = false;
 		this.pauseRender = false;
@@ -258,11 +314,19 @@ export default class PlayerImpl {
 
 		this.onTimerBind = this.onTimer.bind(this);
 		this.onRenderMessageBind = this.onRenderMessage.bind(this);
+		this.renderTarget = this.renderTargetBase = renderTarget;
+		this.isExternalRenderTarget = renderTarget != null;
 
-		this.doInitialize(data).catch((e) => {
-			console.error(e);
+		this.doInitialize(data, JSSynth, module).catch((e) => {
+			if (typeof console !== 'undefined') {
+				console.error(e);
+			}
 			throw e;
 		});
+	}
+
+	public render(preferredFrameSize?: number | null): void {
+		this.onRender(preferredFrameSize);
 	}
 
 	private doInitSynth() {
@@ -276,27 +340,31 @@ export default class PlayerImpl {
 		this.postReset();
 	}
 
-	private async doInitialize(data: Message.Initialize) {
-		// console.log('Wait for wasm initialized...');
-		await waitForWasmInitialized();
-		// console.log('  ok.');
+	private async doInitialize(
+		data: Message.Initialize,
+		JSSynth?: typeof _jssynth,
+		module?: LibfluidsynthModule
+	) {
+		// console.log('[PlayerImpl] Wait for wasm initialized...');
+		await waitForWasmInitialized(JSSynth, module);
+		// console.log('[PlayerImpl]   ok.');
 
 		this.port.addEventListener('message', this.onMessage.bind(this));
 		this.port.start();
 
-		this.synth = new JSSynth.Synthesizer();
+		this.synth = new _jssynth.Synthesizer();
 		this.doInitSynth();
 
 		this.doConfigure(data);
 
 		this.postDefaultResponse(data.id, 'initialize');
-		// console.log('Initialize done.');
+		// console.log('[PlayerImpl] Initialize done.');
 	}
 
 	private doConfigure(data: Message.ConfigBase) {
 		if (typeof data.interval !== 'undefined') {
 			this.timerInterval = data.interval;
-			if (this.timerId !== null) {
+			if (this.renderEnabled) {
 				this.doStartTimer();
 			}
 		}
@@ -315,17 +383,27 @@ export default class PlayerImpl {
 
 	private doStartTimer() {
 		this.doStopTimer();
-		this.timerId = setTimeout(this.onTimerBind, this.timerInterval);
+		this.renderEnabled = true;
+		if (this.manualRender) {
+			return;
+		}
+		this.timerId = this.timer.set(this.onTimerBind, this.timerInterval);
 	}
 
 	private doStopTimer() {
+		this.renderEnabled = false;
 		if (this.timerId !== null) {
-			clearTimeout(this.timerId);
+			this.timer.clear(this.timerId);
 			this.timerId = null;
 		}
 	}
 
-	private doSendEvents() {
+	private doSendEvents(preferredFrameSize?: number | null) {
+		const processStartTime = Date.now();
+		const timeout =
+			preferredFrameSize != null
+				? Math.floor((preferredFrameSize * 1000) / this.sampleRate)
+				: null;
 		const q = this.eventQueue;
 		if (!this.sorted) {
 			q.sort((a, b) => a.tick - b.tick);
@@ -335,7 +413,11 @@ export default class PlayerImpl {
 			this.sorted = true;
 		}
 		const toTime = (this.queuedTime + 5) * 1000 + this.startTime;
-		// console.log(`[doSendEvents] q.length = ${q.length}, toTime = ${toTime}`);
+		// if (q.length > 0) {
+		// 	console.log(
+		// 		`[doSendEvents] q.length = ${q.length}, toTime = ${toTime}, pauseRender = ${this.pauseRender}`
+		// 	);
+		// }
 		while (q.length) {
 			const e = q[0];
 			if (e.tick >= toTime) {
@@ -347,6 +429,15 @@ export default class PlayerImpl {
 			// }
 			// console.log(`[doSendEvents] e.data.type = ${e.data.type}, e.tick(diff) = ${e.tick - this.startTime}`);
 			this.sequencer!.sendEventToClientAt(e.client, e.data, e.tick, true);
+			if (timeout != null) {
+				const n = Date.now() - processStartTime;
+				if (n >= timeout) {
+					// console.log(
+					// 	`[doSendEvents] process interrupted for timeout = ${timeout}ms (took ${n}ms, q.length = ${q.length})`
+					// );
+					break;
+				}
+			}
 		}
 	}
 
@@ -360,17 +451,20 @@ export default class PlayerImpl {
 				// console.log('Waiting for voices stopped...');
 				try {
 					await promiseWithTimeout(
+						this.timer,
 						this.synth.waitForVoicesStopped(),
 						5000
 					);
 				} catch (_e) {
 					// voice will not stopped, so re-initialize to reset
-					const c = console;
-					// const syn = this.synth.getRawSynthesizer();
-					c.warn(
-						'[js-sequencer] player did not stop in 5 seconds; reset synthesizer...'
-						// _module._fluid_synth_get_active_voice_count(syn)
-					);
+					const c = typeof console !== 'undefined' ? console : void 0;
+					if (c) {
+						// const syn = this.synth.getRawSynthesizer();
+						c.warn(
+							'[js-sequencer] player did not stop in 5 seconds; reset synthesizer...'
+							// _module._fluid_synth_get_active_voice_count(syn)
+						);
+					}
 					this.resetSynth();
 				}
 				// console.log('  done. (waitForVoicesStopped)');
@@ -381,17 +475,24 @@ export default class PlayerImpl {
 
 	private resetSynth() {
 		this.doStopTimer();
-		if (this.renderPort) {
+		if (this.renderTarget) {
+			const t = this.renderTarget;
 			const msg: RenderMessage.Release = {
 				type: 'release',
 			};
-			this.renderPort.postMessage(msg);
-			this.renderPort.close();
-			this.renderPort.removeEventListener(
-				'message',
-				this.onRenderMessageBind
-			);
-			this.renderPort = void 0;
+			t.onMessage(msg);
+			if (t.close) {
+				t.close();
+			}
+			const unreg = this.unregisterHandler;
+			if (unreg) {
+				unreg();
+				this.unregisterHandler = void 0;
+			}
+			if (!this.isExternalRenderTarget) {
+				this.renderTarget = this.renderTargetBase;
+				this.isExternalRenderTarget = this.renderTargetBase != null;
+			}
 		}
 		if (this.sequencer) {
 			// console.log('Unregistereing clients from sequencer and close sequencer...');
@@ -402,7 +503,7 @@ export default class PlayerImpl {
 	}
 
 	private postMessage(data: Response.AllTypes, transfer?: Transferable[]) {
-		this.port.postMessage(data, transfer);
+		this.port.postMessage(data, transfer || []);
 	}
 
 	private postDefaultResponse(
@@ -421,12 +522,12 @@ export default class PlayerImpl {
 	}
 
 	private sendUserMarkerImpl(marker: string) {
-		if (this.renderPort) {
+		if (this.renderTarget) {
 			const sendData: RenderMessage.UserMarkerSend = {
 				type: 'user-marker-send',
 				data: marker,
 			};
-			this.renderPort.postMessage(sendData);
+			this.renderTarget.onMessage(sendData);
 		}
 	}
 
@@ -495,7 +596,7 @@ export default class PlayerImpl {
 			_module._fluid_synth_get_voicelist(syn, voiceList, voiceCount, -1);
 			for (let i = 0; i < voiceCount; ++i) {
 				// auto voice = voiceList[i]
-				const voice = Module.HEAPU32[(voiceList >> 2) + i];
+				const voice = _module.HEAPU32[(voiceList >> 2) + i];
 				// prot: int fluid_voice_gen_incr(fluid_voice_t*, int, int)
 				_module._fluid_voice_gen_incr(voice, type, -diff);
 			}
@@ -509,7 +610,7 @@ export default class PlayerImpl {
 	private prepareForStopForFinish() {
 		this.hasFinished = true;
 		this.synth.midiAllSoundsOff();
-		setTimeout(() => {
+		this.timer.set(() => {
 			// send user-marker 'stop' to render process to detect that the render process has finished
 			// console.log(
 			// 	'[PlayerImpl] prepareForStopForFinish: send stop marker'
@@ -520,10 +621,10 @@ export default class PlayerImpl {
 
 	/** Handle when received 'stop' user-marker */
 	private onStopForFinish(delay: number) {
-		this.stopTimerOnFinish = setTimeout(() => {
+		this.stopTimerOnFinish = this.timer.set(() => {
 			this.stopTimerOnFinish = null;
 			if (this.finishTimer !== null) {
-				clearTimeout(this.finishTimer);
+				this.timer.clear(this.finishTimer);
 			}
 			if (!this.allRendered) {
 				this.allRendered = true;
@@ -536,7 +637,7 @@ export default class PlayerImpl {
 	private onStopForFinishTimeout() {
 		this.finishTimer = null;
 		if (this.stopTimerOnFinish !== null) {
-			clearTimeout(this.stopTimerOnFinish);
+			this.timer.clear(this.stopTimerOnFinish);
 			this.stopTimerOnFinish = null;
 		}
 		if (!this.allRendered) {
@@ -550,25 +651,30 @@ export default class PlayerImpl {
 			return;
 		}
 		this.onRender();
-		this.timerId = setTimeout(this.onTimerBind, this.timerInterval);
+		this.timerId = this.timer.set(this.onTimerBind, this.timerInterval);
 	}
 
-	private onRender() {
+	private onRender(preferredFrameSize?: number | null) {
+		if (!this.renderEnabled) {
+			return;
+		}
 		if (this.allRendered) {
 			return;
 		}
 
-		this.doSendEvents();
+		this.doSendEvents(preferredFrameSize);
 
 		if (this.pauseRender) {
 			return;
 		}
 
-		const size = this.framesCount;
+		const size =
+			preferredFrameSize != null ? preferredFrameSize : this.framesCount;
 		const buffers: [ArrayBuffer, ArrayBuffer] = [
 			new ArrayBuffer(size * 4),
 			new ArrayBuffer(size * 4),
 		];
+		// console.log(`[PlayerImpl] onRender framesCount = ${size}`);
 		this.synth.render(buffers.map((buffer) => new Float32Array(buffer)));
 
 		const renderFrames: Array<[ArrayBuffer, ArrayBuffer]> = [];
@@ -598,7 +704,7 @@ export default class PlayerImpl {
 			type: 'render',
 			data: renderFrames,
 		};
-		this.renderPort!.postMessage(data, transferable);
+		this.renderTarget!.onMessage(data, transferable);
 
 		if (!this.synth.isPlaying() && this.hasFinished) {
 			// console.log('[PlayerImpl] onRender: allRendered');
@@ -607,6 +713,9 @@ export default class PlayerImpl {
 	}
 
 	private onMessage(e: MessageEvent) {
+		// console.log(
+		// 	`[PlayerImpl][onMessage] promiseResetTime != null = ${this.promiseResetTime != null}`
+		// );
 		void this.onMessageImpl(e);
 	}
 
@@ -617,6 +726,9 @@ export default class PlayerImpl {
 		if (!data) {
 			return;
 		}
+		// console.log(
+		// 	`[onMessageImpl] type = ${data.type}, time = ${'time' in data ? data.time : '(nothing)'}`
+		// );
 		switch (data.type) {
 			case 'close':
 				this.onClose();
@@ -674,13 +786,24 @@ export default class PlayerImpl {
 
 	private onClose() {
 		this.doStopTimer();
-		if (this.renderPort) {
+		if (this.renderTarget) {
+			const t = this.renderTarget;
 			const msg: RenderMessage.Release = {
 				type: 'release',
 			};
-			this.renderPort.postMessage(msg);
-			this.renderPort.close();
-			this.renderPort = void 0;
+			t.onMessage(msg);
+			const unreg = this.unregisterHandler;
+			if (unreg) {
+				unreg();
+				this.unregisterHandler = void 0;
+			}
+			if (t.close) {
+				t.close();
+			}
+			if (!this.isExternalRenderTarget) {
+				this.renderTarget = this.renderTargetBase;
+				this.isExternalRenderTarget = this.renderTargetBase != null;
+			}
 		}
 		if (this.sequencer) {
 			this.sequencer.close();
@@ -711,7 +834,7 @@ export default class PlayerImpl {
 
 	private async onStart(data: Message.Start) {
 		this.playingId = data.playingId;
-		if (!data.renderPort && !this.renderPort) {
+		if (!data.renderPort && !this.renderTarget) {
 			// console.log('Sending \'stop\' from onStart:', !!data.renderPort, !!this.renderPort);
 			this.postStop();
 			return;
@@ -720,7 +843,9 @@ export default class PlayerImpl {
 			// console.log('onStart ignored because already waiting.');
 			return;
 		}
-		this.renderQuantumSize = data.renderQuantumSize;
+		if (data.renderQuantumSize != null) {
+			this.renderQuantumSize = data.renderQuantumSize;
+		}
 		this.starting = true;
 		await this.waitForVoicesStopped();
 		if (!this.starting) {
@@ -731,11 +856,11 @@ export default class PlayerImpl {
 
 		if (!this.sequencer) {
 			// console.log('Wait for create sequencer...');
-			const seq = await JSSynth.Synthesizer.createSequencer();
+			const seq = await _jssynth.Synthesizer.createSequencer();
 			// console.log('  ok.');
 			this.sequencer = seq;
 			await seq.registerSynthesizer(this.synth);
-			this.myClient = JSSynth.Synthesizer.registerSequencerClient(
+			this.myClient = _jssynth.Synthesizer.registerSequencerClient(
 				seq,
 				'js-sequencer',
 				this.onSequencerCallback.bind(this),
@@ -744,7 +869,7 @@ export default class PlayerImpl {
 		}
 
 		const tick = await this.sequencer.getTick();
-		// console.log('[PlayerImpl] start tick:', tick, this.finishTimer);
+		// console.log('[PlayerImpl] onStart tick:', tick);
 		this.pauseRender = false;
 		this.hasFinished = false;
 		this.allRendered = false;
@@ -756,12 +881,38 @@ export default class PlayerImpl {
 		this.userMsgMapId = 0;
 		this.startTime = tick;
 		if (data.renderPort) {
-			this.renderPort = data.renderPort;
-			data.renderPort.addEventListener(
-				'message',
+			const port = data.renderPort;
+			this.renderTarget = {
+				addMessageListener: (listener) => {
+					const fn = (
+						e: MessageEvent<
+							RenderMessage.AllTypes | null | undefined
+						>
+					) => {
+						if (!e.data) {
+							return;
+						}
+						listener(e.data);
+					};
+					port.addEventListener('message', fn);
+					return () => {
+						port.removeEventListener('message', fn);
+					};
+				},
+				onMessage: (data, transferable) => {
+					port.postMessage(data, transferable || []);
+				},
+				close: () => {
+					port.close();
+				},
+			};
+			this.isExternalRenderTarget = false;
+			port.start();
+		}
+		if (this.unregisterHandler == null) {
+			this.unregisterHandler = this.renderTarget!.addMessageListener(
 				this.onRenderMessageBind
 			);
-			data.renderPort.start();
 		}
 		this.channelGenData = {};
 
@@ -781,7 +932,7 @@ export default class PlayerImpl {
 	}
 
 	private onPause(data: Message.Pause) {
-		if (!this.renderPort) {
+		if (!this.renderTarget) {
 			this.postMessage({
 				type: data.type,
 				id: data.id,
@@ -795,7 +946,7 @@ export default class PlayerImpl {
 					paused: data.paused,
 				},
 			};
-			this.renderPort.postMessage(msg);
+			this.renderTarget.onMessage(msg);
 		}
 	}
 
@@ -803,20 +954,20 @@ export default class PlayerImpl {
 		const isWaitingFinish = this.hasFinished;
 		// console.log('[PlayerImpl] onStop():', isWaitingFinish);
 		if (this.stopTimerOnFinish !== null) {
-			clearTimeout(this.stopTimerOnFinish);
+			this.timer.clear(this.stopTimerOnFinish);
 			this.stopTimerOnFinish = null;
 		}
 		if (this.finishTimer !== null) {
-			clearTimeout(this.finishTimer);
+			this.timer.clear(this.finishTimer);
 			this.finishTimer = null;
 		}
 		this.starting = false;
-		if (this.sequencer && this.timerId !== null) {
+		if (this.sequencer && this.renderEnabled) {
 			this.doStopTimer();
 			const msgStop: RenderMessage.Stop = {
 				type: 'stop',
 			};
-			this.renderPort!.postMessage(msgStop);
+			this.renderTarget!.onMessage(msgStop);
 			if (this.synth.isPlaying()) {
 				this.sequencer.removeAllEvents();
 				this.sequencer.sendEventAt(
@@ -842,20 +993,27 @@ export default class PlayerImpl {
 		// console.log('[PlayerImpl] onRelease()');
 		this.starting = false;
 		if (this.sequencer) {
-			if (this.timerId !== null) {
+			if (this.renderEnabled) {
 				await this.onStop();
 			}
-			if (this.renderPort) {
+			if (this.renderTarget) {
+				const t = this.renderTarget;
 				const msg: RenderMessage.Release = {
 					type: 'release',
 				};
-				this.renderPort.postMessage(msg);
-				this.renderPort.close();
-				this.renderPort.removeEventListener(
-					'message',
-					this.onRenderMessageBind
-				);
-				this.renderPort = void 0;
+				t.onMessage(msg);
+				if (t.close) {
+					t.close();
+				}
+				const unreg = this.unregisterHandler;
+				if (unreg) {
+					unreg();
+					this.unregisterHandler = void 0;
+				}
+				if (!this.isExternalRenderTarget) {
+					this.renderTarget = this.renderTargetBase;
+					this.isExternalRenderTarget = this.renderTargetBase != null;
+				}
 			}
 			// console.log('Unregistereing clients from sequencer and close sequencer...');
 			this.sequencer.close();
@@ -1068,14 +1226,7 @@ export default class PlayerImpl {
 		this.startTime = tick;
 	}
 
-	private onRenderMessage(e: MessageEvent) {
-		const data = e.data as unknown as
-			| RenderMessage.AllTypes
-			| null
-			| undefined;
-		if (!data) {
-			return;
-		}
+	private onRenderMessage(data: RenderMessage.AllTypes) {
 		switch (data.type) {
 			case 'rendered':
 				this.queuedFrames += data.data.outFrames;
@@ -1087,8 +1238,8 @@ export default class PlayerImpl {
 				if (data.data.isQueueEmpty && this.allRendered) {
 					// Start timeout for waiting for 'stop' user-marker
 					// (This might not be necessary if 'finish' marker is processed correctly)
-					if (this.timerId !== null) {
-						this.finishTimer = setTimeout(
+					if (this.renderEnabled) {
+						this.finishTimer = this.timer.set(
 							this.onStopForFinishTimeout.bind(this),
 							3000
 						);

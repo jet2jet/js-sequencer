@@ -170,8 +170,12 @@ export default class Player extends PlayerBase {
 	private tempo: number = 500000; // 60000000 / 120
 	private isAllNotesPlayed: boolean = false;
 
-	private constructor(engine: Engine, proxy: PlayerProxy) {
-		super(proxy);
+	private constructor(
+		engine: Engine,
+		proxy: PlayerProxy,
+		audioWorkletScripts?: string[]
+	) {
+		super(proxy, audioWorkletScripts);
 
 		this.engine = engine;
 
@@ -218,6 +222,44 @@ export default class Player extends PlayerBase {
 			sampleRate,
 			Constants.ChannelChordNote
 		).then((p) => new Player(engine, p));
+	}
+
+	/**
+	 * Create the player instance with 'process MIDI events in Audio Worklet' feature.
+	 *
+	 * NOTE: This feature may cause glitch. Consider using `latencyHint: 'playback'`.
+	 *
+	 * @param engine Engine instance to receive sequencer objects
+	 * @param audioContext AudioContext instance for importing AudioWorklet scripts
+	 * @param audioWorkletScripts AudioWorklet scripts including implementations and dependencies
+	 * @param interval timer interval for worker processing (default: 30)
+	 * @param framesCount output frame count per one render process (default: 8192)
+	 * @param sampleRate audio sample rate (default: 48000)
+	 * @return Promise object which resolves with Player instance when initialization is done
+	 */
+	public static instantiateWithAudioWorklet(
+		engine: Engine,
+		audioContext: BaseAudioContext,
+		audioWorkletScripts: string[],
+		interval?: number,
+		framesCount?: number,
+		sampleRate?: number
+	): Promise<Player> {
+		console.warn(
+			'[js-sequencer] This feature may cause glitch due to heavy processing in worklet, so use carefully.'
+		);
+		return PlayerBase.instantiateProxyWithAudioWorklet(
+			audioContext,
+			audioWorkletScripts,
+			{},
+			interval,
+			framesCount,
+			sampleRate,
+			Constants.ChannelChordNote
+		).then((p) => {
+			const player = new Player(engine, p, audioWorkletScripts);
+			return player;
+		});
 	}
 
 	public static convertBackgroundChordsToNotes(

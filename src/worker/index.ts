@@ -5,7 +5,17 @@ function initialize(data: Message.Initialize) {
 	self.importScripts(...data.deps);
 
 	// eslint-disable-next-line no-new
-	new PlayerImpl(data);
+	new PlayerImpl(
+		{
+			set: function (cb, millisec) {
+				return setTimeout(cb, millisec);
+			},
+			clear: function (t) {
+				return clearTimeout(t);
+			},
+		},
+		data
+	);
 }
 
 function onMessage(e: MessageEvent) {

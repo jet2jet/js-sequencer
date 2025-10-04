@@ -5,4 +5,5 @@ export interface AudioWorkletOptions {
 
 export interface AudioWorkletProcessorOptions {
 	options: AudioWorkletOptions;
+	workletProcessMode?: boolean;
 }

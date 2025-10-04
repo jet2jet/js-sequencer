@@ -172,7 +172,7 @@ export default class PlayerBase {
 	private playedFrames: number = 0;
 	private isWaitingForStop: boolean = false;
 
-	protected constructor(proxy: PlayerProxy) {
+	protected constructor(proxy: PlayerProxy, audioWorkletScripts?: string[]) {
 		this.proxy = proxy;
 		proxy.onQueued = this.onQueuedPlayer.bind(this);
 		proxy.onStatus = this.onStatusPlayer.bind(this);
@@ -180,6 +180,10 @@ export default class PlayerBase {
 		proxy.onReset = this.onResetPlayer.bind(this);
 		proxy.onUserData = this.onUserDataPlayer.bind(this);
 		proxy.onUserMarker = this.onUserMarkerPlayer.bind(this);
+		if (audioWorkletScripts) {
+			this.audioWorkletScripts = audioWorkletScripts;
+			this.isWorkletLoaded = true;
+		}
 	}
 
 	public static isSupported(): boolean {
@@ -249,6 +253,54 @@ export default class PlayerBase {
 			framesCount,
 			sampleRate,
 			channelCount || 16
+		);
+	}
+
+	protected static instantiateProxyWithAudioWorklet(
+		audioContext: BaseAudioContext,
+		audioWorkletScripts: string[],
+		options?: Options,
+		interval?: number,
+		framesCount?: number,
+		sampleRate?: number,
+		channelCount?: number
+	): Promise<PlayerProxy> {
+		if (typeof Promise === 'undefined') {
+			throw new Error('Unsupported');
+		}
+		if (audioContext.audioWorklet == null) {
+			throw new Error('Unsupported');
+		}
+		if (audioWorkletScripts.length === 0) {
+			throw new Error('Invalid "audioWorkletScripts"');
+		}
+		if (typeof interval === 'undefined') {
+			interval = Constants.DefaultInterval;
+		}
+		if (typeof framesCount === 'undefined') {
+			framesCount = Constants.FramesCount;
+		}
+		if (typeof sampleRate === 'undefined') {
+			sampleRate = Constants.SampleRate;
+		}
+
+		let promise: Promise<void> = Promise.resolve();
+		for (let i = 0; i < audioWorkletScripts.length; ++i) {
+			const s = audioWorkletScripts[i];
+			promise = promise.then(() =>
+				audioContext.audioWorklet.addModule(s)
+			);
+		}
+
+		return promise.then(() =>
+			PlayerProxy.instantiateWithAudioWorklet(
+				audioContext,
+				options || {},
+				interval,
+				framesCount,
+				sampleRate,
+				channelCount || 16
+			)
 		);
 	}
 
@@ -728,6 +780,7 @@ export default class PlayerBase {
 
 	public setPlayOptions(options: Readonly<Options>): void {
 		this.playOptions = { ...options };
+		this.proxy.setPlayOptions(options);
 	}
 
 	private resetChannel() {
@@ -740,7 +793,15 @@ export default class PlayerBase {
 		if (actxBase) {
 			if (actx && actxBase !== actx) {
 				this.releasePlayer();
-				this.isWorkletLoaded = false;
+				if (this.proxy.isWorkletMode()) {
+					return Promise.reject(
+						new Error(
+							'Another AudioContext is specified for AudioWorklet process mode'
+						)
+					);
+				} else {
+					this.isWorkletLoaded = false;
+				}
 			}
 			this.audio = actx = actxBase;
 		} else if (!actx) {
@@ -842,7 +903,7 @@ export default class PlayerBase {
 		this.playedFrames = 0;
 		this.isWaitingForStop = false;
 
-		// console.log('[PlayerBase] onPlayStart');
+		console.log('[PlayerBase] onPlayStart');
 		this.onPlayStart();
 		this.raiseEventSimple('start');
 	}

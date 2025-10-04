@@ -7,7 +7,7 @@ const packageJson = require('../package.json');
 const LIBRARY_NAME = 'js-sequencer';
 const LIBRARY_FILENAME = 'js-sequencer';
 const LIBRARY_NAMESPACE = 'JSSeq';
-const LIBRARY_VERSION = packageJson.version;
+const LIBRARY_VERSION = packageJson.version + ' ' + getNowString();
 const AUTHOR = packageJson.author;
 
 const sourceRootDir = path.resolve(__dirname, '../src');
@@ -25,6 +25,23 @@ const preparedHeaderText = prependHeaderTextImpl(
 	AUTHOR,
 	LIBRARY_VERSION
 );
+
+function getNowString() {
+	const d = new Date();
+	return (
+		toNumberStringWithZero(d.getFullYear(), 4) +
+		'/' +
+		toNumberStringWithZero(d.getMonth() + 1, 2) +
+		'/' +
+		toNumberStringWithZero(d.getDay(), 2) +
+		' ' +
+		toNumberStringWithZero(d.getHours(), 2) +
+		':' +
+		toNumberStringWithZero(d.getMinutes(), 2) +
+		':' +
+		toNumberStringWithZero(d.getSeconds(), 2)
+	);
+}
 
 /**
  * @param {number|string} num numeric data

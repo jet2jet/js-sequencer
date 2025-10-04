@@ -1,25 +1,26 @@
 {
   "compilerOptions": {
-    "declaration": true,
+    "declaration": false,
     "lib": ["es2017"],
     "newLine": "LF",
     "module": "es6",
     "moduleResolution": "bundler",
     "outDir": "../../dist/lib",
     "paths": {
+      "js-synthesizer/*": ["../../node_modules/js-synthesizer/dist/lib/*"],
       "*": ["../../reference/*", "../../node_modules/*"]
     },
     "removeComments": false,
     "rootDir": "..",
-    "rootDirs": [".", "../common"],
+    "rootDirs": [".", "../common", "../worker"],
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "stripInternal": true,
     "target": "es2017",
-    "typeRoots": ["../../typings"]
+    "typeRoots": []
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../worker/PlayerImpl.ts"],
   "exclude": ["node_modules"]
 }
