@@ -807,6 +807,7 @@ export default class PlayerBase {
 		} else if (!actx) {
 			actx = this.audio = new AudioContext({
 				sampleRate: this.proxy.sampleRate,
+				latencyHint: 'playback',
 			});
 			this.isWorkletLoaded = false;
 		}
