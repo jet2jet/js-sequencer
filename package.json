@@ -45,6 +45,7 @@
     "typecheck:worklet": "tsc --noEmit -p src/worklet/tsconfig.json"
   },
   "devDependencies": {
+    "@types/audioworklet": "^0.0.85",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
     "eslint": "^9.35.0",
@@ -52,13 +53,12 @@
     "eslint-plugin-import-x": "^4.16.1",
     "eslint-plugin-n": "^17.23.0",
     "eslint-plugin-promise": "^7.2.1",
-    "js-synthesizer": "~1.8.3",
+    "js-synthesizer": "^1.11.0",
     "neostandard": "^0.12.2",
     "prettier": "^3.6.2",
     "ts-loader": "^9.5.4",
     "typescript": "~5.9.2",
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1"
-  },
-  "dependencies": {}
+  }
 }

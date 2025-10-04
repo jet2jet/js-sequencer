@@ -1,19 +1,29 @@
-/// <reference types='AudioWorklet' />
+/// <reference types='audioworklet' />
 
+import PlayerImpl, { type LibfluidsynthModule } from '../worker/PlayerImpl';
 import makeDelayProcessRaw, {
 	type DelayMillisecFunction,
 	type CancelDelayMillisecFunction,
 } from './core/makeDelayProcessRaw';
 import FrameQueue from './core/playing/FrameQueue';
 import { type AudioWorkletProcessorOptions } from './types/AudioWorkletTypes';
+import type ITimer from './types/ITimer';
+import type * as Message from './types/MessageData';
 import type * as RenderMessage from './types/RenderMessageData';
+
+type AudioWorkletGlobalScopeConstructorBase = typeof AudioWorkletGlobalScope;
+interface AudioWorkletGlobalScopeConstructor
+	extends AudioWorkletGlobalScopeConstructorBase {
+	JSSynth?: typeof import('js-synthesizer');
+	wasmModule?: LibfluidsynthModule;
+}
 
 interface TimerObject {
 	timeout: number;
 	callback: () => void;
 }
 
-class TimerContainer {
+class TimerContainer implements ITimer<TimerObject> {
 	private readonly timers: TimerObject[] = [];
 
 	constructor(private readonly getTime: (this: unknown) => number) {}
@@ -58,9 +68,9 @@ class Processor extends AudioWorkletProcessor {
 	private isPrerendering = true;
 	private isPaused = false;
 	private isRendering = true;
-	private readonly prerenderFrames: number;
-	private readonly maxQueueFrames: number;
-	private readonly halfMaxQueueFrames: number;
+	private prerenderFrames: number;
+	private maxQueueFrames: number;
+	private halfMaxQueueFrames: number;
 
 	private renderedFrames: number;
 	private statusFrames: number;
@@ -69,14 +79,20 @@ class Processor extends AudioWorkletProcessor {
 	private readonly delaySendStatus: DelayMillisecFunction;
 	private readonly cancelDelaySendStatus: CancelDelayMillisecFunction;
 
-	constructor(options: AudioWorkletNodeOptions) {
-		super(options);
+	private processData:
+		| {
+				player: PlayerImpl<TimerObject>;
+				listeners: Array<(data: RenderMessage.AllTypes) => void>;
+		  }
+		| undefined;
+
+	constructor(options: { processorOptions: AudioWorkletProcessorOptions }) {
+		super();
 
 		const timer = new TimerContainer(() => Date.now());
 		this.timer = timer;
 
-		const processorOptions =
-			options.processorOptions as AudioWorkletProcessorOptions;
+		const processorOptions = options.processorOptions;
 		this.prerenderFrames = processorOptions.options.prerenderFrames;
 		this.maxQueueFrames = processorOptions.options.maxQueueFrames;
 		this.halfMaxQueueFrames = Math.floor((this.maxQueueFrames * 3) / 2);
@@ -107,7 +123,7 @@ class Processor extends AudioWorkletProcessor {
 						isQueueEmpty: false,
 					},
 				};
-				this.port.postMessage(s);
+				this.postRenderMessage(s);
 			}
 		);
 		[this.delaySendStatus, this.cancelDelaySendStatus] = makeDelayProcess(
@@ -122,11 +138,21 @@ class Processor extends AudioWorkletProcessor {
 						isQueueEmpty: false,
 					},
 				};
-				this.port.postMessage(s);
+				this.postRenderMessage(s);
 			}
 		);
 
-		this.port.addEventListener('message', this.onMessage.bind(this));
+		if (processorOptions.workletProcessMode) {
+			this.port.addEventListener(
+				'message',
+				this.onPlayerMessage.bind(this)
+			);
+		} else {
+			this.port.addEventListener(
+				'message',
+				this.onRenderMessage.bind(this)
+			);
+		}
 		this.port.start();
 	}
 
@@ -134,7 +160,12 @@ class Processor extends AudioWorkletProcessor {
 		_inputs: Float32Array[][],
 		outputs: Float32Array[][]
 	): boolean {
+		const frameCount = outputs[0][0].length;
+		// const startTime = Date.now();
 		this.timer.process();
+		if (this.processData != null) {
+			this.processData.player.render(frameCount);
+		}
 
 		if (this.isPrerendering || this.isPaused) {
 			return true;
@@ -152,7 +183,7 @@ class Processor extends AudioWorkletProcessor {
 						sampleRate,
 					},
 				};
-				this.port.postMessage(msg);
+				this.postRenderMessage(msg);
 			}
 		);
 
@@ -163,7 +194,7 @@ class Processor extends AudioWorkletProcessor {
 					type: 'queue',
 					data: { pause: false },
 				};
-				this.port.postMessage(msg);
+				this.postRenderMessage(msg);
 			}
 		}
 
@@ -171,6 +202,9 @@ class Processor extends AudioWorkletProcessor {
 			this.statusFrames += frames;
 			this.delaySendStatus(250);
 		}
+
+		// console.log(`[worklet] process took ${Date.now() - startTime}ms`);
+
 		return true;
 	}
 
@@ -180,12 +214,84 @@ class Processor extends AudioWorkletProcessor {
 		this.port.close();
 	}
 
-	private onMessage(e: MessageEvent) {
+	private postRenderMessage(msg: RenderMessage.AllTypes) {
+		// console.log(
+		// 	`[worklet] postRenderMessage type = ${msg.type}, listeners = ${this.processData?.listeners.length}`
+		// );
+		if (this.processData != null) {
+			for (const l of this.processData.listeners) {
+				l(msg);
+			}
+		} else {
+			this.port.postMessage(msg);
+		}
+	}
+
+	private onPlayerMessage(e: MessageEvent) {
+		const data = e.data as unknown as Message.AllTypes | null | undefined;
+		if (!data) {
+			return;
+		}
+		switch (data.type) {
+			case 'initialize': {
+				const g =
+					AudioWorkletGlobalScope as AudioWorkletGlobalScopeConstructor;
+				if (g.JSSynth == null || g.wasmModule == null) {
+					throw new Error(
+						'Worklet module of js-synthesizer is not loaded.'
+					);
+				}
+				const listeners: NonNullable<
+					typeof this.processData
+				>['listeners'] = [];
+				const player = new PlayerImpl(
+					this.timer,
+					data,
+					true,
+					{
+						addMessageListener: (listener) => {
+							listeners.push(listener);
+							return () => {
+								const i = listeners.indexOf(listener);
+								if (i >= 0) {
+									listeners.splice(i, 1);
+								}
+							};
+						},
+						onMessage: (data) => this.onRenderMessageImpl(data),
+					},
+					g.JSSynth,
+					g.wasmModule
+				);
+				this.queue.clear();
+				this.isRendering = true;
+				this.processData = {
+					player,
+					listeners,
+				};
+				break;
+			}
+			case 'set-play-options': {
+				this.prerenderFrames = data.prerenderFrames;
+				this.maxQueueFrames = data.maxQueueFrames;
+				this.halfMaxQueueFrames = Math.floor(
+					(this.maxQueueFrames * 3) / 2
+				);
+				break;
+			}
+		}
+	}
+
+	private onRenderMessage(e: MessageEvent) {
 		const data: RenderMessage.AllTypes | null | undefined =
 			e.data as unknown as RenderMessage.AllTypes | null | undefined;
 		if (!data || !('type' in data)) {
 			return;
 		}
+		this.onRenderMessageImpl(data);
+	}
+
+	private onRenderMessageImpl(data: RenderMessage.AllTypes) {
 		switch (data.type) {
 			case 'render':
 				{
@@ -211,7 +317,7 @@ class Processor extends AudioWorkletProcessor {
 							type: 'queue',
 							data: { pause: true },
 						};
-						this.port.postMessage(msg);
+						this.postRenderMessage(msg);
 					}
 				}
 				break;
@@ -225,12 +331,13 @@ class Processor extends AudioWorkletProcessor {
 							paused: this.isPaused,
 						},
 					};
-					this.port.postMessage(msg);
+					this.postRenderMessage(msg);
 				}
 				break;
 			case 'stop':
 				this.queue.clear();
 				this.isPaused = false;
+				this.isPrerendering = true;
 				break;
 			case 'release':
 				this.cleanup();

@@ -166,6 +166,14 @@ export interface ResetTime extends Base {
 }
 
 /** @internal */
+export interface SetPlayOptions extends Base {
+	id?: never;
+	type: 'set-play-options';
+	prerenderFrames: number;
+	maxQueueFrames: number;
+}
+
+/** @internal */
 export type AllTypes =
 	| Initialize
 	| Close
@@ -183,4 +191,5 @@ export type AllTypes =
 	| UserEvent
 	| FinishMarker
 	| UserMarker
-	| ResetTime;
+	| ResetTime
+	| SetPlayOptions;
