@@ -904,7 +904,7 @@ export default class PlayerBase {
 		this.playedFrames = 0;
 		this.isWaitingForStop = false;
 
-		console.log('[PlayerBase] onPlayStart');
+		// console.log('[PlayerBase] onPlayStart');
 		this.onPlayStart();
 		this.raiseEventSimple('start');
 	}

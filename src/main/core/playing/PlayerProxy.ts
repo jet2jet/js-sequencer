@@ -191,7 +191,7 @@ export default class PlayerProxy {
 		message: Message.AllTypes,
 		transferable?: Transferable[]
 	) {
-		console.log(`[PlayerProxy] postMessage: type = ${message.type}`);
+		// console.log(`[PlayerProxy] postMessage: type = ${message.type}`);
 		const p = this.port;
 		transferable
 			? p.postMessage(message, transferable)
@@ -527,7 +527,7 @@ export default class PlayerProxy {
 		if (!data) {
 			return;
 		}
-		console.log(`[PlayerProxy] onMessage: type = ${data.type}`);
+		// console.log(`[PlayerProxy] onMessage: type = ${data.type}`);
 		switch (data.type) {
 			case 'stop':
 				if (data.data === this.playingId) {
