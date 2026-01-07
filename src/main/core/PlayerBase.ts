@@ -774,6 +774,10 @@ export default class PlayerBase {
 		}
 	}
 
+	public getSampleRate(): number {
+		return this.proxy.sampleRate;
+	}
+
 	public getPlayOptions(): Readonly<Options> {
 		return { ...this.playOptions };
 	}
