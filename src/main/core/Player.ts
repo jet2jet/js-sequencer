@@ -1135,39 +1135,10 @@ export default class Player extends PlayerBase {
 			// do nothing
 			return true;
 		} else if (o instanceof ControllerControl) {
-			const ch =
-				this.channels[o.channel] ||
-				(this.channels[o.channel] = makeDefaultChannelStatus());
-			if (o.value1 === 0) {
-				// Bank select MSB
-				const val = o.value2 * 0x80;
-				if (typeof ch.bank === 'number') {
-					ch.bank = (ch.bank & 0x7f) + val;
-				} else {
-					ch.bank = val;
-				}
-			} else if (o.value1 === 32) {
-				// Bank select LSB
-				const val = o.value2;
-				if (typeof ch.bank === 'number') {
-					ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
-				} else {
-					ch.bank = val;
-				}
-			} else if (o.value1 === 7) {
-				// Volume MSB
-				return this.changeVolume(o.channel, true, o.value2, time);
-			} else if (o.value1 === 39) {
-				// Volume LSB
-				return this.changeVolume(o.channel, false, o.value2, time);
-			}
-			return this.doSendEvent(
-				{
-					type: JSSynth.SequencerEventTypes.EventType.ControlChange,
-					channel: o.channel,
-					control: o.value1,
-					value: o.value2,
-				},
+			return this.doSendControlChange(
+				o.channel,
+				o.value1,
+				o.value2,
 				time
 			);
 		} else if (o instanceof ProgramChangeControl) {

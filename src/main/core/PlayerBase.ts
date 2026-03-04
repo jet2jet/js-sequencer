@@ -936,15 +936,12 @@ export default class PlayerBase {
 					ev.sfontId
 				);
 			case JSSynth.EventType.ControlChange:
-				if (ev.control === 0x07 || ev.control === 0x27) {
-					return this.changeVolume(
-						ev.channel,
-						ev.control === 0x07,
-						ev.value,
-						time
-					);
-				}
-				break; // use default processing
+				return this.doSendControlChange(
+					ev.channel,
+					ev.control,
+					ev.value,
+					time
+				);
 			case JSSynth.EventType.NoteOn:
 				if (ev.vel === 0) {
 					// Use note-off instead of note-on
@@ -1165,6 +1162,49 @@ export default class PlayerBase {
 		ch.volume = actualValue;
 
 		return true;
+	}
+
+	protected doSendControlChange(
+		channel: number,
+		control: number,
+		value: number,
+		time: TimeValue | null | undefined
+	): boolean {
+		const ch =
+			this.channels[channel] ||
+			(this.channels[channel] = makeDefaultChannelStatus());
+		if (control === 0) {
+			// Bank select MSB
+			const val = value * 0x80;
+			if (typeof ch.bank === 'number') {
+				ch.bank = (ch.bank & 0x7f) + val;
+			} else {
+				ch.bank = val;
+			}
+		} else if (control === 32) {
+			// Bank select LSB
+			const val = value;
+			if (typeof ch.bank === 'number') {
+				ch.bank = Math.floor(ch.bank / 0x80) * 0x80 + val;
+			} else {
+				ch.bank = val;
+			}
+		} else if (control === 7) {
+			// Volume MSB
+			return this.changeVolume(channel, true, value, time);
+		} else if (control === 39) {
+			// Volume LSB
+			return this.changeVolume(channel, false, value, time);
+		}
+		return this.doSendEvent(
+			{
+				type: JSSynth.SequencerEventTypes.EventType.ControlChange,
+				channel,
+				control,
+				value,
+			},
+			time
+		);
 	}
 
 	protected doSendEvent(
